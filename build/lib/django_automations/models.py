@@ -9,6 +9,8 @@ from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.db import models
 
+from . import settings
+
 # Create your models here.
 
 logger = getLogger(__name__)
@@ -100,7 +102,7 @@ class AutomationTaskModel(models.Model):
             null=True,
     )
     message = models.CharField(
-            max_length=128,
+            max_length=settings.MAX_FIELD_LENGTH,
             verbose_name=_("Message"),
             blank=True,
     )

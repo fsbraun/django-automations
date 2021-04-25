@@ -88,12 +88,12 @@ class Node:
         return task_instance
 
     @atomic
-    def release_lock(self, task_instance):
+    def release_lock(self, task_instance: models.AutomationTaskModel):
         task_instance.locked -= 1
         task_instance.save()
         return None
 
-    def leave(self, task_instance):
+    def leave(self, task_instance: models.AutomationTaskModel):
         if task_instance is not None:
             task_instance.finished = now()
             self.release_lock(task_instance)
@@ -113,7 +113,7 @@ class Node:
         return task_instance
 
     @on_execution_path
-    def wait_handler(self, task_instance):
+    def wait_handler(self, task_instance: models.AutomationTaskModel):
         if self._wait is None:
             return task_instance
         earliest_execution = self.eval(self.get_node('_wait'), task_instance)
@@ -170,7 +170,7 @@ class End(Node):
         self._automation._db.save()
         return task
 
-    def leave(self, task_instance):
+    def leave(self, task_instance: models.AutomationTaskModel):
         task_instance.finished = now()
         task_instance.save()
 
@@ -186,7 +186,7 @@ class Repeat(Node):
         self._startpoint = None
 
     @on_execution_path
-    def repeat_handler(self, task_instance):
+    def repeat_handler(self, task_instance: models.AutomationTaskModel):
         if self._startpoint is None:
             self._startpoint = now()
         elif now() < self._startpoint:
@@ -202,7 +202,7 @@ class Repeat(Node):
         db.save()
         return task_instance
 
-    def execute(self, task_instance):
+    def execute(self, task_instance: models.AutomationTaskModel):
         task_instance = super().execute(task_instance)
         return self.repeat_handler(task_instance)
 
@@ -246,7 +246,7 @@ class Execute(Node):
         return func(task_instance, *self.args[1:], **self.kwargs)
 
     @on_execution_path
-    def execute_handler(self, task_instance):
+    def execute_handler(self, task_instance: models.AutomationTaskModel):
         def func(task_instance, *args, **kwargs):
             try:
                 result = self.method(task_instance, *args, **kwargs)
@@ -258,7 +258,7 @@ class Execute(Node):
             except Exception as err:
                 self._err = err
                 try:
-                    task_instance.message = repr(err)[:128]
+                    task_instance.message = repr(err)[:settings.MAX_FIELD_LENGTH]
                     task_instance.result = dict(erro=traceback.format_exc())
                 except TypeError:
                     pass
