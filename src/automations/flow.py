@@ -1,14 +1,17 @@
 # coding=utf-8
 import datetime
 import json
+import sys
 import threading
 import traceback
 from copy import copy
+from types import ModuleType
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.base import ModelBase
 from django.db.transaction import atomic
 from django.utils.timezone import now
+from django.conf import settings as django_settings
 
 from . import models, settings
 
@@ -17,6 +20,7 @@ from . import models, settings
 
 class ThisObject:
     """Wrapper for forward-reference to a named attribute"""
+
     def __init__(self, attr):
         super().__init__()
         self.attr = attr
@@ -24,12 +28,12 @@ class ThisObject:
 
 class This:
     """Generator for reference to a named attribute"""
+
     def __getattr__(self, item):
         return ThisObject(item)
 
 
 this = This()
-
 
 """
 """
@@ -38,13 +42,16 @@ this = This()
 def on_execution_path(m):
     """Wrapper to ensure automatic pausing of automations in
     case of WaitUntil, PauseFor and When"""
+
     def wrapper(self, task_instance, *args, **kwargs):
         return None if task_instance is None else m(self, task_instance, *args, **kwargs)
+
     return wrapper
 
 
 class Node:
     """Parent class for all nodes"""
+
     def __init__(self):
         self._conditions = []
         self._next = None
@@ -55,11 +62,13 @@ class Node:
         return sth(task) if callable(sth) else sth
 
     def ready(self, automation_instance, name):
+        """is called by the newly initialized Automation instance to bind the nodes to the instance."""
         self._automation = automation_instance
         self._name = name
         self._conditions = [automation_instance.get_node(condition) for condition in self._conditions]
 
     def get_automation_name(self):
+        """returns the name of the Automation instance class the node is bound to"""
         return self._automation.__class__.__name__
 
     def __getattribute__(self, item):
@@ -72,7 +81,7 @@ class Node:
 
     def resolve(self, value):
         if isinstance(value, ThisObject):  # This object?
-            value = getattr(self._automation, value.attr)   # get automation attribute
+            value = getattr(self._automation, value.attr)  # get automation attribute
         elif isinstance(value, str) and hasattr(self._automation, value):  # String literal instead of this
             value = getattr(self._automation, value)
         return value
@@ -82,11 +91,11 @@ class Node:
         db = self._automation._db
         assert db.finished is not None, "Node entered w/o previous node left"
         task_instance, _ = db.automationtaskmodel_set.get_or_create(
-                previous=prev_task,
-                status=self._name,
-                defaults=dict(
-                        locked=0,
-                ),
+            previous=prev_task,
+            status=self._name,
+            defaults=dict(
+                locked=0,
+            ),
         )
         if task_instance.locked > 0:
             return None
@@ -242,6 +251,7 @@ class Repeat(Node):
 
 class Split(Node):
     """Spawn several tasks which have to be joined by a Join() node"""
+
     def __init__(self):
         super().__init__()
         self._splits = []
@@ -270,6 +280,7 @@ class Split(Node):
 
 class Join(Node):
     """Collect tasks spawned by Split"""
+
     def __init__(self):
         super().__init__()
 
@@ -281,13 +292,12 @@ class Join(Node):
                 raise ImproperlyConfigured("Join() without Split()")
             all_splits = []
             for open_task in self._automation._db.automationtaskmodel_set.filter(
-                finished=None,
+                    finished=None,
             ):
                 split = self.get_split(open_task)
                 if split and split.id == split_task.id:
                     all_splits.append(open_task)
             assert len(all_splits) > 0, "Internal error: at least one split expected"
-            print("Split:", split_task.id, "All splits:", all_splits)
             if len(all_splits) > 1:  # more than one split at the moment: close this split
                 self.leave(task_instance)
                 return None
@@ -301,7 +311,6 @@ class Join(Node):
                 return split_task
             split_task = split_task.previous  # Go back the history
         return None
-
 
 
 class Execute(Node):
@@ -342,7 +351,7 @@ class Execute(Node):
 
             if kwargs.get("threaded", False):
                 assert self._on_error is None, "No .OnError statement on threaded executions"
-                threading.Thread(target=func, args=[task_instance] + args, kwargs = kwargs).start()
+                threading.Thread(target=func, args=[task_instance] + args, kwargs=kwargs).start()
             else:
                 func(task_instance, *args, **kwargs)
                 if self._err and self._on_error:
@@ -397,6 +406,37 @@ class If(Execute):
         return self.if_handler(task_instance)
 
 
+class Form(Node):
+    def __init__(self, form, *args, **kwargs):
+        super().__init__()
+        self._form = form
+        self._user = None
+        self._group = None
+
+    def execute(self, task_instance: models.AutomationTaskModel):
+        if self._conditions:
+            raise ImproperlyConfigured("UserForm() does not allow .AsSoonAs() decorator")
+        if self._wait:
+            raise ImproperlyConfigured("UserForm() does not allow .AfterWaitingUntil() or .AfterPausingFor() decorator")
+        task_instance = super().execute(task_instance)
+
+        if task_instance is not None:
+            task_instance.interaction_user = self._user
+            task_instance.interaction_group = self._group
+            if not task_instance.data.get("_form_validated", False):
+                task_instance.save()
+                return None
+        return task_instance
+
+    def User(self, user):
+        self._user = user
+        return self
+
+    def Group(self, group):
+        self._group = group
+        return self
+
+
 class Automation:
     model_class = models.AutomationModel
     singleton = False
@@ -426,30 +466,30 @@ class Automation:
 
         if 'automation_id' in kwargs:  # Attach to automation in DB
             self._db, _ = self.model_class.objects.get_or_create(
-                    id=kwargs.pop('automation_id'),
-                    defaults=dict(
-                            automation_class=self.get_automation_class_name(),
-                            finished=False,
-                            data=kwargs,
-                    ))
+                id=kwargs.pop('automation_id'),
+                defaults=dict(
+                    automation_class=self.get_automation_class_name(),
+                    finished=False,
+                    data=kwargs,
+                ))
         elif self.singleton:  # Create or get singleton in DB
             self._db, _ = self.model_class.objects.create_or_get(
-                    automation_class=self.get_automation_class_name(),
+                automation_class=self.get_automation_class_name(),
             )
             self._db.data = kwargs
             self._db.finished = False
             self._db.save()
         else:  # Create new automation in DB
             self._db = self.model_class.objects.create(
-                    automation_class=self.get_automation_class_name(),
-                    finished=False,
-                    data=kwargs,
+                automation_class=self.get_automation_class_name(),
+                finished=False,
+                data=kwargs,
             )
 
     def get_model_instance(self, model, name):
-        if not hasattr(self, '_'+name):
-            setattr(self, '_'+name, model.objects.get(id=self._db.data[name]))
-        return getattr(self, '_'+name)
+        if not hasattr(self, '_' + name):
+            setattr(self, '_' + name, model.objects.get(id=self._db.data[name]))
+        return getattr(self, '_' + name)
 
     def get_automation_class_name(self):
         return self.__module__ + '.' + self.__class__.__name__
@@ -492,7 +532,6 @@ class Automation:
                          kwargs=dict(task_instance=task_instance, next_task=next_task)
                          ).start()
 
-
     def run(self, task_instance=None, next_task=None):
         """Execute automation until external responses are necessary"""
         assert not self.finished(), ValueError("Trying to run an already finished automation")
@@ -512,11 +551,54 @@ class Automation:
             task_instance = next_task.execute(task_instance)
             last, next_task = task_instance, next_task.leave(task_instance)
 
+    @classmethod
+    def get_verbose_name(cls):
+        if hasattr(cls, 'Meta'):
+            if hasattr(cls.Meta, 'verbose_name'):
+                return cls.Meta.verbose_name
+        return f"class {cls.__module__}.{cls.__name__}"
 
-
+    @classmethod
+    def get_verbose_name_plural(cls):
+        if hasattr(cls, 'Meta'):
+            if hasattr(cls.Meta, 'verbose_name_plural'):
+                return cls.Meta.verbose_name
+        return f"classes {cls.__module__}.{cls.__name__}"
 
     def finished(self):
         return self._db.finished
 
+    @classmethod
+    def on(cls, signal, **kwargs):
+        signal.connect(cls.on_signal, **kwargs)
+
+    @classmethod
+    def on_signal(cls, sender, **kwargs):
+        instance = cls()  # Instantiate class
+        if hasattr(instance, 'started_by_signal') and callable(instance.started_by_signal):
+            instance.started_by_signal(sender, kwargs)  # initialize based on sender data
+        instance.run()  # run
+
     def __str__(self):
         return self.__class__.__name__
+
+
+def get_automations(app=None):
+    def check_module(mod):
+        for item in dir(mod):
+            attr = getattr(mod, item)
+            if isinstance(attr, type) and issubclass(attr, Automation):
+                automation_list.append((attr.__module__+'.'+ attr.__name__, attr.get_verbose_name()))
+
+    automation_list = []
+    if app is None:
+        for name, mod in sys.modules.items():
+            if name.rsplit(".")[-1] == "automations":
+                check_module(mod)
+    else:
+        mod = __import__(app)
+        if hasattr(mod, 'automations'):
+            mod = getattr(mod, 'automations')
+            check_module(mod)
+
+    return automation_list

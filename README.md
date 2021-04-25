@@ -8,6 +8,8 @@ Use cases:
 * Simple business processes which require user interactions
 * Running regular tasks
 
+Django-automations works with plain Django but also integrates with Django-CMS.
+
 ## Roadmap
 
 * End of June 2021, core functionality
@@ -34,7 +36,7 @@ After installation add the `automations` to your installed apps in `settings.py`
 # Usage
 
 The basic idea is to add an automation layer to Django's model, view, template structure. The automation layer collects
-in one place all business processes which in a Django app often are distriuted across models, views and any glue code.
+in one place all business processes which in a Django app often are distributed across models, views and any glue code.
 
 **Automations** consist of **tasks** which are carried out one after another. **Modifiers** affect, e.g. when a task is carried out.
 
