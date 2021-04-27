@@ -38,19 +38,23 @@ After installation add the `automations` to your installed apps in `settings.py`
 The basic idea is to add an automation layer to Django's model, view, template structure. The automation layer collects
 in one place all business processes which in a Django app often are distributed across models, views and any glue code.
 
-**Automations** consist of **tasks** which are carried out one after another. **Modifiers** affect, e.g. when a task is carried out.
+**Automations** consist of **tasks** which are carried out one after another. **Modifiers** affect, e.g. when a task is
+carried out.
 
     from automations import flow
-    from automations.flow import this
+    from automations.flow import this  
+    # "this" can be used in a class definition as a replacement for "self"
 
-    """this can be used in a class definition as a replacement for "self" """
+    from . import forms
 
     class ProcessInput(Automation):
         """The process steps are defiend by sequentially adding the corresponding nodes"""
-        start =     flow.Execute(this.get_user_input)
-        check =     flow.If(this.does_not_need_approval).Then(this.process)
-        approval =      flow.Execute(this.get_approval)
-        process =   flow.Execute(this.process_input)
+        start =     flow.Execute(this.get_user_input)                  # Collect input a user has supplied
+        check =     flow.If(
+                        this.does_not_need_approval                    # Need approval?
+                    ).Then(this.process)                               # No? Continue later
+        approval =      flow.Form(forms.ApprovalForm).Group("admins")  # Let admins approve
+        process =   flow.Execute(this.process_input)                   # Generate output
         end =       flow.End()
 
         critical = 10_000
@@ -60,9 +64,6 @@ in one place all business processes which in a Django app often are distributed 
 
         def does_not_need_approval(task_instance):
             return not (task_instance.data['amount'] > self.critical)
-
-        def get_approval(task_instance):
-            ...
 
         def process_input(task_instance):
             ...

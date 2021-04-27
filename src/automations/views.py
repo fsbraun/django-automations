@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.generic import TemplateView, FormView
+from django.forms import BaseForm
 
 from . import models, flow
 
@@ -36,10 +37,17 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         self.task_instance = get_object_or_404(models.AutomationTaskModel, id=self.kwargs["task_id"])
         self.node = self.task_instance.get_node()
 
+    def get_form_kwargs(self):
+        if not hasattr(self, "node"):
+            self.bind_to_node()
+        kwargs = self.node._form_kwargs
+        return kwargs(self.task_instance) if callable(kwargs) else kwargs
+
     def get_form_class(self):
         if not hasattr(self, "node"):
             self.bind_to_node()
-        return self.node._form
+        form = self.node._form
+        return form if issubclass(form, BaseForm) else form(self.task_instance)
 
     def get_context_data(self, **kwargs):
         if not hasattr(self, "node"):

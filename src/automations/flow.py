@@ -178,7 +178,8 @@ class Node:
         return self._automation.save()
 
     def __repr__(self):
-        return f"<{self._automation if self._automation else 'unbound'}: {self.__class__.__name__} node>"
+        return f"<{f'{self._name}: ' if self._automation else ''}" \
+               f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
 
 
 class End(Node):
@@ -415,6 +416,7 @@ class Form(Node):
         self._user = None
         self._group = None
         self._permission = None
+        self._form_kwargs = {}
         self._run = True
 
     def execute(self, task_instance: models.AutomationTaskModel):
@@ -462,7 +464,25 @@ class Form(Node):
         # return self
 
 
-def OnSignal(signal, start=None, **kwargs):
+class ModelForm(Form):
+    def __init__(self, form, key, template_name=None, **kwargs):
+        super().__init__(form, template_name, **kwargs)
+        if hasattr(Automation, key):
+            raise ImproperlyConfigured(f"Chose different key for ModelForm node: {key} is a property of "
+                                       f"flow.Automations")
+        self._instance_key = key
+        self._form_kwargs = self.get_model_from_kwargs
+
+    def get_model_from_kwargs(self, task_instance):
+        model = self._form.Meta.model  # Get model from Form's Meta class
+        if self._instance_key in task_instance.data:
+            instances = model.objects.filter(id=task_instance.data[self._instance_key])
+            return dict(instance=instances[0] if len(instances) == 1 else None)
+        else:
+            return dict()
+
+
+def on_signal(signal, start=None, **kwargs):
     """decorator for automations to connect to Django signals"""
     def decorator(cls):
         def creator(sender, **sargs):
@@ -598,7 +618,7 @@ class Automation:
         if hasattr(cls, 'Meta'):
             if hasattr(cls.Meta, 'verbose_name'):
                 return cls.Meta.verbose_name
-        return f"automation {cls.__name__}"
+        return f"Automation {cls.__name__}"
 
     @classmethod
     def get_verbose_name_plural(cls):
