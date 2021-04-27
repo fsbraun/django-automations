@@ -7,7 +7,7 @@ from .flow import this
 
 # Create your tests here.
 
-class SelfHostedWebinar(flow.Automation):
+class TestAutomation(flow.Automation):
     start =             flow.Execute(this.init)
     intermediate =      flow.Execute("init2")
     end =               flow.End()
@@ -27,10 +27,11 @@ class SelfHostedWebinar(flow.Automation):
 class ModelTestCase(TestCase):
 
     def test_modelsetup(self):
-        x = SelfHostedWebinar()
+        x = TestAutomation()
         qs = models.AutomationModel.objects.all()
         self.assertEqual(len(qs), 1)
-        self.assertEqual(qs[0].automation_class, 'automations.tests.SelfHostedWebinar')
+        self.assertEqual(qs[0].automation_class, 'automations.tests.TestAutomation')
         x.run()
         self.assertIn("participants", x.data)
         self.assertIn("more_participants", x.data)
+        self.assertEqual(x.data["more_participants"], "test")

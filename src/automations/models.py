@@ -45,6 +45,17 @@ class AutomationModel(models.Model):
             auto_now=True,
     )
 
+    _automation_class = None
+
+    def get_automation_class(self):
+        if self._automation_class is None:
+            components = self.automation_class.split('.')
+            cls = __import__(components[0])
+            for path in components[1:]:
+                cls = getattr(cls, path)
+            self._automation_class = cls
+        return self._automation_class
+
     @classmethod
     def run(cls, timestamp=None):
         if timestamp is None:
@@ -116,3 +127,8 @@ class AutomationTaskModel(models.Model):
     @property
     def data(self):
         return self.automation.data
+
+    def get_node(self):
+        cls = self.automation.get_automation_class()
+        instance = cls(automation=self.automation)
+        return getattr(instance, self.status)

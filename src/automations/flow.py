@@ -5,13 +5,12 @@ import sys
 import threading
 import traceback
 from copy import copy
-from types import ModuleType
 
+from django.contrib.auth.models import User, Group
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.base import ModelBase
 from django.db.transaction import atomic
 from django.utils.timezone import now
-from django.conf import settings as django_settings
 
 from . import models, settings
 
@@ -52,10 +51,11 @@ def on_execution_path(m):
 class Node:
     """Parent class for all nodes"""
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self._conditions = []
         self._next = None
         self._wait = None
+        self.description = kwargs.pop('description', '')
 
     @staticmethod
     def eval(sth, task):
@@ -88,8 +88,9 @@ class Node:
 
     @atomic
     def enter(self, prev_task=None):
+        assert prev_task is None or prev_task.finished is not None, "Node entered w/o previous node left"
         db = self._automation._db
-        assert db.finished is not None, "Node entered w/o previous node left"
+        assert isinstance(db, models.AutomationModel)
         task_instance, _ = db.automationtaskmodel_set.get_or_create(
             previous=prev_task,
             status=self._name,
@@ -192,11 +193,11 @@ class End(Node):
 
 
 class Repeat(Node):
-    def __init__(self, start=None):
+    def __init__(self, start=None, **kwargs):
         if start is None:
             start = self._automation.start
 
-        super().__init__()
+        super().__init__(**kwargs)
         self._next = start
         self._interval = None
         self._startpoint = None
@@ -252,8 +253,8 @@ class Repeat(Node):
 class Split(Node):
     """Spawn several tasks which have to be joined by a Join() node"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._splits = []
 
     def Next(self, node):
@@ -281,8 +282,8 @@ class Split(Node):
 class Join(Node):
     """Collect tasks spawned by Split"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def execute(self, task_instance: models.AutomationTaskModel):
         task_instance = super().execute(task_instance)
@@ -315,7 +316,7 @@ class Join(Node):
 
 class Execute(Node):
     def __init__(self, *args, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         self._on_error = None
         self.args = args
         self.kwargs = kwargs
@@ -370,8 +371,8 @@ class Execute(Node):
 
 
 class If(Execute):
-    def __init__(self, condition):
-        super().__init__(None)
+    def __init__(self, condition, **kwargs):
+        super().__init__(None, **kwargs)
         self._condition = condition
         self._then = None
         self._else = None
@@ -407,11 +408,14 @@ class If(Execute):
 
 
 class Form(Node):
-    def __init__(self, form, *args, **kwargs):
-        super().__init__()
+    def __init__(self, form, template_name=None, **kwargs):
+        super().__init__(**kwargs)
         self._form = form
+        self._template_name = template_name
         self._user = None
         self._group = None
+        self._permission = None
+        self._run = True
 
     def execute(self, task_instance: models.AutomationTaskModel):
         if self._conditions:
@@ -421,50 +425,88 @@ class Form(Node):
         task_instance = super().execute(task_instance)
 
         if task_instance is not None:
-            task_instance.interaction_user = self._user
-            task_instance.interaction_group = self._group
-            if not task_instance.data.get("_form_validated", False):
-                task_instance.save()
+            if self._user is None and self._group is None:
+                raise ImproperlyConfigured("From: at least .User or .Group has to be specified")
+            task_instance.interaction_user = self.get_user()
+            task_instance.interaction_group = self.get_group()
+            if task_instance.data.get(f"_{self._name}_validated", None) is None:
+                self.release_lock(task_instance)  # Release lock and stop automation until form is validated
                 return None
-        return task_instance
+        return task_instance  # Continue with validated form
 
-    def User(self, user):
-        self._user = user
+    def validate(self, task_instance: models.AutomationTaskModel, request):
+        task_instance.automation.data[f"_{self._name}_validated"] = request.user.id
+        task_instance.automation.save()
+
+    def User(self, **kwargs):
+        if self._user is not None:
+            raise ImproperlyConfigured("Only one .User modifier for Form")
+        self._user = kwargs
         return self
 
-    def Group(self, group):
-        self._group = group
+    def Group(self, **kwargs):
+        if self._group is not None:
+            raise ImproperlyConfigured("Only one .Group modifier for Form")
+        self._group = kwargs
         return self
+
+    def get_user(self):
+        return User.objects.get(**self._user) if self._user is not None else None
+
+    def get_group(self):
+        return Group.objects.get(**self._group) if self._group is not None else None
+
+    def Permission(self, permission):
+        raise NotImplementedError(".Permission() not implemented")
+        # self._permission = permission
+        # return self
+
+
+def OnSignal(signal, start=None, **kwargs):
+    """decorator for automations to connect to Django signals"""
+    def decorator(cls):
+        def creator(sender, **sargs):
+            automation=cls()
+            if hasattr(automation, 'started_by_signal'):
+                automation.started_by_signal(sender, **sargs)
+            automation.run(None, None if start is None else getattr(automation, start))
+        signal.connect(creator, weak=False, **kwargs)
+        return cls
+    return decorator
 
 
 class Automation:
     model_class = models.AutomationModel
     singleton = False
 
-    start = End()
     end = End()  # Endpoint of automation
 
     def __init__(self, **kwargs):
         super().__init__()
         prev = None
         self._iter = {}
+        self._start = {}
         for name, attr in self.__class__.__dict__.items():
-            if isinstance(attr, Node):
+            if isinstance(attr, Node):  # Init nodes
                 self._iter[prev] = attr
                 attr.ready(self, name)
                 prev = attr
             if isinstance(attr, ModelBase):  # Attach to Model instance
                 at_c = copy(attr)  # Create copies of name and Model (attr)
                 nm_c = copy(name)
-                setattr(self.__class__, name,
-                        property(lambda self: self.get_model_instance(at_c, nm_c), self))
+                setattr(self.__class__, name,  # Replace property by get_model_instance
+                        property(lambda slf: slf.get_model_instance(at_c, nm_c), self))
                 if name not in kwargs:
                     kwargs[name] = None
                 elif not isinstance(kwargs[name], int):  # Convert instance to id
                     kwargs[name] = kwargs[name].id
         self._iter[prev] = None  # Last item
 
-        if 'automation_id' in kwargs:  # Attach to automation in DB
+        if 'automation' in kwargs:
+            self._db = kwargs.pop('automation')
+            assert isinstance(self._db, models.AutomationModel), \
+                "automation= parameter needs to be AutomationModel instance"
+        elif 'automation_id' in kwargs:  # Attach to automation in DB
             self._db, _ = self.model_class.objects.get_or_create(
                 id=kwargs.pop('automation_id'),
                 defaults=dict(
@@ -532,38 +574,38 @@ class Automation:
                          kwargs=dict(task_instance=task_instance, next_task=next_task)
                          ).start()
 
-    def run(self, task_instance=None, next_task=None):
+    def run(self, task_instance=None, next_node=None):
         """Execute automation until external responses are necessary"""
         assert not self.finished(), ValueError("Trying to run an already finished automation")
 
-        if next_task is None:
+        if next_node is None:
             last_tasks = self._db.automationtaskmodel_set.filter(finished=None)
             if len(last_tasks) == 0:  # Start
-                last, next_task = None, self._iter[None]  # First
+                last, next_node = None, self._iter[None]  # First
             else:
                 for last_task in last_tasks:
-                    task = getattr(self, last_task.status)
-                    self.run(last_task.previous, task)
+                    node = getattr(self, last_task.status)
+                    self.run(last_task.previous, node)
                 return
 
-        while next_task is not None:
-            task_instance = next_task.enter(task_instance)
-            task_instance = next_task.execute(task_instance)
-            last, next_task = task_instance, next_task.leave(task_instance)
+        while next_node is not None:
+            task_instance = next_node.enter(task_instance)
+            task_instance = next_node.execute(task_instance)
+            last, next_node = task_instance, next_node.leave(task_instance)
 
     @classmethod
     def get_verbose_name(cls):
         if hasattr(cls, 'Meta'):
             if hasattr(cls.Meta, 'verbose_name'):
                 return cls.Meta.verbose_name
-        return f"class {cls.__module__}.{cls.__name__}"
+        return f"automation {cls.__name__}"
 
     @classmethod
     def get_verbose_name_plural(cls):
         if hasattr(cls, 'Meta'):
             if hasattr(cls.Meta, 'verbose_name_plural'):
                 return cls.Meta.verbose_name
-        return f"classes {cls.__module__}.{cls.__name__}"
+        return f"automations {cls.__name__}"
 
     def finished(self):
         return self._db.finished

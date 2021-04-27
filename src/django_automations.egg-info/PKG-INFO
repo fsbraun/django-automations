@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: django-automations
-Version: 0.0.1
+Version: 0.0.2
 Summary: Processes and automations for your Django project
 Home-page: https://github.com/fsbraun/django-automations
 Author: Fabian Braun

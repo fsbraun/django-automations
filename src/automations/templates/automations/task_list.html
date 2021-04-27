@@ -1,0 +1,18 @@
+{% extends "automations/base.html" %}{% load i18n %}
+{% block content_automations %}{% spaceless %}
+<h1>{% trans "Open tasks for" %} {{ request.user.get_full_name }}</h1>
+{% if count == 0 %}
+<div class="alert alert-success">
+    {% trans "Currently no tasks for you" %}
+</div>
+{% else %}
+<div class="row row-cols-1 row-cols-md-3 row-cols-lg-4">
+    {% for task in user_tasks %}
+        <div class="col mb-3">{% include "automations/includes/task_item.html" with task=task %}</div>
+    {% endfor %}
+    {% for task in group_tasks %}
+        <div class="col mb-3">{% include "automations/includes/task_item.html" with task=task %}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endspaceless %}{% endblock %}
