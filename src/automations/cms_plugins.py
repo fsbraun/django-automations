@@ -38,7 +38,7 @@ try:
             widgets = {
                 'automation':   forms.Select(choices=flow.get_automations()),
             }
-            fields = "__all__" #('automation', 'operation','message', 'kwargs')
+            fields = "__all__"
 
 
     class AutomationHook(CMSPluginBase):

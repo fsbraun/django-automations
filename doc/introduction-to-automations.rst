@@ -1,5 +1,5 @@
-Introduction to Automations
-###########################
+Introduction to Django Automations
+##################################
 
 Automations
 ***********

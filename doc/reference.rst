@@ -10,10 +10,10 @@ flow.Automation
 flow.This and flow.this
 ***********************
 
-Nodes for an automation are specified as class properties. To refer to other notes in the definition of a node Django-automations offers two options:
+Nodes for an automation are specified as class attributes. To refer to other notes in the definition of a node Django-automations offers two options:
 
 1. Reference by string literal: ``.Next("next_node")`` will continue the automation with the node named ``next_node``
-2. Reference using the global ``This`` object instance ``this``: ``.Next(this.next_node)`` refers to the Automation objects ``next_node`` property. Since the classes' properties are not accessible at definition time the this object buffers the reference. It is resolved when an instance is created and executed.
+2. Reference using the global ``This`` object instance ``this``: ``.Next(this.next_node)`` refers to the Automation objects ``next_node`` attribute. Since the classes' attributes are not accessible at definition time the this object buffers the reference. It is resolved when an instance is created and executed.
 
 The ``this`` object serves to avoid unnecessary strings and keep the automation definition less bloated with strings. To use the global ``this`` instance use ``from automations.flow import this``. Alternatively define your own app-specific ``this``:
 
@@ -38,7 +38,7 @@ Base class flow.Node
 
 .. py:class:: flow.Node(*args, **kwargs)
 
-    Base class for all nodes. Modifiers return `self`, i.e., they can be chained as in Javascript. ``SomeNode().AsSoonAs(this.ready).Next(this.end)`` is a valid node with two modifiers. ``*args`` and ``**kwargs`` are ignored. It inherits from ``object``.
+    Base class for all nodes. Modifiers return ``self``, i.e., they can be chained as in Javascript. ``SomeNode().AsSoonAs(this.ready).Next(this.end)`` is a valid node with two modifiers. ``*args`` and ``**kwargs`` are ignored. It inherits from ``object``.
 
     ``flow.Node`` **is never directly used in any automation,** since it is a base class.
 
@@ -53,7 +53,9 @@ It defines the following **modifiers**
 
 .. py:method:: .AsSoonAs(condition)
 
-    Waits for condition before continuing the automation. If condition is `False` the automation is interrupted and ``condition`` is checked the next time the automation instance is run.
+    Waits for condition before continuing the automation. If condition is ``False`` the automation is interrupted and ``condition`` is checked the next time the automation instance is run.
+
+    If ``condition`` is callable it will be called every time the condition needs to be evaluated.
 
 .. py:method:: .AfterWaitingUntil(datetime)
 
@@ -61,17 +63,17 @@ It defines the following **modifiers**
 
 .. py:method:: .AfterPausingFor(timedelta)
 
-    stops the automation for a specific amount of time. This is roughly equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``.
+    stops the automation for a specific amount of time. This is roughly equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``. ``timedelta`` may be a callable.
 
 
-Properties
+Attributes
 ==========
 
 .. py:attribute:: .data
 
-    References a JsonField of the node's automation instance. Each instance of an automation can carry additional data in form of a JsonField. This data is shared by all nodes of the automation. The node's property returns the common JsonField. Any changes in the field need to be saved using `.data.save()` or they might be lost.
+    References a JsonField of the node's automation instance. Each instance of an automation can carry additional data in form of a JsonField. This data is shared by all nodes of the automation instance. The node's attribute returns the common JsonField. Any changes in the field need to be saved using ``.data.save()`` or they might be lost.
 
-    Attached model objects will be referenced by their id in the `.data` property. Beyond this the automation may use the data field to safe its   state in any way it prefers **as long as the dict is json serializable**. This excludes ``datetime`` objects or ``timedelta`` objects.
+    Attached model objects will be referenced by their id in the ``.data`` attribute. Beyond this the automation may use the data field to safe its   state in any way it prefers **as long as the dict is json serializable**. This excludes ``datetime`` objects or ``timedelta`` objects.
 
 Additional methods
 ==================
@@ -88,7 +90,7 @@ Additonal methods differ from modifiers since they do **not** return ``self``.
 
 .. py:method:: resolve(self, value)
 
-    Resolves the value to the node's automation property if ``value`` is either a ``This`` object or a string with the name of a node's automation property.
+    Resolves the value to the node's automation attribute if ``value`` is either a ``This`` object or a string with the name of a node's automation attribute.
 
 
 
@@ -185,7 +187,7 @@ flow.Form
 
 .. py:class:: flow.Form(form, template_name=None, description="")
 
-    Represents a user interaction with a Django Form. The form's class is passed as ``form``. It will be rendered using the optional ``template_name``. If ``template_name`` is not provided, Django automations looks for the ``default_template_name`` property of the automation class. Use the ``default_template_name`` property if all forms of an automation share the same template.
+    Represents a user interaction with a Django Form. The form's class is passed as ``form``. It will be rendered using the optional ``template_name``. If ``template_name`` is not provided, Django automations looks for the ``default_template_name`` attribute of the automation class. Use the ``default_template_name`` attribute if all forms of an automation share the same template.
 
     Also optional is ``description``, a text that explains what the user is expected to do with the form, e.g., validate its entries.
 

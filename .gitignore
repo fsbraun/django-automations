@@ -1,6 +1,9 @@
 /.idea/*
 *.pyc
 /venv/*
-/build/*
 /dist/*
 /_build/*
+/build/
+/_static/
+/_templates/
+/dist/

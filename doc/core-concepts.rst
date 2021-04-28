@@ -3,7 +3,13 @@ Core concepts
 
 Automations are processes
 *************************
-Automations are nothing but well-defined processes.
+Automations are nothing but well-defined processes. While often it is not technically difficult to implement processes with Django projects, maintenance can become quite complex over time if
+
+* different bits of the process are hidden at different places in the code base.
+* documentation of the automations is not complete or out of sync
+* multiple users (i.e., human beings) are involved in one process
+
+Commonly, business processes are described using events, activities and gateways.
 
 Events
 ======
@@ -41,6 +47,9 @@ Assume you have a Django app that collects issues on a list and each week it cre
 issue list for discussion.
 
 .. image:: https://upload.wikimedia.org/wikipedia/commons/c/c0/BPMN-DiscussionCycle.jpg
+    :alt: Business process Issue discussion cycle
+
+Django Automation allows to describe and document the process in one place, a python class (what else?).
 
 This process can be translated into an automation like this
 
@@ -74,26 +83,10 @@ This process can be translated into an automation like this
 Automation states
 =================
 
-Automations have a state, i.e. they execute at one or more tasks.
-All execution points share the same attached model instances and (simple)
-state data. As many instances of an automation may be executed concurrently
-as necessary. Each instance has its own state.
+Automations have a state, i.e. they execute at one or more tasks. All execution points share the same attached model instances and (simple) state data. As many instances of an automation may be executed concurrently as necessary each instance has its own state.
 
-Let's say you wanted to automate the signup process for a webinar.
-Then a single session of a webinar with date and time session might be
-the model instance you wanted to attach to the automation. This means each
-session of the webinar would also have an independent automation instance
-managing the signup process including sending out the webinar link,
-reminding people when the webinar starts or offering a recording after the
-webinar. While during the process the session does not change the list of
-people who have signed up changes but still always refers to the same
+Let's say you wanted to automate the signup process for a webinar. Then a single session of a webinar with date and time might be the model instance you wanted to attach to the automation. This means each session of the webinar  would also have an independent automation instance managing the signup process including sending out the webinar link, reminding people when the webinar starts or offering a recording after the webinar. While during the process the session does not change the list of people who have signed up changes but still always refers to the same
 webinar session.
 
-Django automation has two optional ways of storing state data. The
-first one is **binding model instances to an automation instance** allowing
-for all form of data Django models can handle. Additionally each automation
-instance has **a json-serializable dictionary attached** called ``data``. Since
-it is stored in a Django ``JSONField`` it only may contain combination of basic
-types (link ints, reals, lists, dictionaries, Nones). This data dictionary is
-also used to store results of form interactions or for automation methods
-to keep intermediate states to communicate with each other.
+Django automation has two optional ways of storing state data. The first one is **binding model instances to an automation instance** allowing for all form of data Django models can handle. Additionally each automation
+instance has **a json-serializable dictionary attached** called ``data``. Since it is stored in a Django ``JSONField`` it only may contain combination of basic types (like ``int``, ``real``, ``list``, ``dict``, ``None``). This data dictionary is also used to store results of form interactions or for automation methods to keep intermediate states to communicate with each other.

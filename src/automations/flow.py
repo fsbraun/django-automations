@@ -562,16 +562,16 @@ class Automation:
             return getattr(self, node)
         return node
 
-    def get_task(self):
-        if self._db.finished:
-            raise ValueError("Trying to run an already finished automation")
-
-        last_tasks = self._db.automationtaskmodel_set.filter(finished=None)
-        if len(last_tasks) == 0:  # Start
-            return None, self.start
-        elif len(last_tasks) == 1:  # Last task
-            task = getattr(self, last_tasks[0].status)
-            return task, self.get_node(task._next)
+    # def get_task(self):
+    #     if self._db.finished:
+    #         raise ValueError("Trying to run an already finished automation")
+    #
+    #     last_tasks = self._db.automationtaskmodel_set.filter(finished=None)
+    #     if len(last_tasks) == 0:  # Start
+    #         return None, self._iter[None]
+    #     elif len(last_tasks) == 1:  # Last task
+    #         task = getattr(self, last_tasks[0].status)
+    #         return task, self.get_node(task._next)
 
     @property
     def id(self):
