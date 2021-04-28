@@ -1,16 +1,19 @@
+Core concepts
+#############
+
 Automations are processes
-=========================
+*************************
 Automations are nothing but well-defined processes.
 
 Events
-------
+======
 Events can start an automation or can change its course once it is running. Django automations
 can be started by Django signals (see
 `Django documentation <https://docs.djangoproject.com/en/3.1/topics/signals/>`_) or programmatically
 by instantiating an automation and callings its ``.run()`` method.
 
 Activity
---------
+========
 
 Activities describe work that has to be done, either by the Django application or by an user:
 Send an email or update a model instance are respective examples.
@@ -26,13 +29,13 @@ the results of her work.
 At this point in time Django automations does not offer undoing a task.
 
 Gateways
---------
+========
 
 Gateways change the flow of an automation, e.g., depending on a condition.
 The ``Split()``/``Join()`` gateway allows to parallelize the automation.
 
 Example issue discussion cycle
-==============================
+******************************
 
 Assume you have a Django app that collects issues on a list and each week it creates an
 issue list for discussion.

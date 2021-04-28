@@ -75,4 +75,4 @@ carried out.
 
 # Documentation
 
-See the [repository's wiki](https://github.com/fsbraun/django-automations/wiki).
+See the [documentation on readthedocs.io](https://django-automations.readthedocs.io/).

@@ -3,3 +3,4 @@
 /venv/*
 /build/*
 /dist/*
+/_build/*

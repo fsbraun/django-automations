@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to Django Automations's documentation!
-==============================================
+##############################################
 
 .. toctree::
    :maxdepth: 2
@@ -12,12 +12,11 @@ Welcome to Django Automations's documentation!
 
    doc/home
    doc/core-concepts
-   doc/introducton-to-automations
-
+   doc/introduction-to-automations
+   doc/reference
 
 Indices and tables
-==================
+##################
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

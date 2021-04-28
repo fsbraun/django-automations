@@ -1,5 +1,9 @@
+Introduction to Automations
+###########################
+
 Automations
-===========
+***********
+
 
 In Django, a model is the single, definitive source of information about
 your data. View encapsulate the logic responsible for processing a user’s
@@ -20,7 +24,7 @@ The basics:
 #. All instances of automations are executed. Their states are kept in two models used by all Automations, quite in contrast to Django models where there is a one-to-one correspondence between model and table.
 
 Getting ready
--------------
+*************
 
 Before using the Django automations app, you need to install the package
 using pip. Then `automations has to be added to your project's
@@ -36,7 +40,7 @@ using pip. Then `automations has to be added to your project's
 Finally, run ``python manage.py migrate automations`` to create Django Automations' database tables.
 
 Simple example: WebinarWorkflow
--------------------------------
+*******************************
 
 This automation executes four consecutive tasks before terminating. These tasks have a timely pattern: The reminder is only sent shortly before the webinar begins. The replay offer is sent after the webinar, 2.5 hours after the reminder.
 
@@ -52,8 +56,10 @@ This automation executes four consecutive tasks before terminating. These tasks 
     class WebinarWorkflow(flow.Automation):
         start =             flow.Execute(this.init)
         send_welcome_mail = flow.Execute(webinar.send_welcome_mail)
-        send_reminder =     flow.Execute(webinar.send_reminder_mail).AfterWaitingUntil(webinar.reminder_time)
-        send_replay_offer = flow.Execute(webinar.send_replay_mail).AfterPausingFor(datetime.timedelta(minutes=150))
+        send_reminder =     (flow.Execute(webinar.send_reminder_mail)
+                                .AfterWaitingUntil(webinar.reminder_time))
+        send_replay_offer = (flow.Execute(webinar.send_replay_mail)
+                                .AfterPausingFor(datetime.timedelta(minutes=150)))
         end =               flow.End()
 
         def init(self, task):
@@ -64,7 +70,7 @@ This defines the WebinarWorkflow. Only once a class object is created, the
 create an object by saying ``webinar_workflow = WebinarWorkflow()``.
 
 Nodes
------
+*****
 
 Each task of an automation is expressed by a ``flow.Node``. In the example above
 two node classes are used: ``flow.Execute`` and ``flow.End()``. By making a node
@@ -84,7 +90,7 @@ by ``self``-references at the time of execution of the automation.)
 * To allow for timed execution, some sort of scheduler is needed in the project.
 
 Node types
-...........
+==========
 
 Django Automation has some built-in node types (see [reference](reference)).
 
@@ -105,7 +111,7 @@ fill in a form before the automation continues.
 or edit model instances.
 
 Modifier
-........
+========
 
 Each node can be modified using modifiers. Modifiers are methods of the ``Node``
 class which return ``self`` and therefore can be chained together. This well-known
@@ -129,7 +135,7 @@ Other nodes implement additional modifiers, e.g., ``.Then()`` and
 ``.OnError(next_node)`` in the ``flow.Execute()`` node which defines where to jump should the execution of the specified method raise an exception.
 
 Node inheritance
-................
+================
 
 Especially the ``flow.Execute`` node can be easily subclassed to create specific
 and speaking nodes. E.g., in the above example it might be useful to create a
@@ -143,7 +149,7 @@ node ``SendMail``:
 
 
 Meta options
-------------
+============
 
 Similar to Django's meta options, Django Automations allows to define verbose names for each automation.
 
