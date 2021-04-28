@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 from django.views.generic import TemplateView, FormView
 from django.forms import BaseForm
 
-from . import models, flow
+from . import models, flow, settings
 
 
 class AutomationMixin:
@@ -60,8 +60,12 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         if self.task_instance.finished:
             raise Http404  # Need to display a message: s.o. else has completed form
         self.template_name = (self.node._template_name or
-                              self.get_automation_instance(self.task_instance).default_template_name)
-        return super().get_context_data(**kwargs)
+                              getattr(self.get_automation_instance(self.task_instance), 'default_template_name',
+                                      'automations/form_view.html'))
+        context = super().get_context_data(**kwargs)
+        context.update(getattr(self.node._automation, 'context', settings.FORM_VIEW_CONTEXT))
+        context.update(self.node._context)
+        return context
 
     def form_valid(self, form):
         self.node.validate(self.task_instance, self.request)
@@ -84,15 +88,8 @@ class TaskListView(LoginRequiredMixin, TemplateView):
             return dict(error="not authenticated", message=_("Please login to see your open tasks."))
         if not user.is_active:
             return dict(error="user inactive", message=_("Your account has been deactivated."))
-        qs_user = models.AutomationTaskModel.objects.filter(
-            interaction_user=user,
-            finished=None,
-        )
-        qs_group = models.AutomationTaskModel.objects.filter(
-            interaction_group__in=user.groups.all(),
-            finished=None,
-        )
-        return dict(error="", user_tasks=qs_user, group_tasks=qs_group, count=len(qs_group)+len(qs_user))
+        qs = models.AutomationTaskModel.get_open_tasks(self.request.user)
+        return dict(error="", tasks=qs, count=len(qs))
 
 
 class TaskDashboard(TemplateView):

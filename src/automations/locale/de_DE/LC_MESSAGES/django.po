@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-20 00:00+0200\n"
+"POT-Creation-Date: 2021-04-28 12:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,42 +17,106 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: apps.py:8
+#: apps.py:8 cms_plugins.py:21 cms_plugins.py:46
 msgid "Automations"
 msgstr "Automatisierung"
 
-#: models.py:25
-msgid "Process class"
-msgstr ""
+#: cms_plugins.py:20
+msgid "Task list"
+msgstr "Aufgaben-Liste"
 
-#: models.py:29
+#: cms_plugins.py:45
+msgid "Callback hook"
+msgstr "Rückrüf Hook"
+
+#: models.py:32
+msgid "Process class"
+msgstr "Prezess-Klasse"
+
+#: models.py:36
 msgid "Finished"
 msgstr "Beendet"
 
-#: models.py:32
+#: models.py:39
 msgid "Data"
 msgstr "Daten"
 
-#: models.py:37
+#: models.py:44
 msgid "Paused until"
 msgstr "Pausiert bis"
 
-#: models.py:75
+#: models.py:89
 msgid "Previous task"
 msgstr "Vorherige Aufgabe"
 
-#: models.py:80
+#: models.py:94
 msgid "Status"
 msgstr ""
 
-#: models.py:84
+#: models.py:98
 msgid "Locked"
-msgstr ""
+msgstr "Gesperrt"
 
-#: models.py:104
+#: models.py:118
 msgid "Message"
 msgstr "Nachricht"
 
-#: models.py:108
+#: models.py:122
 msgid "Result"
 msgstr "Ergebnis"
+
+#: models.py:156
+msgid "Template"
+msgstr "Vorlage"
+
+#: models.py:162
+msgid "Start automaton"
+msgstr "Automatisierung starten"
+
+#: models.py:163
+msgid "Automation callback"
+msgstr "Automatisierungs-Rückruf"
+
+#: models.py:168
+msgid "Automation"
+msgstr "Automatisierung"
+
+#: models.py:180
+msgid "Callback message"
+msgstr "Rückruf-Nachricht"
+
+#: models.py:186
+msgid "Automation creation kwargs"
+msgstr "kwargs zur Erstellung der Automatisierung"
+
+#: settings.py:16
+msgid "Default template"
+msgstr "Standardvorlage"
+
+#: templates/automations/includes/form_view.html:6
+msgid "Back"
+msgstr "Zurück"
+
+#: templates/automations/includes/form_view.html:8
+msgid "OK"
+msgstr "OK"
+
+#: templates/automations/includes/task_item.html:6
+msgid "View"
+msgstr "Ansehen"
+
+#: templates/automations/task_list.html:3
+msgid "Open tasks for"
+msgstr "Offne Aufgaben für"
+
+#: templates/automations/task_list.html:6
+msgid "Currently no tasks for you"
+msgstr "Derzeit keine offenen Aufgaben"
+
+#: views.py:88
+msgid "Please login to see your open tasks."
+msgstr ""
+
+#: views.py:90
+msgid "Your account has been deactivated."
+msgstr ""

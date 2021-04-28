@@ -1,0 +1,10 @@
+{% load crispy_forms_tags i18n %}{% spaceless %}
+  <form id="form" novalidate action="" method="post">
+    {% csrf_token %}
+    {% crispy form %}
+    {% if request.GET.back %}
+      <a href="{{ request.GET.back }}" class="{{ back_classes }}">{% trans "Back" %}</a>
+    {% endif %}
+    <input type="submit" value="{{ claim|default:_('OK') }}" class="{{ submit_classes }}"/>
+  </form>
+{% endspaceless %}

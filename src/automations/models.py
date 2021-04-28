@@ -3,6 +3,7 @@
 import sys
 from logging import getLogger
 
+from django import forms
 from django.db.models import Q
 from django.utils.module_loading import import_string
 from django.utils.timezone import now
@@ -16,8 +17,12 @@ from . import settings
 logger = getLogger(__name__)
 
 
-def empty_dict():
-    return {}
+def get_automation_class(dotted_name):
+    components = dotted_name.split('.')
+    cls = __import__(components[0])
+    for path in components[1:]:
+        cls = getattr(cls, path)
+    return cls
 
 
 class AutomationModel(models.Model):
@@ -32,7 +37,7 @@ class AutomationModel(models.Model):
     )
     data = models.JSONField(
             verbose_name=_("Data"),
-            default = empty_dict,
+            default = dict,
     )
     paused_until = models.DateTimeField(
             null=True,
@@ -49,11 +54,7 @@ class AutomationModel(models.Model):
 
     def get_automation_class(self):
         if self._automation_class is None:
-            components = self.automation_class.split('.')
-            cls = __import__(components[0])
-            for path in components[1:]:
-                cls = getattr(cls, path)
-            self._automation_class = cls
+            self._automation_class = get_automation_class(self.automation_class)
         return self._automation_class
 
     @classmethod
@@ -121,7 +122,7 @@ class AutomationTaskModel(models.Model):
             verbose_name=_("Result"),
             null=True,
             blank=True,
-            default=empty_dict,
+            default=dict,
     )
 
     @property
@@ -132,3 +133,58 @@ class AutomationTaskModel(models.Model):
         cls = self.automation.get_automation_class()
         instance = cls(automation=self.automation)
         return getattr(instance, self.status)
+
+    @classmethod
+    def get_open_tasks(cls, user):
+        return cls.objects.filter(finished=None).filter(
+            Q(interaction_user=user) | Q(interaction_group__in=user.groups.all())
+        )
+
+
+"""Soft dependency: models for django-cms plugins"""
+
+try:
+    from cms.models import CMSPlugin
+    from cms.models.fields import PageField
+
+    class AutomationTasksPlugin(CMSPlugin):
+        template = models.CharField(
+            max_length=settings.MAX_FIELD_LENGTH,
+            choices=settings.TASK_LIST_TEMPLATES,
+            default=settings.TASK_LIST_TEMPLATES[0][0],
+            blank=False,
+            verbose_name=_("Template"),
+        )
+
+
+    class AutomationHookPlugin(CMSPlugin):
+        class OperationChoices(models.IntegerChoices):
+            start = 0, _("Start automaton")
+            callback = 1, _("Automation callback")
+
+        automation = models.CharField(
+            blank=False,
+            max_length=settings.MAX_FIELD_LENGTH,
+            verbose_name=_("Automation"),
+        )
+
+        operation = models.IntegerField(
+            null=False,
+            choices=OperationChoices.choices,
+            default=OperationChoices.callback,
+        )
+
+        message = models.CharField(
+            max_length=settings.MAX_FIELD_LENGTH,
+            blank=True,
+            verbose_name=_("Callback message"),
+        )
+
+        kwargs = models.JSONField(
+            blank=True,
+            default=dict,
+            verbose_name=_("Automation creation kwargs"),
+        )
+
+except ImportError:
+    pass

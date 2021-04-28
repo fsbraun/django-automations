@@ -33,6 +33,11 @@ After installation add the `automations` to your installed apps in `settings.py`
         'automations',
     )
 
+The last step is tun run the necessary migrations using the `manage.py` command:
+
+    python manage.py migrate automations
+
+
 # Usage
 
 The basic idea is to add an automation layer to Django's model, view, template structure. The automation layer collects

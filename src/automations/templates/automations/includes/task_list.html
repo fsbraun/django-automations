@@ -1,0 +1,7 @@
+{% load i18n %}{% spaceless %}
+  <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4">
+    {% for task in tasks %}
+      <div class="col mb-3">{% include "automations/includes/task_item.html" with task=task %}</div>
+    {% endfor %}
+  </div>
+{% endspaceless %}

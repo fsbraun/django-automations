@@ -1,5 +1,6 @@
 # coding=utf-8
 import datetime
+import functools
 import json
 import sys
 import threading
@@ -21,7 +22,6 @@ class ThisObject:
     """Wrapper for forward-reference to a named attribute"""
 
     def __init__(self, attr):
-        super().__init__()
         self.attr = attr
 
 
@@ -39,9 +39,9 @@ this = This()
 
 
 def on_execution_path(m):
-    """Wrapper to ensure automatic pausing of automations in
+    """Decorator to ensure automatic pausing of automations in
     case of WaitUntil, PauseFor and When"""
-
+    @functools.wraps(m)
     def wrapper(self, task_instance, *args, **kwargs):
         return None if task_instance is None else m(self, task_instance, *args, **kwargs)
 
@@ -409,9 +409,10 @@ class If(Execute):
 
 
 class Form(Node):
-    def __init__(self, form, template_name=None, **kwargs):
+    def __init__(self, form, template_name=None, context=None, **kwargs):
         super().__init__(**kwargs)
         self._form = form
+        self._context = context if context is not None else {}
         self._template_name = template_name
         self._user = None
         self._group = None
@@ -420,10 +421,6 @@ class Form(Node):
         self._run = True
 
     def execute(self, task_instance: models.AutomationTaskModel):
-        if self._conditions:
-            raise ImproperlyConfigured("UserForm() does not allow .AsSoonAs() decorator")
-        if self._wait:
-            raise ImproperlyConfigured("UserForm() does not allow .AfterWaitingUntil() or .AfterPausingFor() decorator")
         task_instance = super().execute(task_instance)
 
         if task_instance is not None:
@@ -485,6 +482,7 @@ class ModelForm(Form):
 def on_signal(signal, start=None, **kwargs):
     """decorator for automations to connect to Django signals"""
     def decorator(cls):
+        @functools.wraps(cls)
         def creator(sender, **sargs):
             automation=cls()
             if hasattr(automation, 'started_by_signal'):
@@ -630,6 +628,15 @@ class Automation:
     def finished(self):
         return self._db.finished
 
+    def receive_message(self, message, request):
+        pass
+
+    def start_from_request(self, request):
+        pass
+
+    def kill_automation(self):
+        self._db.delete()
+
     @classmethod
     def on(cls, signal, **kwargs):
         signal.connect(cls.on_signal, **kwargs)
@@ -664,3 +671,4 @@ def get_automations(app=None):
             check_module(mod)
 
     return automation_list
+

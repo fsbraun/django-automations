@@ -5,6 +5,7 @@ setup.cfg
 src/automations/__init__.py
 src/automations/admin.py
 src/automations/apps.py
+src/automations/cms_plugins.py
 src/automations/flow.py
 src/automations/models.py
 src/automations/settings.py
@@ -15,10 +16,6 @@ src/automations/management/__init__.py
 src/automations/management/commands/__init__.py
 src/automations/management/commands/automation_step.py
 src/automations/migrations/0001_initial.py
-src/automations/migrations/0002_auto_20210419_1617.py
-src/automations/migrations/0003_automationtaskmodel_result.py
-src/automations/migrations/0004_auto_20210419_1727.py
-src/automations/migrations/0005_automationtaskmodel_message.py
 src/automations/migrations/__init__.py
 src/django_automations.egg-info/PKG-INFO
 src/django_automations.egg-info/SOURCES.txt

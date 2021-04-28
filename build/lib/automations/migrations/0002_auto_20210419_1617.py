@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='automationmodel',
             name='data',
-            field=models.JSONField(default=automations.models.empty_dict, verbose_name='Data'),
+            field=models.JSONField(default=dict, verbose_name='Data'),
         ),
     ]
