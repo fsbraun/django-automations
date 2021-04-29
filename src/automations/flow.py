@@ -19,7 +19,7 @@ from . import models, settings
 """To allow forward references in Automation object "this" is defined"""
 
 
-class ThisObject:
+class ThisAttribute:
     """Wrapper for forward-reference to a named attribute"""
 
     def __init__(self, attr):
@@ -30,7 +30,7 @@ class This:
     """Generator for reference to a named attribute"""
 
     def __getattr__(self, item):
-        return ThisObject(item)
+        return ThisAttribute(item)
 
 
 this = This()
@@ -74,14 +74,14 @@ class Node:
 
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
-        if isinstance(value, ThisObject) or (isinstance(value, str) and hasattr(self._automation, value)
-                                             and item != '_name' and item != '_automation'):
+        if isinstance(value, ThisAttribute) or (isinstance(value, str) and hasattr(self._automation, value)
+                                                and item != '_name' and item != '_automation'):
             value = self.resolve(value)
             setattr(self, item, value)  # remember
         return value
 
     def resolve(self, value):
-        if isinstance(value, ThisObject):  # This object?
+        if isinstance(value, ThisAttribute):  # This object?
             value = getattr(self._automation, value.attr)  # get automation attribute
         elif isinstance(value, str) and hasattr(self._automation, value):  # String literal instead of this
             value = getattr(self._automation, value)
@@ -567,7 +567,7 @@ class Automation:
 
     def get_node(self, node):
         """Resolve ThisObject references"""
-        if isinstance(node, ThisObject):
+        if isinstance(node, ThisAttribute):
             return getattr(self, node.attr)
         elif isinstance(node, str) and hasattr(self, node):
             return getattr(self, node)

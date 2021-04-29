@@ -1,5 +1,5 @@
-Django automations documentation
-################################
+Why Django Automations
+######################
 
 Business logic
 **************

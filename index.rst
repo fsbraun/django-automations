@@ -11,8 +11,8 @@ Welcome to Django Automations's documentation!
    :caption: Contents:
 
    doc/home
-   doc/core-concepts
    doc/introduction-to-automations
+   doc/core-concepts
    doc/reference
 
 Indices and tables

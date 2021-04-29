@@ -1,5 +1,5 @@
-Introduction to Django Automations
-##################################
+Getting started
+###############
 
 Automations
 ***********
@@ -23,8 +23,8 @@ The basics:
 #. Each`attribute represents a task node, quite similar to Django models
 #. All instances of automations are executed. Their states are kept in two models used by all Automations, quite in contrast to Django models where there is a one-to-one correspondence between model and table.
 
-Getting ready
-*************
+Preparing your Django project
+*****************************
 
 Before using the Django automations app, you need to install the package
 using pip. Then `automations has to be added to your project's

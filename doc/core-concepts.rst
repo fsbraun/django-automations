@@ -3,7 +3,7 @@ Core concepts
 
 Automations are processes
 *************************
-Automations are nothing but well-defined processes. While often it is not technically difficult to implement processes with Django projects, maintenance can become quite complex over time if
+As you have seen in the simple example above, automations are nothing but well-defined processes. While often it is not technically difficult to implement processes with Django projects, maintenance can become quite complex over time if
 
 * different bits of the process are hidden at different places in the code base.
 * documentation of the automations is not complete or out of sync
@@ -81,7 +81,7 @@ This process can be translated into an automation like this
 
 
 Automation states
-=================
+*****************
 
 Automations have a state, i.e. they execute at one or more tasks. All execution points share the same attached model instances and (simple) state data. As many instances of an automation may be executed concurrently as necessary each instance has its own state.
 
@@ -90,3 +90,13 @@ webinar session.
 
 Django automation has two optional ways of storing state data. The first one is **binding model instances to an automation instance** allowing for all form of data Django models can handle. Additionally each automation
 instance has **a json-serializable dictionary attached** called ``data``. Since it is stored in a Django ``JSONField`` it only may contain combination of basic types (like ``int``, ``real``, ``list``, ``dict``, ``None``). This data dictionary is also used to store results of form interactions or for automation methods to keep intermediate states to communicate with each other.
+
+
+Request-response cycle and scheduling
+*************************************
+
+Practically all automations pause or wait for other processes to finish most of the time.
+
+From time to time, the automations have to be checked if they can advance. This is the task of a scheduler outside this package. The scheduler may, e.g., call the class method ``models.AutomationModel.run``. Additionally, Django Automations offers a :ref:`new management command<Management command>` ``python manage.py automation_step`` that can be invoked by an external scheduler.
+
+Also, an automation may advance, e.g., after an processing form has been filled and validated. Then the automation may advance within the request-response cycle of the POST request of the form. To keep the web app responsive, all automation steps need to be fast. Optionally, Django Automations allows to spawn threads for the background processes.

@@ -83,7 +83,7 @@ class TaskListView(LoginRequiredMixin, TemplateView):
         return dict(error="", tasks=qs, count=len(qs))
 
 
-class TaskDashboard(TemplateView):
+class TaskDashboardView(TemplateView):
     template_name = 'automations/dashboard.html'
 
     def get_context_data(self, **kwargs):

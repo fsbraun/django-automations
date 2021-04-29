@@ -2,10 +2,13 @@ Reference
 #########
 
 
+Automations
+***********
+
+Automations are subclasses of the ``flow.Automation`` class.
+
 flow.Automation
-***************
-
-
+===============
 
 flow.This and flow.this
 ***********************
@@ -33,19 +36,24 @@ The ``this`` object serves to avoid unnecessary strings and keep the automation 
             ...
 
 
-Base class flow.Node
-********************
+Nodes
+******************************
+
+flow.Node
+=========
 
 .. py:class:: flow.Node(*args, **kwargs)
 
-    Base class for all nodes. Modifiers return ``self``, i.e., they can be chained as in Javascript. ``SomeNode().AsSoonAs(this.ready).Next(this.end)`` is a valid node with two modifiers. ``*args`` and ``**kwargs`` are ignored. It inherits from ``object``.
+    Base class for all nodes. Nodes are only functional if bound to ``flow.Automation`` subclass as attributes.  ``*args`` and ``**kwargs`` are ignored. It inherits from ``object``.
 
-    ``flow.Node`` **is never directly used in any automation,** since it is a base class.
+Nodes use the concept of modifiers to come to a somewhat human readable syntax. Modifiers are methods that return ``self``, the node's instance. This implies that modifier be chained just as in Javascript. ``SomeNode().AsSoonAs(this.ready).Next(this.end)`` is a valid node with two modifiers.
+
+``flow.Node`` **is never directly used in any automation,** since it is a base class.
 
 Modifiers for all subclasses of flow.Node
-=========================================
+-----------------------------------------
 
-It defines the following **modifiers**
+The ``flow.Node`` class defines the following **modifiers** common to all subclasses. Some subclasses, however, add specific modifiers for their use.
 
 .. py:method:: .Next(node)
 
@@ -67,7 +75,7 @@ It defines the following **modifiers**
 
 
 Attributes
-==========
+----------
 
 .. py:attribute:: .data
 
@@ -76,7 +84,7 @@ Attributes
     Attached model objects will be referenced by their id in the ``.data`` attribute. Beyond this the automation may use the data field to safe its   state in any way it prefers **as long as the dict is json serializable**. This excludes ``datetime`` objects or ``timedelta`` objects.
 
 Additional methods
-==================
+------------------
 
 Additional methods differ from modifiers since they do **not** return ``self``.
 
@@ -93,9 +101,6 @@ Additional methods differ from modifiers since they do **not** return ``self``.
     Resolves the value to the node's automation attribute if ``value`` is either a ``This`` object or a string with the name of a node's automation attribute.
 
 
-
-Subclasses of form.Node
-***********************
 
 
 flow.End
@@ -187,9 +192,9 @@ flow.Form
 
 .. py:class:: flow.Form(form, template_name=None, description="")
 
-    Represents a user interaction with a Django Form. The form's class is passed as ``form``. It will be rendered using the optional ``template_name``. If ``template_name`` is not provided, Django automations looks for the ``default_template_name`` attribute of the automation class. Use the ``default_template_name`` attribute if all forms of an automation share the same template.
+    Represents a user interaction with a Django Form. The form's class is passed as ``form``. It will be rendered using the optional ``template_name``. If ``template_name`` is not provided, Django automations looks for the ``default_template_name`` attribute of the automation class. Use the ``default_template_name`` attribute if all forms of an automation share the same template. If neither is given Django Automations will fall back to ``"automations/form_view.html"``.
 
-    Also optional is ``description``, a text that explains what the user is expected to do with the form, e.g., validate its entries.
+    Also optional is ``description``, a text that explains what the user is expected to do with the form, e.g., validate its entries. The description can, e.g., be shown to a user when editing the form, or in her task list.
 
 The ``flow.Form`` has two extra modifiers to assign the task to a user or a group of users:
 
@@ -203,7 +208,7 @@ The ``flow.Form`` has two extra modifiers to assign the task to a user or a grou
 
 .. py:method:: .Permission(str)
 
-    assigns the form to all users who have the permission given by a string dot-formatted: ``app_name.codename``. ``app_name`` ist the name of the Django app which provides the permission and ``codename`` is the permission's name. An example could be ``my_app.add_mymodel``. This permission allows an user to add an instance of My_App's ``MyModel`` model. For details on permissions see `Django's Permission documentation <https://docs.djangoproject.com/en/dev/topics/auth/default/#permissions-and-authorization>`_. Multiple `.Permission(str)` can be added implying the a user woulde require **all** permissions requested.
+    assigns the form to all users who have the permission given by a string dot-formatted: ``app_name.codename``. ``app_name`` ist the name of the Django app which provides the permission and ``codename`` is the permission's name. An example could be ``my_app.add_mymodel``. This permission allows an user to add an instance of My_App's ``MyModel`` model. For details on permissions see `Django's Permission documentation <https://docs.djangoproject.com/en/dev/topics/auth/default/#permissions-and-authorization>`_. Multiple ``.Permission(str)`` modifiers can be added implying the a user woulde require **all** permissions requested.
 
 If more than one modifier is given, ``.User``, ``.Group``, and ``.Permission`` have all to be satisfied. If a user loses a required group membership he cannot process the form any more. The same is true for permissions. Superusers  can always process the form.
 
@@ -230,12 +235,86 @@ The result is a list of tuples, the first one being the automations dotted path,
 Django-CMS integration
 **********************
 
-Teh Django-CMS dependency is weak, i.e. if the Django-CMS package is not installed, Django Automations will not force an installation. Instead all functionality in this section will just not be available.
+Teh `Django-CMS <https://www.django-cms.org/>`_ dependency is weak, i.e. if the Django-CMS package is not installed, Django Automations will not force an installation. Instead all functionality in this section will just not be available.
 
 Alternatively pure Django users can use :ref:`template tags<Template tags>` instead.
 
-views
+CMS Plugins
+===========
+
+AutomationTaskList
+------------------
+
+AutomationHook
+--------------
+
+Views
 *****
+
+TaskView
+========
+
+TaskListView
+============
+
+Templates
+*********
+
+Django Automation comes with simplistic templates. They are largely thought to be a reference for implementing your project-specific set of templates which probably include some more markup to adapt to your project's look and feel.
+
+All template can be replaced simply by offering alternatives in your project's template folder. This is the structure:
+
+::
+
+    └── automations
+        ├── base.html
+        ├── empty_template.html
+        ├── form_view.html
+        ├── includes
+        │   ├── form_view.html
+        │   ├── task_item.html
+        │   └── task_list.html
+        └── task_list.html
+
+
+The templates can be replaced individually. It is not necessary (though certainly possible) to replicate the whole tree.
+
+The templates in the ``includes`` subdirectory are also used by the :ref:`Django-CMS plugins<CMS Plugins>`.
+
+
+base.html
+=========
+
+All other templates extend automation's base template. Modify this template to bind into your project's template hierarchy.
+
+empty_template.html
+===================
+
+Literally an empty file. Only necessary for the :ref:`Django-CMS plugin AutomationHook<AutomationHook>`. The automation hook does not render anything by using this template.
+
+form_view.html
+==============
+
+This is a simple fall-back template if no templates are given in a ``Form()`` node. Ideally, you specify the correct template by note or process. See :ref:`flow.Form<flow.Form>`.
+
+
+task_list.html
+==============
+
+This is the template used by the ``TaskListView``.
+
 
 Template tags
 *************
+
+Management command
+*******************
+
+
+.. code-block:: bash
+
+    python manage.py automation_step
+
+This wrapper calls the class method ``models.AutomationModel.run()`` which in turn lets all automations run which are not waiting for a response (filled form, other condition) or a certain point in time.
+
+
