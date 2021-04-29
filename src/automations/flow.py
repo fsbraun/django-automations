@@ -417,7 +417,7 @@ class Form(Node):
         self._template_name = template_name
         self._user = None
         self._group = None
-        self._permission = None
+        self._permissions = []
         self._form_kwargs = {}
         self._run = True
 
@@ -457,15 +457,18 @@ class Form(Node):
         return Group.objects.get(**self._group) if self._group is not None else None
 
     def Permission(self, permission):
-        self._permission = permission
+        self._permissions.append(permission)
         return self
 
     def get_users_with_permission(self):
-        perm = Permission.objects.get(codename=self._permission)
-        users = User.objects.filter(
-            Q(**self._user) & Q(group_set__contains=self._group) &
-            (Q(groups__permissions=perm) | Q(user_permissions=perm))
-        ).distinct()
+        perm = Permission.objects.filter(codename__in=self._permissions)
+        filter = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
+        if self._user is not None:
+            filter = filter & Q(**self._user)
+        if self._group is not None:
+            filter = filter & Q(group_set__contains=self._group)
+        print(filter)
+        users = User.objects.filter(filter).distinct()
         return users
 
 

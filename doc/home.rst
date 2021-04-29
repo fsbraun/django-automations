@@ -33,8 +33,8 @@ Implementation
 
 The implementation is done with a few objectives in mind:
 
-* **Lightweight:** Django-automations builds on proven Django elements:
-* **Python syntax:** Just like models are Python classes, automations are Python classes built in a similar way (from Nodes in stead of ModelFields)
+* **Lightweight:** Django-automations builds on proven Django elements: Models to keep the state of the processes and forms to manage user interaction.
+* **Python syntax:** Just like models or forms are Python classes, automations are Python classes built in a similar way (from Nodes in stead of ModelFields or FormFields)
 * **Easy extensibility:** To keep the core light, it is designed to allow for easy customization in a project.
 
 Benefits

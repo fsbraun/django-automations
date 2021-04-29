@@ -1,7 +1,9 @@
 {% load crispy_forms_tags i18n %}{% spaceless %}
-  <form id="form" novalidate action="" method="post">
+  <form class="automations form" novalidate action="{{ request.get_full_path }}" method="post">
     {% csrf_token %}
+    <div class="crispy">
     {% crispy form %}
+    </div>
     {% if request.GET.back %}
       <a href="{{ request.GET.back }}" class="{{ back_classes }}">{% trans "Back" %}</a>
     {% endif %}

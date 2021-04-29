@@ -4,7 +4,8 @@ import sys
 from logging import getLogger
 
 from django import forms
-from django.db.models import Q
+from django.contrib.auth.models import Permission, User
+from django.db.models import Q, QuerySet
 from django.utils.module_loading import import_string
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
@@ -37,7 +38,7 @@ class AutomationModel(models.Model):
     )
     data = models.JSONField(
             verbose_name=_("Data"),
-            default = dict,
+            default=dict,
     )
     paused_until = models.DateTimeField(
             null=True,
@@ -101,11 +102,18 @@ class AutomationTaskModel(models.Model):
             'auth.User',
             null=True,
             on_delete=models.PROTECT,
+            verbose_name=_("Assigned user"),
     )
     interaction_group = models.ForeignKey(
             'auth.Group',
             null=True,
             on_delete=models.PROTECT,
+            verbose_name=_("Assigned group"),
+    )
+    interaction_permissions = models.JSONField(
+        default=list,
+        verbose_name=_("Required permissions"),
+        help_text=_("List of permissions of the form app_label.codename"),
     )
     created = models.DateTimeField(
             auto_now_add=True,
@@ -129,6 +137,20 @@ class AutomationTaskModel(models.Model):
     def data(self):
         return self.automation.data
 
+    def get_users_with_permission(self, include_superusers=True,
+                                  backend="django.contrib.auth.backends.ModelBackend"):
+
+        users = User.objects.all()
+        for permission in self.interaction_permissions:
+            users &= User.objects.with_perm(permission, include_superusers=False, backend=backend)
+        if self.interaction_user is not None:
+            users = users.filter(id=self.interaction_user_id)
+        if self.interaction_group is not None:
+            users = users.filter(groups=self.interaction_group)
+        if include_superusers:
+            users |= User.objects.filter(is_superuser=True)
+        return users
+
     def get_node(self):
         cls = self.automation.get_automation_class()
         instance = cls(automation=self.automation)
@@ -136,9 +158,8 @@ class AutomationTaskModel(models.Model):
 
     @classmethod
     def get_open_tasks(cls, user):
-        return cls.objects.filter(finished=None).filter(
-            Q(interaction_user=user) | Q(interaction_group__in=user.groups.all())
-        )
+        candidates = cls.objects.filter(finished=None)
+        return tuple(task for task in candidates if user in task.get_users_with_permission())
 
 
 """Soft dependency: models for django-cms plugins"""

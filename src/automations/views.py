@@ -6,7 +6,6 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.utils.translation import gettext as _
 from django.views.generic import TemplateView, FormView
 from django.forms import BaseForm
 
@@ -25,13 +24,6 @@ class AutomationMixin:
         return self._automation_instance
 
 
-    @staticmethod
-    def user_in_group(user, group):
-        if group is None:
-            return False
-        return user.groups.filter(id=group.id).exists()
-
-
 class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
     def bind_to_node(self):
         self.task_instance = get_object_or_404(models.AutomationTaskModel, id=self.kwargs["task_id"])
@@ -40,13 +32,16 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
     def get_form_kwargs(self):
         if not hasattr(self, "node"):
             self.bind_to_node()
-        kwargs = self.node._form_kwargs
-        return kwargs(self.task_instance) if callable(kwargs) else kwargs
+        kwargs = super().get_form_kwargs()
+        task_kwargs = self.node._form_kwargs
+        kwargs.update(task_kwargs(self.task_instance) if callable(task_kwargs) else task_kwargs)
+        return kwargs
 
     def get_form_class(self):
         if not hasattr(self, "node"):
             self.bind_to_node()
         form = self.node._form
+        print("get_form_class", form)
         return form if issubclass(form, BaseForm) else form(self.task_instance)
 
     def get_context_data(self, **kwargs):
@@ -54,20 +49,21 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
             self.bind_to_node()
         if not isinstance(self.node, flow.Form):
             raise Http404
-        if (self.request.user != self.task_instance.interaction_user and
-                not self.user_in_group(self.request.user, self.task_instance.interaction_group)):
+        if self.request.user not in self.task_instance.get_users_with_permission():
             raise PermissionDenied
         if self.task_instance.finished:
             raise Http404  # Need to display a message: s.o. else has completed form
-        self.template_name = (self.node._template_name or
-                              getattr(self.get_automation_instance(self.task_instance), 'default_template_name',
-                                      'automations/form_view.html'))
+        self.template_name = (
+                self.node._template_name or
+                getattr(self.get_automation_instance(self.task_instance), 'default_template_name',
+                        'automations/form_view.html'))
         context = super().get_context_data(**kwargs)
         context.update(getattr(self.node._automation, 'context', settings.FORM_VIEW_CONTEXT))
         context.update(self.node._context)
         return context
 
     def form_valid(self, form):
+        print("FORM VALID")
         self.node.validate(self.task_instance, self.request)
         if self.node._run:
             self.node._automation.run(self.task_instance.previous, self.node)
@@ -83,11 +79,6 @@ class TaskListView(LoginRequiredMixin, TemplateView):
     template_name = 'automations/task_list.html'
 
     def get_context_data(self, **kwargs):
-        user = self.request.user
-        if not user.is_authenticated:
-            return dict(error="not authenticated", message=_("Please login to see your open tasks."))
-        if not user.is_active:
-            return dict(error="user inactive", message=_("Your account has been deactivated."))
         qs = models.AutomationTaskModel.get_open_tasks(self.request.user)
         return dict(error="", tasks=qs, count=len(qs))
 

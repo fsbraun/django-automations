@@ -201,7 +201,11 @@ The ``flow.Form`` has two extra modifiers to assign the task to a user or a grou
 
     assigns the form to all members of a user group. Selectors typically are only ``id=1`` or ``name="admins"``.
 
-If both are given both the user and any user of the group can process the form. At least one of the two modifiers is required. The ``**kwargs`` are used to identify the user/group by passing them to the ``User`` model. Examples might be ``.User(id=1)``, ``.User(username='admin')`` or ``.Group(name='Management')``.
+.. py:method:: .Permission(str)
+
+    assigns the form to all users who have the permission given by a string dot-formatted: ``app_name.codename``. ``app_name`` ist the name of the Django app which provides the permission and ``codename`` is the permission's name. An example could be ``my_app.add_mymodel``. This permission allows an user to add an instance of My_App's ``MyModel`` model. For details on permissions see `Django's Permission documentation <https://docs.djangoproject.com/en/dev/topics/auth/default/#permissions-and-authorization>`_. Multiple `.Permission(str)` can be added implying the a user woulde require **all** permissions requested.
+
+If more than one modifier is given, ``.User``, ``.Group``, and ``.Permission`` have all to be satisfied. If a user loses a required group membership he cannot process the form any more. The same is true for permissions. Superusers  can always process the form.
 
 The automation will continue as soon as the form is submitted and validated, i.e. in the request response cycle. If you need to execute an action after this step consider using a threaded ``Execute()`` not to keep the user waiting for too long.
 
