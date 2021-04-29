@@ -125,10 +125,10 @@ that is to be executed (a little bit like goto).
 Modifiers for all nodes (with the exception for ``flow.Form`` and
 ``flow.ModelForm``) are
 
-* ``.Next(node)`` sets the node to continue with after finishing this node. If omitted the automation continues with the chronologically next node of the class. `.Next` resembles a goto statement. `.Next` takes a string or a `This` object as a parameter. A string denotes the name of the next node. The this object allows for a different syntax. `.Next("next_node")` and `this.next_node` are equivalent.
-* ``.AsSoonAs(condition)`` waits for condition before continuing the automation. If condition is `False` the automation is interrupted and `condition` is checked the next time the automation instance is run.
-* ``.AfterWaitingUntil(datetime)`` stops the automation until the specific datetime has passed. Note that depending on how the scheduler runs the automation there might be a significant time slip between `datetime` and the real execution time. It is only guaranteed that the node is not executed before. `datetime` may be a callable.
-* ``.AfterPausingFor(timedelta)`` stops the automation for a specific amount of time. This is equivalent to `.AfterWaitingUntil(lambda x: now()+timedelta)`.
+* ``.Next(node)`` sets the node to continue with after finishing this node. If omitted the automation continues with the chronologically next node of the class. ``.Next`` resembles a goto statement. ``.Next`` takes a string or a ``This`` object as a parameter. A string denotes the name of the next node. The this object allows for a different syntax. ``.Next("next_node")`` and ``.Next(this.next_node)`` are equivalent.
+* ``.AsSoonAs(condition)`` waits for condition before continuing the automation. If condition is ``False`` the automation is interrupted and ``condition`` is checked the next time the automation instance is run.
+* ``.AfterWaitingUntil(datetime)`` stops the automation until the specific datetime has passed. Note that depending on how the scheduler runs the automation there might be a significant time slip between ``datetime`` and the real execution time. It is only guaranteed that the node is not executed before. ``datetime`` may be a callable.
+* ``.AfterPausingFor(timedelta)`` stops the automation for a specific amount of time. This is equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``.
 
 Other nodes implement additional modifiers, e.g., ``.Then()`` and
 ``.Else()`` in the ``If()`` node. A different example is

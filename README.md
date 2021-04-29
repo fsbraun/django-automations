@@ -58,7 +58,7 @@ carried out.
         check =     flow.If(
                         this.does_not_need_approval                    # Need approval?
                     ).Then(this.process)                               # No? Continue later
-        approval =      flow.Form(forms.ApprovalForm).Group("admins")  # Let admins approve
+        approval =      flow.Form(forms.ApprovalForm).Group(name="admins")  # Let admins approve
         process =   flow.Execute(this.process_input)                   # Generate output
         end =       flow.End()
 

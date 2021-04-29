@@ -78,17 +78,17 @@ Attributes
 Additional methods
 ==================
 
-Additonal methods differ from modifiers since they do **not** return ``self``.
+Additional methods differ from modifiers since they do **not** return ``self``.
 
 .. py:method:: .ready(self, automation_instance)
 
     Is called by the newly initialized Automation instance to bind the nodes to the instance. Typically, there is no need to call it from other apps.
 
-.. py:method:: get_automation_name(self)
+.. py:method:: .get_automation_name(self)
 
     Returns the (dotted) name of the Automation instance class the node is bound to. Automations are identified by this name.
 
-.. py:method:: resolve(self, value)
+.. py:method:: .resolve(self, value)
 
     Resolves the value to the node's automation attribute if ``value`` is either a ``This`` object or a string with the name of a node's automation attribute.
 
@@ -159,7 +159,7 @@ flow.If
 
     contains either a callable that is Executed (see ``flow.Execute``) or a reference to another node where the automation is continued, if the condition is ``True``.
 
-.. py:method: .Else(parameter)
+.. py:method:: .Else(parameter)
 
     specifies what is to be done in case the condition is ``False``. If it is omitted the automation continues with the next node.
 

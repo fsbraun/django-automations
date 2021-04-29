@@ -1,5 +1,5 @@
 Django automations documentation
-##################
+################################
 
 Business logic
 **************
@@ -17,8 +17,8 @@ and pieces of the same process appear in different views which in turn access
 several models and their logic.
 
 Django-automations aims to add another layer where business logic can be
-maintained centrally. Just like models live in `models.py`, views in `views.py`
-automations are made to live in an app's `automations.py`.
+maintained centrally. Just like models live in ``models.py``, views in ``views.py``
+automations are made to live in an app's ``automations.py``.
 
 Automations connect different tasks, may they be automatic or require
 user-interaction, to lead to a predefined result. Conditionals allow to
@@ -39,9 +39,11 @@ The implementation is done with a few objectives in mind:
 
 Benefits
 ********
+
 * **Transparency:** Business logic in one place
-* **Maintainability:** Changes in business logic do not happen in several models or views, just in `automations.py`.
+* **Maintainability:** Changes in business logic do not happen in several models or views, just in ``automations.py``.
 * **Time savings:** Less code to write
 * **Extendability:** Automations can be extended while "running" as long as the names of existing states remain the same.
 
 Enjoy!
+******

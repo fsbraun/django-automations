@@ -7,8 +7,9 @@ import threading
 import traceback
 from copy import copy
 
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models import Q
 from django.db.models.base import ModelBase
 from django.db.transaction import atomic
 from django.utils.timezone import now
@@ -456,9 +457,16 @@ class Form(Node):
         return Group.objects.get(**self._group) if self._group is not None else None
 
     def Permission(self, permission):
-        raise NotImplementedError(".Permission() not implemented")
-        # self._permission = permission
-        # return self
+        self._permission = permission
+        return self
+
+    def get_users_with_permission(self):
+        perm = Permission.objects.get(codename=self._permission)
+        users = User.objects.filter(
+            Q(**self._user) & Q(group_set__contains=self._group) &
+            (Q(groups__permissions=perm) | Q(user_permissions=perm))
+        ).distinct()
+        return users
 
 
 class ModelForm(Form):
