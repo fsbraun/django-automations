@@ -34,6 +34,7 @@ def runtests(test_path='automations'):
 
         # Configure test environment
         settings.configure(
+            SECRET_KEY="verysecretkeyfortesting",
             DATABASES=DATABASES,
             INSTALLED_APPS=(
                 'django.contrib.contenttypes',
