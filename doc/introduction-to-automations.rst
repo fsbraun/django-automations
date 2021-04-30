@@ -37,7 +37,14 @@ using pip. Then `automations has to be added to your project's
         'automations',
     )
 
-Finally, run ``python manage.py migrate automations`` to create Django Automations' database tables.
+Finally, run both
+
+.. code-block:: bash
+
+    python manage.py makemigrations automations
+    python manage.py migrate automations
+
+to create Django Automations' database tables.
 
 Simple example: WebinarWorkflow
 *******************************

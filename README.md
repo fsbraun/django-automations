@@ -33,8 +33,9 @@ After installation add the `automations` to your installed apps in `settings.py`
         'automations',
     )
 
-The last step is tun run the necessary migrations using the `manage.py` command:
+The last step is to create and run the necessary migrations using the `manage.py` command:
 
+    pathon manage.py makemigrations automations
     python manage.py migrate automations
 
 
