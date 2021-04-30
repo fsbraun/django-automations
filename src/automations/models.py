@@ -165,10 +165,10 @@ class AutomationTaskModel(models.Model):
 """Soft dependency: models for django-cms plugins"""
 
 try:
-    from cms.models import CMSPlugin
-    from cms.models.fields import PageField
+    from cms.models import CMSPlugin                # pragma: no cover
+    from cms.models.fields import PageField         # pragma: no cover
 
-    class AutomationTasksPlugin(CMSPlugin):
+    class AutomationTasksPlugin(CMSPlugin):         # pragma: no cover
         template = models.CharField(
             max_length=settings.MAX_FIELD_LENGTH,
             choices=settings.TASK_LIST_TEMPLATES,
@@ -178,7 +178,7 @@ try:
         )
 
 
-    class AutomationHookPlugin(CMSPlugin):
+    class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
         class OperationChoices(models.IntegerChoices):
             start = 0, _("Start automaton")
             callback = 1, _("Automation callback")

@@ -10,3 +10,5 @@
 /manage.py
 /db.sqlite3
 /pkg/
+/.coverage
+/htmlcov/

@@ -66,7 +66,7 @@ class Node:
         """is called by the newly initialized Automation instance to bind the nodes to the instance."""
         self._automation = automation_instance
         self._name = name
-        self._conditions = [automation_instance.get_node(condition) for condition in self._conditions]
+        self._conditions = [self.resolve(condition) for condition in self._conditions]
 
     def get_automation_name(self):
         """returns the name of the Automation instance class the node is bound to"""
@@ -225,31 +225,37 @@ class Repeat(Node):
         task = super().execute(task)
         return self.repeat_handler(task)
 
-    def EveryDayAt(self, hour, minute):
-        if self._interval is not None:
-            raise ImproperlyConfigured(f"Multiple interval statements")
-        self._interval = datetime.timedelta(days=1)
+    def At(self, hour, minute):
+        if self._interval is None:
+            raise ImproperlyConfigured(f"Repeat().At: interval statement necessary before")
+        if self._interval < datetime.timedelta(days=1):
+            raise ImproperlyConfigured(f"Repeat().At: interval >= one day required")
+        if self._startpoint is not None:
+            raise ImproperlyConfigured(f"Repeat(): Only one .At modifier possible")
         self._startpoint = now()
         self._startpoint.replace(hour=hour, minute=minute)
         return self
 
     def EveryHour(self, hours=1):
         if self._interval is not None:
-            raise ImproperlyConfigured(f"Multiple interval statements")
+            raise ImproperlyConfigured(f"Repeat(): Multiple interval statements")
         self._interval = datetime.timedelta(hours=hours)
         return self
 
     def EveryNMinutes(self, minutes):
         if self._interval is not None:
-            raise ImproperlyConfigured(f"Multiple interval statements")
+            raise ImproperlyConfigured(f"Repeat(): Multiple interval statements")
         self._interval = datetime.timedelta(minutes=minutes)
         return self
 
     def EveryNDays(self, days):
         if self._interval is not None:
-            raise ImproperlyConfigured(f"Multiple interval statements")
+            raise ImproperlyConfigured(f"Repeat(): Multiple interval statements")
         self._interval = datetime.timedelta(days=days)
         return self
+
+    def EveryDay(self):
+        return self.EveryNthDays(days=1)
 
 
 class Split(Node):
@@ -266,7 +272,7 @@ class Split(Node):
     def execute(self, task: models.AutomationTaskModel):
         task = super().execute(task)
         if task:
-            assert len(self._splits) > 0, "at least on .Next statement needed for Split()"
+            assert len(self._splits) > 0, "at least one .Next statement needed for Split()"
             db = self._automation._db
             tasks = list(
                 db.automationtaskmodel_set.create(  # Create splits
@@ -565,24 +571,13 @@ class Automation:
     def get_automation_class_name(self):
         return self.__module__ + '.' + self.__class__.__name__
 
-    def get_node(self, node):
-        """Resolve ThisObject references"""
-        if isinstance(node, ThisAttribute):
-            return getattr(self, node.attr)
-        elif isinstance(node, str) and hasattr(self, node):
-            return getattr(self, node)
-        return node
-
-    # def get_task(self):
-    #     if self._db.finished:
-    #         raise ValueError("Trying to run an already finished automation")
-    #
-    #     last_tasks = self._db.automationtaskmodel_set.filter(finished=None)
-    #     if len(last_tasks) == 0:  # Start
-    #         return None, self._iter[None]
-    #     elif len(last_tasks) == 1:  # Last task
-    #         task = getattr(self, last_tasks[0].status)
-    #         return task, self.get_node(task._next)
+    # def get_node(self, node):
+    #     """Resolve ThisObject references"""
+    #     if isinstance(node, ThisAttribute):
+    #         return getattr(self, node.attr)
+    #     elif isinstance(node, str) and hasattr(self, node):
+    #         return getattr(self, node)
+    #     return node
 
     @property
     def id(self):
@@ -633,8 +628,8 @@ class Automation:
     def get_verbose_name_plural(cls):
         if hasattr(cls, 'Meta'):
             if hasattr(cls.Meta, 'verbose_name_plural'):
-                return cls.Meta.verbose_name
-        return f"automations {cls.__name__}"
+                return cls.Meta.verbose_name_plural
+        return f"Automations {cls.__name__}"
 
     def finished(self):
         return self._db.finished

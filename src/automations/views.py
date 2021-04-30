@@ -41,7 +41,6 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         if not hasattr(self, "node"):
             self.bind_to_node()
         form = self.node._form
-        print("get_form_class", form)
         return form if issubclass(form, BaseForm) else form(self.task)
 
     def get_context_data(self, **kwargs):

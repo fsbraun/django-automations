@@ -1,0 +1,12 @@
+[report]
+exclude_lines =
+    raise NotImplementedError
+    raise ImproperlyConfigured
+    def __repr__
+    def __str__
+    pragma: no cover
+
+
+[run]
+omit =
+    */cms_plugins.py
