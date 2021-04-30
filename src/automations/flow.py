@@ -43,8 +43,8 @@ def on_execution_path(m):
     """Decorator to ensure automatic pausing of automations in
     case of WaitUntil, PauseFor and When"""
     @functools.wraps(m)
-    def wrapper(self, task_instance, *args, **kwargs):
-        return None if task_instance is None else m(self, task_instance, *args, **kwargs)
+    def wrapper(self, task, *args, **kwargs):
+        return None if task is None else m(self, task, *args, **kwargs)
 
     return wrapper
 
@@ -92,29 +92,29 @@ class Node:
         assert prev_task is None or prev_task.finished is not None, "Node entered w/o previous node left"
         db = self._automation._db
         assert isinstance(db, models.AutomationModel)
-        task_instance, _ = db.automationtaskmodel_set.get_or_create(
+        task, _ = db.automationtaskmodel_set.get_or_create(
             previous=prev_task,
             status=self._name,
             defaults=dict(
                 locked=0,
             ),
         )
-        if task_instance.locked > 0:
+        if task.locked > 0:
             return None
-        task_instance.locked += 1
-        task_instance.save()
-        return task_instance
+        task.locked += 1
+        task.save()
+        return task
 
     @atomic
-    def release_lock(self, task_instance: models.AutomationTaskModel):
-        task_instance.locked -= 1
-        task_instance.save()
+    def release_lock(self, task: models.AutomationTaskModel):
+        task.locked -= 1
+        task.save()
         return None
 
-    def leave(self, task_instance: models.AutomationTaskModel):
-        if task_instance is not None:
-            task_instance.finished = now()
-            self.release_lock(task_instance)
+    def leave(self, task: models.AutomationTaskModel):
+        if task is not None:
+            task.finished = now()
+            self.release_lock(task)
             if self._next is None:
                 next_node = self._automation._iter[self]
             else:
@@ -124,28 +124,28 @@ class Node:
             return next_node
 
     @on_execution_path
-    def when_handler(self, task_instance):
+    def when_handler(self, task):
         for condition in self._conditions:
-            if not self.eval(condition, task_instance):
-                return self.release_lock(task_instance)
-        return task_instance
+            if not self.eval(condition, task):
+                return self.release_lock(task)
+        return task
 
     @on_execution_path
-    def wait_handler(self, task_instance: models.AutomationTaskModel):
+    def wait_handler(self, task: models.AutomationTaskModel):
         if self._wait is None:
-            return task_instance
-        earliest_execution = self.eval(self._wait, task_instance)
+            return task
+        earliest_execution = self.eval(self._wait, task)
         if earliest_execution < now():
-            return task_instance
+            return task
         if self._automation._db.paused_until:
             self._automation._db.paused_until = min(self._automation._db.paused_until, earliest_execution)
         else:
             self._automation._db.paused_until = earliest_execution
         self._automation._db.save()
-        return self.release_lock(task_instance)
+        return self.release_lock(task)
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        return self.when_handler(self.wait_handler(task_instance))
+    def execute(self, task: models.AutomationTaskModel):
+        return self.when_handler(self.wait_handler(task))
 
     def Next(self, next_node):
         if self._next is not None:
@@ -189,9 +189,9 @@ class End(Node):
         self._automation._db.save()
         return task
 
-    def leave(self, task_instance):
-        task_instance.finished = now()
-        task_instance.save()
+    def leave(self, task):
+        task.finished = now()
+        task.save()
 
 
 class Repeat(Node):
@@ -205,25 +205,25 @@ class Repeat(Node):
         self._startpoint = None
 
     @on_execution_path
-    def repeat_handler(self, task_instance):
+    def repeat_handler(self, task):
         if self._startpoint is None:
             self._startpoint = now()
         elif now() < self._startpoint:
-            return self.release_lock(task_instance)
+            return self.release_lock(task)
         db = self._automation._db
         if db.paused_until:
             if now() < db.paused_until:
-                return self.release_lock(task_instance)
+                return self.release_lock(task)
         else:
             db.paused_until = self._startpoint
         while self._automation._db.paused_until < now():
             db.paused_until += self._interval
         db.save()
-        return task_instance
+        return task
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        task_instance = super().execute(task_instance)
-        return self.repeat_handler(task_instance)
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
+        return self.repeat_handler(task)
 
     def EveryDayAt(self, hour, minute):
         if self._interval is not None:
@@ -263,22 +263,22 @@ class Split(Node):
         self._splits.append(node)
         return self
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        task_instance = super().execute(task_instance)
-        if task_instance:
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
+        if task:
             assert len(self._splits) > 0, "at least on .Next statement needed for Split()"
             db = self._automation._db
             tasks = list(
                 db.automationtaskmodel_set.create(  # Create splits
-                    previous=task_instance,
+                    previous=task,
                     status=self.resolve(split)._name,
                     locked=0,
                 ) for split in self._splits)
-            self.leave(task_instance)
+            self.leave(task)
             for task in tasks:
                 self._automation.run(task.previous, getattr(self._automation, task.status))  # Run other splits
             return None
-        return task_instance
+        return task
 
 
 class Join(Node):
@@ -287,10 +287,10 @@ class Join(Node):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        task_instance = super().execute(task_instance)
-        if task_instance:
-            split_task = self.get_split(task_instance)
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
+        if task:
+            split_task = self.get_split(task)
             if split_task is None:
                 raise ImproperlyConfigured("Join() without Split()")
             all_splits = []
@@ -302,12 +302,12 @@ class Join(Node):
                     all_splits.append(open_task)
             assert len(all_splits) > 0, "Internal error: at least one split expected"
             if len(all_splits) > 1:  # more than one split at the moment: close this split
-                self.leave(task_instance)
+                self.leave(task)
                 return None
-        return task_instance
+        return task
 
-    def get_split(self, task_instance):
-        split_task = task_instance.previous
+    def get_split(self, task):
+        split_task = task.previous
         while split_task is not None:
             node = getattr(self._automation, split_task.status)
             if isinstance(node, Split):
@@ -324,27 +324,27 @@ class Execute(Node):
         self.kwargs = kwargs
         self._err = None
 
-    def method(self, task_instance, *args, **kwargs):
+    def method(self, task, *args, **kwargs):
         func = args[0]
-        return func(task_instance, *self.args[1:], **self.kwargs)
+        return func(task, *self.args[1:], **self.kwargs)
 
     @on_execution_path
-    def execute_handler(self, task_instance: models.AutomationTaskModel):
-        def func(task_instance, *args, **kwargs):
+    def execute_handler(self, task: models.AutomationTaskModel):
+        def func(task, *args, **kwargs):
             try:
-                result = self.method(task_instance, *args, **kwargs)
-                task_instance.message = "OK"
+                result = self.method(task, *args, **kwargs)
+                task.message = "OK"
                 try:  # Check if result is json serializable
                     json.dumps(result)
                 except ValueError:
-                    task_instance.result = None
+                    task.result = None
                 else:
-                    task_instance.result = result  # if yes, store it
+                    task.result = result  # if yes, store it
             except Exception as err:
                 self._err = err
                 try:
-                    task_instance.message = repr(err)[:settings.MAX_FIELD_LENGTH]
-                    task_instance.result = dict(erro=traceback.format_exc())
+                    task.message = repr(err)[:settings.MAX_FIELD_LENGTH]
+                    task.result = dict(erro=traceback.format_exc())
                 except TypeError:
                     pass
 
@@ -354,16 +354,16 @@ class Execute(Node):
 
             if kwargs.get("threaded", False):
                 assert self._on_error is None, "No .OnError statement on threaded executions"
-                threading.Thread(target=func, args=[task_instance] + args, kwargs=kwargs).start()
+                threading.Thread(target=func, args=[task] + args, kwargs=kwargs).start()
             else:
-                func(task_instance, *args, **kwargs)
+                func(task, *args, **kwargs)
                 if self._err and self._on_error:
                     self._next = self._on_error
-        return task_instance
+        return task
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        task_instance = super().execute(task_instance)
-        return self.execute_handler(task_instance)
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
+        return self.execute_handler(task)
 
     def OnError(self, next_node):
         if self._on_error is not None:
@@ -392,21 +392,21 @@ class If(Execute):
         return self
 
     @on_execution_path
-    def if_handler(self, task_instance: models.AutomationTaskModel):
+    def if_handler(self, task: models.AutomationTaskModel):
         if self._then is None:
             raise ImproperlyConfigured(f"Missing .Then statement")
-        opt = self._then if self.eval(self._condition, task_instance) \
+        opt = self._then if self.eval(self._condition, task) \
             else self._else
         if isinstance(opt, Node):
             self._next = opt
         elif opt is not None:
             self._func = opt
-            return self.execute_handler(task_instance)
-        return task_instance
+            return self.execute_handler(task)
+        return task
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        task_instance = super().execute(task_instance)
-        return self.if_handler(task_instance)
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
+        return self.if_handler(task)
 
 
 class Form(Node):
@@ -421,22 +421,22 @@ class Form(Node):
         self._form_kwargs = {}
         self._run = True
 
-    def execute(self, task_instance: models.AutomationTaskModel):
-        task_instance = super().execute(task_instance)
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
 
-        if task_instance is not None:
+        if task is not None:
             if self._user is None and self._group is None:
                 raise ImproperlyConfigured("From: at least .User or .Group has to be specified")
-            task_instance.interaction_user = self.get_user()
-            task_instance.interaction_group = self.get_group()
-            if task_instance.data.get(f"_{self._name}_validated", None) is None:
-                self.release_lock(task_instance)  # Release lock and stop automation until form is validated
+            task.interaction_user = self.get_user()
+            task.interaction_group = self.get_group()
+            if task.data.get(f"_{self._name}_validated", None) is None:
+                self.release_lock(task)  # Release lock and stop automation until form is validated
                 return None
-        return task_instance  # Continue with validated form
+        return task  # Continue with validated form
 
-    def validate(self, task_instance: models.AutomationTaskModel, request):
-        task_instance.automation.data[f"_{self._name}_validated"] = request.user.id
-        task_instance.automation.save()
+    def validate(self, task: models.AutomationTaskModel, request):
+        task.automation.data[f"_{self._name}_validated"] = request.user.id
+        task.automation.save()
 
     def User(self, **kwargs):
         if self._user is not None:
@@ -481,10 +481,10 @@ class ModelForm(Form):
         self._instance_key = key
         self._form_kwargs = self.get_model_from_kwargs
 
-    def get_model_from_kwargs(self, task_instance):
+    def get_model_from_kwargs(self, task):
         model = self._form.Meta.model  # Get model from Form's Meta class
-        if self._instance_key in task_instance.data:
-            instances = model.objects.filter(id=task_instance.data[self._instance_key])
+        if self._instance_key in task.data:
+            instances = model.objects.filter(id=task.data[self._instance_key])
             return dict(instance=instances[0] if len(instances) == 1 else None)
         else:
             return dict()
@@ -596,14 +596,14 @@ class Automation:
     def save(self, *args, **kwargs):
         return self._db.save(*args, **kwargs)
 
-    def nice(self, task_instance=None, next_task=None):
+    def nice(self, task=None, next_task=None):
         """Run automation steps in a background thread to, e.g., do not block
         the request response cycle"""
         threading.Thread(target=self.run,
-                         kwargs=dict(task_instance=task_instance, next_task=next_task)
+                         kwargs=dict(task=task, next_task=next_task)
                          ).start()
 
-    def run(self, task_instance=None, next_node=None):
+    def run(self, task=None, next_node=None):
         """Execute automation until external responses are necessary"""
         assert not self.finished(), ValueError("Trying to run an already finished automation")
 
@@ -618,9 +618,9 @@ class Automation:
                 return
 
         while next_node is not None:
-            task_instance = next_node.enter(task_instance)
-            task_instance = next_node.execute(task_instance)
-            last, next_node = task_instance, next_node.leave(task_instance)
+            task = next_node.enter(task)
+            task = next_node.execute(task)
+            last, next_node = task, next_node.leave(task)
 
     @classmethod
     def get_verbose_name(cls):

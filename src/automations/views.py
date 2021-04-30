@@ -14,27 +14,27 @@ from . import models, flow, settings
 
 class AutomationMixin:
     _automation_instance = None  # Buffer class for specific task_instance
-    _task_instance_id = None
+    _task_id = None
 
-    def get_automation_instance(self, task_instance):
-        if self._automation_instance is None or self._task_instance_id != task_instance.id:
-            cls = task_instance.automation.get_automation_class()
-            self._automation_instance = cls(automation=task_instance.automation)
-            self._task_instance_id = task_instance.id
+    def get_automation_instance(self, task):
+        if self._automation_instance is None or self._task_id != task.id:
+            cls = task.automation.get_automation_class()
+            self._automation_instance = cls(automation=task.automation)
+            self._task_id = task.id
         return self._automation_instance
 
 
 class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
     def bind_to_node(self):
-        self.task_instance = get_object_or_404(models.AutomationTaskModel, id=self.kwargs["task_id"])
-        self.node = self.task_instance.get_node()
+        self.task = get_object_or_404(models.AutomationTaskModel, id=self.kwargs["task_id"])
+        self.node = self.task.get_node()
 
     def get_form_kwargs(self):
         if not hasattr(self, "node"):
             self.bind_to_node()
         kwargs = super().get_form_kwargs()
         task_kwargs = self.node._form_kwargs
-        kwargs.update(task_kwargs(self.task_instance) if callable(task_kwargs) else task_kwargs)
+        kwargs.update(task_kwargs(self.task) if callable(task_kwargs) else task_kwargs)
         return kwargs
 
     def get_form_class(self):
@@ -42,20 +42,20 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
             self.bind_to_node()
         form = self.node._form
         print("get_form_class", form)
-        return form if issubclass(form, BaseForm) else form(self.task_instance)
+        return form if issubclass(form, BaseForm) else form(self.task)
 
     def get_context_data(self, **kwargs):
         if not hasattr(self, "node"):
             self.bind_to_node()
         if not isinstance(self.node, flow.Form):
             raise Http404
-        if self.request.user not in self.task_instance.get_users_with_permission():
+        if self.request.user not in self.task.get_users_with_permission():
             raise PermissionDenied
-        if self.task_instance.finished:
+        if self.task.finished:
             raise Http404  # Need to display a message: s.o. else has completed form
         self.template_name = (
                 self.node._template_name or
-                getattr(self.get_automation_instance(self.task_instance), 'default_template_name',
+                getattr(self.get_automation_instance(self.task), 'default_template_name',
                         'automations/form_view.html'))
         context = super().get_context_data(**kwargs)
         context.update(getattr(self.node._automation, 'context', settings.FORM_VIEW_CONTEXT))
@@ -64,9 +64,9 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
 
     def form_valid(self, form):
         print("FORM VALID")
-        self.node.validate(self.task_instance, self.request)
+        self.node.validate(self.task, self.request)
         if self.node._run:
-            self.node._automation.run(self.task_instance.previous, self.node)
+            self.node._automation.run(self.task.previous, self.node)
         if hasattr(self.node, "_success_url"):
             return redirect(self.node._success_url)
         return super().form_valid(form)
