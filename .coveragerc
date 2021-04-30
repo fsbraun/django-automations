@@ -10,3 +10,6 @@ exclude_lines =
 [run]
 omit =
     */cms_plugins.py
+    */urls.py
+    */apps.py
+

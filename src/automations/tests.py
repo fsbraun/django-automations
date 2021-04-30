@@ -8,7 +8,7 @@ import datetime
 
 from django.utils.translation import gettext as _
 
-from . import flow, models, views, urls, apps
+from . import flow, models, views
 from .flow import this
 
 
