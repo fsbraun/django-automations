@@ -139,11 +139,11 @@ The repetition patter is described by **modifiers**:
 flow.Execute
 ============
 
-.. py:class:: flow.Execute(func, *args, **kwargs)
+.. py:class:: flow.Execute(func, threaded=False, *args, **kwargs)
 
-    runs a callable, typically a method of the automation. The method gets passed a parameter, called ``task_instance`` which is an instance of the ``AutomationTaskModel``. It gives the method access to the processes json dataspace.
+    runs a callable, typically a method of the automation. The method gets passed a parameter, called ``task_instance`` which is an instance of the ``AutomationTaskModel``. It gives the method access to the processes json database.
 
-    The ``*args`` and ``**kwargs`` are passed to ``func``.
+    The ``*args`` and ``**kwargs`` are passed to ``func``. If the function returns a json-serializable result it will be stored in the task instance in the database.
 
     Subclass ``flow.Execute`` to create your own executable nodes, e.g. ``class SendEMail(flow.Execute)``. Implement a method named ``method``. It gets passed a ``task_instance`` and all parameters of the node.
 
@@ -151,7 +151,7 @@ flow.Execute
 
 .. py:method:: .OnError(next_node)
 
-    defines a node to continue with in case the ``Execute`` node fails with an exception.
+    defines a node to continue with in case the ``Execute`` node fails with an exception. If no ``.OnError`` modifier is given the automation will stop if an error occurs. The error information is kept in the task instance in the database.
 
 flow.If
 =======

@@ -169,15 +169,15 @@ class Node:
         self._wait = lambda x: x.created + self.eval(timedelta, x)
         return self
 
-    @property
-    def data(self):
-        assert self._automation is not None, "Node not bound to Automation"
-        return self._automation.data
-
-    def save(self):
-        assert self._automation is not None, "Node not bound to Automation"
-        return self._automation.save()
-
+    # @property
+    # def data(self):
+    #     assert self._automation is not None, "Node not bound to Automation"
+    #     return self._automation.data
+    #
+    # def save(self):
+    #     assert self._automation is not None, "Node not bound to Automation"
+    #     return self._automation.save()
+    #
     def __repr__(self):
         return f"<{f'{self._name}: ' if self._automation else ''}" \
                f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
@@ -337,20 +337,20 @@ class Execute(Node):
     @on_execution_path
     def execute_handler(self, task: models.AutomationTaskModel):
         def func(task, *args, **kwargs):
+            self._err = None
             try:
                 result = self.method(task, *args, **kwargs)
                 task.message = "OK"
                 try:  # Check if result is json serializable
-                    json.dumps(result)
-                except ValueError:
+                    json.dumps(result)  # Raise error if not json-serializable
+                    task.result = result  # if it is, store it
+                except TypeError:
                     task.result = None
-                else:
-                    task.result = result  # if yes, store it
             except Exception as err:
                 self._err = err
                 try:
                     task.message = repr(err)[:settings.MAX_FIELD_LENGTH]
-                    task.result = dict(erro=traceback.format_exc())
+                    task.result = dict(error=traceback.format_exc())
                 except TypeError:
                     pass
 
@@ -363,8 +363,14 @@ class Execute(Node):
                 threading.Thread(target=func, args=[task] + args, kwargs=kwargs).start()
             else:
                 func(task, *args, **kwargs)
-                if self._err and self._on_error:
-                    self._next = self._on_error
+                if self._err:
+                    if self._on_error:
+                        self._next = self._on_error
+                    else:
+                        self.leave(task)
+                        self._automation._db.finished = True
+                        self._automation._db.save()
+                        return None
         return task
 
     def execute(self, task: models.AutomationTaskModel):
@@ -384,6 +390,7 @@ class If(Execute):
         self._condition = condition
         self._then = None
         self._else = None
+        self._func = lambda x: None
 
     def Then(self, func):
         if self._then is not None:
@@ -411,7 +418,9 @@ class If(Execute):
         return task
 
     def execute(self, task: models.AutomationTaskModel):
-        task = super().execute(task)
+        # Do not execute super() since If inherits from Execute and there
+        # is nothing to execute, call Node.execute instead
+        task = Node.execute(self, task)
         return self.if_handler(task)
 
 
@@ -567,14 +576,6 @@ class Automation:
     def get_automation_class_name(self):
         return self.__module__ + '.' + self.__class__.__name__
 
-    # def get_node(self, node):
-    #     """Resolve ThisObject references"""
-    #     if isinstance(node, ThisAttribute):
-    #         return getattr(self, node.attr)
-    #     elif isinstance(node, str) and hasattr(self, node):
-    #         return getattr(self, node)
-    #     return node
-
     @property
     def id(self):
         return self._db.id
@@ -630,10 +631,10 @@ class Automation:
     def finished(self):
         return self._db.finished
 
-    def receive_message(self, message, request):
+    def receive_message(self, message, request):        # pragma: no cover
         pass
 
-    def start_from_request(self, request):
+    def start_from_request(self, request):              # pragma: no cover
         pass
 
     def kill_automation(self):
@@ -649,7 +650,7 @@ class Automation:
         if hasattr(instance, 'started_by_signal') and callable(instance.started_by_signal):
             instance.started_by_signal(sender, kwargs)  # initialize based on sender data
         instance.run(None, None if start is None else getattr(instance, start))  # run
-        
+
 
     def __str__(self):
         return self.__class__.__name__

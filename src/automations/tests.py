@@ -3,6 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django import forms
+from django.core.management import execute_from_command_line
 from django.test import TestCase
 import datetime
 
@@ -22,8 +23,10 @@ test_signal = django.dispatch.Signal()
 class TestAutomation(flow.Automation):
     start =             flow.Execute(this.init).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
     intermediate =      flow.Execute("init2")
-    if_clause =         flow.If(lambda x:x.data['more_participants'] == "test").Then("conditional")
-    if2 =               flow.If(lambda x:x.data['more_participants'] == "test").Then(this.if_clause).Else(this.end)
+    if_clause =         flow.If(lambda x: x.data['more_participants'] == "test").Then("conditional")
+    if2 =               flow.If(lambda x: x.data['more_participants'] == "test"
+                                ).Then(this.if_clause
+                                ).Else(this.end)
     end =               flow.End()
 
     conditional =       flow.Execute(this.init2).Next("if2")
@@ -32,12 +35,11 @@ class TestAutomation(flow.Automation):
         if 'participants' not in self.data:
             self.data['participants'] = []
             self.save()
-        return task_instance
 
-    def init2(self, task_instance):
+    def init2(self, task):
         self.data['more_participants'] = "test" + self.data.get("more_participants", "")
         self.save()
-        return task_instance
+        return task  # Illegal since not json serializable
 
     def cont(self, task):
         return bool(self) and (task)  # True
@@ -115,6 +117,17 @@ class Looping(flow.Automation):
     loop1 = flow.Repeat("loop1").EveryDay().At(21,00)
     loop2 = flow.Repeat("loop2").EveryNMinutes(30)
     loop3 = flow.Repeat("loop3").EveryHour()
+
+
+class BoundToFail(flow.Automation):
+    start = Print("Will divide by zero.")
+    div = flow.Execute(lambda x: 5/0).OnError(this.error_node)
+    never = Print("This should NOT be printed")
+    not_caught = flow.Execute(lambda x: 5/0)
+    never_reached = Print("Will not reach this")
+    end = flow.End()
+
+    error_node = Print("Oh dear").Next(this.not_caught)
 
 
 class ModelTestCase(TestCase):
@@ -197,3 +210,38 @@ class RepeatTest(TestCase):
         self.assertEqual(len(flow.get_automations("automations.flow")), 1)
         tpl = flow.get_automations("automations.tests")
         self.assertIn('Allow to split and join', (name for _, name in tpl))
+
+
+class ManagementCommandTest(TestCase):
+    def test_managment_command(self):
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            atm = TestSplitJoin()
+            execute_from_command_line(["manage.py", "automation_step"])
+        output = fake_out.getvalue().splitlines()
+        self.assertEqual(output[0], "start Hello, this is the single thread")
+        self.assertEqual(output[1], "l10 Line 10")
+        self.assertEqual(output[-1], "l20 All joined now")
+        self.assertIn("t10 Thread 10", output)
+        self.assertIn("t20 Thread 20", output)
+        self.assertIn("t30 Thread 30", output)
+
+        db_id = atm._db.id
+        self.assertGreater(len(models.AutomationTaskModel.objects.filter(
+            automation_id=db_id
+        )), 0)
+        atm.kill_automation()
+        self.assertEqual(len(models.AutomationTaskModel.objects.filter(
+            automation_id=db_id
+        )), 0)
+
+
+class ExecutionErrorTest(TestCase):
+    def test_managment_command(self):
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            atm = BoundToFail()
+            atm.run()
+        output = fake_out.getvalue().splitlines()
+        self.assertEqual(output[0], "start Will divide by zero.")
+        self.assertEqual(output[-1], "error_node Oh dear")
+        self.assertNotIn("never This should NOT be printed", output)
+        self.assertNotIn("never_reached Will not reach this", output)

@@ -5,6 +5,7 @@ exclude_lines =
     def __repr__
     def __str__
     pragma: no cover
+    assert
 
 
 [run]
