@@ -169,15 +169,6 @@ class Node:
         self._wait = lambda x: x.created + self.eval(timedelta, x)
         return self
 
-    # @property
-    # def data(self):
-    #     assert self._automation is not None, "Node not bound to Automation"
-    #     return self._automation.data
-    #
-    # def save(self):
-    #     assert self._automation is not None, "Node not bound to Automation"
-    #     return self._automation.save()
-    #
     def __repr__(self):
         return f"<{f'{self._name}: ' if self._automation else ''}" \
                f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
@@ -358,9 +349,9 @@ class Execute(Node):
             args = (self.resolve(value) for value in self.args)
             kwargs = {key: self.resolve(value) for key, value in self.kwargs.items()}
 
-            if kwargs.get("threaded", False):
+            if kwargs.pop("threaded", False):
                 assert self._on_error is None, "No .OnError statement on threaded executions"
-                threading.Thread(target=func, args=[task] + args, kwargs=kwargs).start()
+                threading.Thread(target=func, args=[task] + list(args), kwargs=kwargs).start()
             else:
                 func(task, *args, **kwargs)
                 if self._err:
@@ -449,7 +440,7 @@ class Form(Node):
                 return None
         return task  # Continue with validated form
 
-    def validate(self, task: models.AutomationTaskModel, request):
+    def validate(self, task: models.AutomationTaskModel, request, form):
         task.automation.data[f"_{self._name}_validated"] = request.user.id
         task.automation.save()
 
@@ -613,6 +604,7 @@ class Automation:
             task = next_node.enter(task)
             task = next_node.execute(task)
             last, next_node = task, next_node.leave(task)
+        return last
 
     @classmethod
     def get_verbose_name(cls):

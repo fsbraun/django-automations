@@ -3,6 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django import forms
+from django.contrib.auth.models import User
 from django.core.management import execute_from_command_line
 from django.test import TestCase
 import datetime
@@ -14,14 +15,17 @@ from . import flow, models, views
 from .flow import this
 
 import django.dispatch
+from django.test import RequestFactory
+
 
 # Create your tests here.
 
 test_signal = django.dispatch.Signal()
 
 
+
 class TestAutomation(flow.Automation):
-    start =             flow.Execute(this.init).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
+    start =             flow.Execute(this.init, threaded=True).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
     intermediate =      flow.Execute("init2")
     if_clause =         flow.If(lambda x: x.data['more_participants'] == "test").Then("conditional")
     if2 =               flow.If(lambda x: x.data['more_participants'] == "test"
@@ -31,7 +35,7 @@ class TestAutomation(flow.Automation):
 
     conditional =       flow.Execute(this.init2).Next("if2")
 
-    def init(self, task_instance):
+    def init(self, task_instance, *args, **kwargs):
         if 'participants' not in self.data:
             self.data['participants'] = []
             self.save()
@@ -103,13 +107,16 @@ class FormTest(flow.Automation):
         verbose_name_plural = "Edit tasks"
 
     start = flow.Execute(this.init_with_item)
-    form = (flow.ModelForm(AtmTaskForm, key='task_id', context=dict(claim="Save"))
+    form = (flow.Form(TestForm, context=dict(claim="Save"))
+            .User(id=0))
+    form2 = (flow.Form(TestForm, context=dict(claim="Save")).User(id=0)
             .Permission("automations.create_automationmodel"))
     end = flow.End()
 
     def init_with_item(self, task_instance):
         task_instance.data['task_id'] = 8
         self.save()
+
 
 class Looping(flow.Automation):
     start = flow.Split().Next("loop1").Next("loop2").Next("loop3")
@@ -141,9 +148,9 @@ class ModelTestCase(TestCase):
         self.assertEqual(models.get_automation_class(x._db.automation_class), TestAutomation)
 
         x.run()
-        self.assertIn("participants", x.data)
         self.assertIn("more_participants", x.data)
         self.assertEqual(x.data["more_participants"], "testtest")
+        self.assertIn("participants", x.data)
 
         self.assertEqual(x.get_verbose_name(), "Automation TestAutomation")
         self.assertEqual(x.get_verbose_name_plural(), "Automations TestAutomation")
@@ -167,13 +174,54 @@ class AutomationTestCase(TestCase):
         self.assertEqual(atm.get_verbose_name(), "Allow to split and join")
         self.assertEqual(atm.get_verbose_name_plural(), "Allow splitS and joinS")
 
+
 class FormTestCase(TestCase):
+    def setUp(self):
+        # Every test needs access to the request factory.
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(
+            username='jacob', email='jacob@…', password='top_secret')
 
     def test_form(self):
         atm = FormTest()
+        atm.form._user=dict(id=self.user.id)  # Fake User
+        atm.form2._user=dict(id=self.user.id)  # Fake User
         atm.run()
+
         users = atm.form.get_users_with_permission()
         self.assertEqual(len(users), 0)
+
+        tasks = atm._db.automationtaskmodel_set.filter(finished=None)
+        self.assertEqual(len(tasks), 1)
+
+        # Create an instance of a GET request.
+        request = self.factory.get(f"/{tasks[0].id}")
+
+        # Recall that middleware are not supported. You can simulate a
+        # logged-in user by setting request.user manually.
+        request.user = self.user
+        response = views.TaskView.as_view()(request, task_id=tasks[0].id)
+        self.assertEqual(response.status_code, 200)
+
+        form_data = dict(session=8, email="none@nowhere.com", first_name="Fred")
+        request = self.factory.post(f"/{tasks[0].id}", data=form_data)
+        request.user = self.user
+        response = views.TaskView.as_view()(request, task_id=tasks[0].id)
+        self.assertEqual(response.status_code, 302)  # Success leads to redirect
+
+        request = self.factory.get(f"/tasks")
+        request.user = self.user
+        response = views.TaskListView.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+
+
+        request = self.factory.get(f"/tasks")
+        request.user = self.user
+        response = views.TaskListView.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+
+        atm.run()
+        self.assertEqual(len(atm.form2.get_users_with_permission()), 0)
 
 
 class SignalTestCase(TestCase):
@@ -195,15 +243,15 @@ class SignalTestCase(TestCase):
 
 class RepeatTest(TestCase):
     def test_repeat(self):
-        self.assertEqual(0, len(models.AutomationModel.objects.filter(
-            automation_class='automations.tests.SignalAutomation',
-        )))
+        atm = Looping()
+        atm.run()
+        tasks = atm._db.automationtaskmodel_set.filter(finished=None)
+        self.assertEqual(len(tasks), 3)
+        atm.run()
+        tasks = atm._db.automationtaskmodel_set.filter(finished=None)
+        self.assertEqual(len(tasks), 3)
 
-        test_signal.send(self.__class__)
 
-        self.assertEqual(1, len(models.AutomationModel.objects.filter(
-            automation_class='automations.tests.SignalAutomation',
-        )))
 
     def test_get_automations(self):
         self.assertEqual(len(flow.get_automations()), 0)

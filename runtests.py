@@ -39,9 +39,10 @@ def runtests(test_path='automations'):
             INSTALLED_APPS=(
                 'django.contrib.contenttypes',
                 'django.contrib.auth',
+                'django.contrib.sessions',
                 'automations',
             ),
-            ROOT_URLCONF=None,  # tests override urlconf, but it still needs to be defined
+            ROOT_URLCONF="automations.urls",  # tests override urlconf, but it still needs to be defined
             LANGUAGES=(
                 ('en', 'English'),
                 ('de', 'Deutsch'),

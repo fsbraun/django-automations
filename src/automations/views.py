@@ -62,8 +62,7 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         return context
 
     def form_valid(self, form):
-        print("FORM VALID")
-        self.node.validate(self.task, self.request)
+        self.node.validate(self.task, self.request, form)
         if self.node._run:
             self.node._automation.run(self.task.previous, self.node)
         if hasattr(self.node, "_success_url"):

@@ -72,7 +72,7 @@ class AutomationModel(models.Model):
             logger.info(f"Running automation {automation.automation_class}")
             try:
                 instance.run()
-            except Exception as e:
+            except Exception as e:          # pragma: no cover
                 automation.finished = True
                 automation.save()
                 logger.error(f'Error: {repr(e)}', exc_info=sys.exc_info())
