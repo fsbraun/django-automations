@@ -1,7 +1,10 @@
+![GitHub](https://img.shields.io/github/license/fsbraun/django-automations)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django-automations)
+![PyPI - Django Version](https://img.shields.io/pypi/djversions/django-automations)
+
 [![PyPI](https://img.shields.io/pypi/v/django-automations)](https://pypi.org/project/django-automations/)
 [![Read the Docs](https://img.shields.io/readthedocs/django-automations)](https://django-automations.readthedocs.io/en/latest/)
-[![codecov](https://codecov.io/gh/fsbraun/django-automations/branch/master/graph/badge.svg?token=DSA28NEFL9)](https://codecov.io/gh/fsbraun/django-automations) 
-[![license](https://img.shields.io/github/license/fsbraun/django-automations)
+[![codecov](https://codecov.io/gh/fsbraun/django-automations/branch/master/graph/badge.svg?token=DSA28NEFL9)](https://codecov.io/gh/fsbraun/django-automations)
 
 # Django-automations
 

@@ -255,7 +255,7 @@ class Repeat(Node):
         return self
 
     def EveryDay(self):
-        return self.EveryNthDays(days=1)
+        return self.EveryNDays(days=1)
 
 
 class Split(Node):
@@ -431,8 +431,8 @@ class Form(Node):
         task = super().execute(task)
 
         if task is not None:
-            if self._user is None and self._group is None:
-                raise ImproperlyConfigured("From: at least .User or .Group has to be specified")
+            if self._user is None and self._group and not self._permissions:
+                raise ImproperlyConfigured("From: at least one .User, .Group, .Permission has to be specified")
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
             if task.data.get(f"_{self._name}_validated", None) is None:
@@ -473,7 +473,6 @@ class Form(Node):
             filter = filter & Q(**self._user)
         if self._group is not None:
             filter = filter & Q(group_set__contains=self._group)
-        print(filter)
         users = User.objects.filter(filter).distinct()
         return users
 
@@ -501,10 +500,7 @@ def on_signal(signal, start=None, **kwargs):
     def decorator(cls):
         @functools.wraps(cls)
         def creator(sender, **sargs):
-            automation=cls()
-            if hasattr(automation, 'started_by_signal'):
-                automation.started_by_signal(sender, **sargs)
-            automation.run(None, None if start is None else getattr(automation, start))
+            cls.on_signal(start, sender, **sargs)
         signal.connect(creator, weak=False, **kwargs)
         return cls
     return decorator
@@ -648,11 +644,12 @@ class Automation:
         signal.connect(cls.on_signal, **kwargs)
 
     @classmethod
-    def on_signal(cls, sender, **kwargs):
+    def on_signal(cls, start, sender, **kwargs):
         instance = cls()  # Instantiate class
         if hasattr(instance, 'started_by_signal') and callable(instance.started_by_signal):
             instance.started_by_signal(sender, kwargs)  # initialize based on sender data
-        instance.run()  # run
+        instance.run(None, None if start is None else getattr(instance, start))  # run
+        
 
     def __str__(self):
         return self.__class__.__name__
@@ -671,7 +668,13 @@ def get_automations(app=None):
             if name.rsplit(".")[-1] == "automations":
                 check_module(mod)
     else:
-        mod = __import__(app)
+        apps = app.split(".")
+
+        mod = __import__(apps[0])
+        for next in apps[1:]:
+            mod = getattr(mod, next)
+
+        check_module(mod)
         if hasattr(mod, 'automations'):
             mod = getattr(mod, 'automations')
             check_module(mod)
