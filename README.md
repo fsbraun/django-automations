@@ -1,3 +1,8 @@
+[![PyPI](https://img.shields.io/pypi/v/django-automations)](https://pypi.org/project/django-automations/)
+[![Read the Docs](https://img.shields.io/readthedocs/django-automations)](https://django-automations.readthedocs.io/en/latest/)
+[![codecov](https://codecov.io/gh/fsbraun/django-automations/branch/master/graph/badge.svg?token=DSA28NEFL9)](https://codecov.io/gh/fsbraun/django-automations) 
+[![license](https://img.shields.io/github/license/fsbraun/django-automations)
+
 # Django-automations
 
 A lightweight framework to collect all processes of your django app in one place.
@@ -9,6 +14,11 @@ Use cases:
 * Running regular tasks
 
 Django-automations works with plain Django but also integrates with Django-CMS.
+
+## Requirements
+
+* **Python**: 3.5, 3.6, 3.7, 3.8, 3.9
+* **Django**: 3.1, 3.2
 
 ## Roadmap
 
