@@ -7,3 +7,6 @@
 /_static/
 /_templates/
 /dist/
+/manage.py
+/db.sqlite3
+/pkg/
