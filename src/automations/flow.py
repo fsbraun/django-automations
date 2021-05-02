@@ -34,6 +34,7 @@ class This:
 
 
 this = This()
+"""Global instance"""
 
 """
 """
@@ -339,11 +340,8 @@ class Execute(Node):
                     task.result = None
             except Exception as err:
                 self._err = err
-                try:
-                    task.message = repr(err)[:settings.MAX_FIELD_LENGTH]
-                    task.result = dict(error=traceback.format_exc())
-                except TypeError:
-                    pass
+                task.message = repr(err)[:settings.MAX_FIELD_LENGTH]
+                task.result = dict(error=traceback.format_exc())
 
         if self.args is not None:
             args = (self.resolve(value) for value in self.args)
@@ -623,11 +621,17 @@ class Automation:
     def finished(self):
         return self._db.finished
 
-    def receive_message(self, message, request):        # pragma: no cover
-        pass
-
     def start_from_request(self, request):              # pragma: no cover
         pass
+
+    def send_message(self, message, token, request): # pragma: no cover
+        """RECEIVES message and dispatches it within the class
+        Called send_message so that sending a message to an automation
+        is `automation.send_message(...)"""
+        if hasattr(self, "receive_"+message):
+            method = getattr(self, "receive_"+message)
+            return method(token, request)
+        return None
 
     def kill_automation(self):
         self._db.delete()

@@ -57,7 +57,8 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
                 getattr(self.get_automation_instance(self.task), 'default_template_name',
                         'automations/form_view.html'))
         context = super().get_context_data(**kwargs)
-        context.update(getattr(self.node._automation, 'context', settings.FORM_VIEW_CONTEXT))
+        context.update(settings.FORM_VIEW_CONTEXT)
+        context.update(getattr(self.node._automation, 'context', dict()))
         context.update(self.node._context)
         return context
 

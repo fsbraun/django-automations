@@ -190,11 +190,17 @@ flow.Join
 flow.Form
 =========
 
-.. py:class:: flow.Form(form, template_name=None, description="")
+.. py:class:: flow.Form(form, template_name=None, description="", context={})
 
     Represents a user interaction with a Django Form. The form's class is passed as ``form``. It will be rendered using the optional ``template_name``. If ``template_name`` is not provided, Django automations looks for the ``default_template_name`` attribute of the automation class. Use the ``default_template_name`` attribute if all forms of an automation share the same template. If neither is given Django Automations will fall back to ``"automations/form_view.html"``.
 
     Also optional is ``description``, a text that explains what the user is expected to do with the form, e.g., validate its entries. The description can, e.g., be shown to a user when editing the form, or in her task list.
+
+    The form is redered by a Django ``FormView``. Additional context for the template is provided by the ``FormView``
+
+        * project-wide using ``settings.ATM_FORM_VIEW_CONTEXT`` in the :ref:`project's settings file<ATM_FORM_VIEW_CONTEXT>`,
+        * defining the ``context`` attribute for the whole Automation class, and
+        * specifying the ``context`` parameter in an individual ``flow.Form``.
 
 The ``flow.Form`` has two extra modifiers to assign the task to a user or a group of users:
 
@@ -235,18 +241,64 @@ The result is a list of tuples, the first one being the automations dotted path,
 Django-CMS integration
 **********************
 
-Teh `Django-CMS <https://www.django-cms.org/>`_ dependency is weak, i.e. if the Django-CMS package is not installed, Django Automations will not force an installation. Instead all functionality in this section will just not be available.
+The `Django-CMS <https://www.django-cms.org/>`_ dependency is weak. Installing Django Automations will not require or trigger the installation of Django-CMS.
+
+.. note::
+    If you want to use Django Automations's CMS plugins, be sure to include ``automations.cms_automations`` in your ``INSTALLED_APPS`` settings.
 
 Alternatively pure Django users can use :ref:`template tags<Template tags>` instead.
 
 CMS Plugins
 ===========
 
-AutomationTaskList
-------------------
 
-AutomationHook
---------------
+
+Task List Plugin
+----------------
+
+.. py:class:: AutomationTaskList
+
+
+This plugin shows all interactions required for automations to continue their work from the current user. It will never show tasks for the anonymous user (nobody logged in).
+
+With this plugin the task list can be part of any CMS page. It is helpful if the user's tasks are to be shown as a part of a page, say, a dashboard.
+
+In the project settings a choice of template can be defined. CMS page authors can chose the appropriate template do adjust the plugin's look and feel.
+
+Status Plugin
+-------------
+
+.. py:class:: AutomationStatus
+
+This plugin allows a user to see the status of the automation. The automation instance is defined by get parameters, either ``atm_id`` giving the automation model instance id or ``task_id`` giving the id of an automation's task.
+
+Additionally a parameter ``KEY`` is specified which is unique for an automation and is used to prevent unauthorized access.
+
+Automations may chose to offer status templates. They have to be declared in the Automations Meta class:
+
+.. code-block:: python
+
+    class MyAutomation(flow.Automation):
+        class Meta:
+            status_template = "my_automation/status.html", _("Current status")
+            issue_template = "my_automation/issues.html", _("Problem sheet")
+
+Any property with a name that ends on ``_template`` in the automation's Meta class is considered to be a template path for some sort of status view. For user friedlyness a verbose name can be added. Once declared the plugin will offer all status templates.
+
+The templates receive the automation class and automation instance in the context with the keys ``automation`` and ``automation_instance``, respectively.
+
+
+.. _automation_hook:
+
+Send Message Plugin
+-------------------
+
+.. py:class:: AutomationHook
+
+
+The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewd. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
+
+An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces).
 
 Views
 *****
@@ -268,7 +320,8 @@ All template can be replaced simply by offering alternatives in your project's t
 
     └── automations
         ├── base.html
-        ├── empty_template.html
+        ├── cms
+        │   └── empty_template.html
         ├── form_view.html
         ├── includes
         │   ├── form_view.html
@@ -277,29 +330,30 @@ All template can be replaced simply by offering alternatives in your project's t
         └── task_list.html
 
 
+
 The templates can be replaced individually. It is not necessary (though certainly possible) to replicate the whole tree.
 
 The templates in the ``includes`` subdirectory are also used by the :ref:`Django-CMS plugins<CMS Plugins>`.
 
 
-base.html
-=========
+``base.html``
+=============
 
 All other templates extend automation's base template. Modify this template to bind into your project's template hierarchy.
 
-empty_template.html
-===================
+``cms/empty_template.html``
+===========================
 
-Literally an empty file. Only necessary for the :ref:`Django-CMS plugin AutomationHook<AutomationHook>`. The automation hook does not render anything by using this template.
+Literally an empty file. Only necessary for the :ref:`Django-CMS plugin AutomationHook<automation_hook>`. The automation hook does not render anything by using this template.
 
-form_view.html
-==============
+``form_view.html``
+==================
 
 This is a simple fall-back template if no templates are given in a ``Form()`` node. Ideally, you specify the correct template by note or process. See :ref:`flow.Form<flow.Form>`.
 
 
-task_list.html
-==============
+``task_list.html``
+==================
 
 This is the template used by the ``TaskListView``.
 
@@ -318,3 +372,11 @@ Management command
 This wrapper calls the class method ``models.AutomationModel.run()`` which in turn lets all automations run which are not waiting for a response (filled form, other condition) or a certain point in time.
 
 
+Settings in ``settings.py``
+***************************
+
+.. _ATM_FORM_VIEW_CONTEXT:
+
+.. py:attribute:: settings.ATM_FORM_VIEW_CONTEXT
+
+    The ``Form()`` nodes and its subclasses present the forms to the user using a Django ``FormView``. It is an dictionary which will be added to the template's context when rendering. The dictionary items may be overwritten by an automation classes ``context`` attribute or by a node's ``context`` parameter.

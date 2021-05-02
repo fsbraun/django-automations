@@ -35,7 +35,14 @@ using pip. Then `automations has to be added to your project's
     INSTALLED_APPS = (
         ...,
         'automations',
-    )
+        'automations.cms_automations',   # ONLY IF YOU USE DJANGO-CMS!
+   )
+
+
+.. note::
+    Only include the "sub app" ``automations.cms_automations`` if you are using Django CMS.
+
+
 
 Finally, run both
 

@@ -121,7 +121,8 @@ class FormTest(flow.Automation):
 class Looping(flow.Automation):
     start = flow.Split().Next("loop1").Next("loop2").Next("loop3")
 
-    loop1 = flow.Repeat("loop1").EveryDay().At(21,00)
+    loop1 = flow.ModelForm(AtmTaskForm, "key_id")
+    loop1_1 = flow.Repeat("loop1").EveryDay().At(21,00)
     loop2 = flow.Repeat("loop2").EveryNMinutes(30)
     loop3 = flow.Repeat("loop3").EveryHour()
 
