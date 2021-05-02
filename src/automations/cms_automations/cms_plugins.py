@@ -5,7 +5,8 @@ import logging
 
 from django import forms
 
-from . import models
+from .. import models
+from . import models as cms_models
 from .. import flow
 
 
@@ -20,7 +21,7 @@ try:
     class AutomationTaskList(CMSPluginBase):
         name = _("Task list")
         module = _("Automations")
-        model = models.AutomationTasksPlugin
+        model = cms_models.AutomationTasksPlugin
         allow_children = False
         require_parent = False
         render_template = None
@@ -101,7 +102,7 @@ try:
 
     class EditTaskData(forms.ModelForm):
         class Meta:
-            model = models.AutomationStatusPlugin
+            model = cms_models.AutomationStatusPlugin
             widgets = {
                 'template': forms.Select(choices=get_task_status_choices()),
                 'name': forms.HiddenInput(),
@@ -118,7 +119,7 @@ try:
     class AutomationStatus(CMSPluginBase):
         name = _("Status")
         module = _("Automations")
-        model = models.AutomationStatusPlugin
+        model = cms_models.AutomationStatusPlugin
         allow_children = False
         require_parent = False
         text_enabled = True
@@ -143,7 +144,7 @@ try:
 
     class EditAutomationHook(forms.ModelForm):
         class Meta:
-            model = models.AutomationHookPlugin
+            model = cms_models.AutomationHookPlugin
             widgets = {
                 'automation':   forms.Select(choices=get_task_receiver_choices()),
             }
@@ -153,7 +154,7 @@ try:
     class AutomationHook(CMSPluginBase):
         name = _("Send message")
         module = _("Automations")
-        model = models.AutomationHookPlugin
+        model = cms_models.AutomationHookPlugin
         allow_children = False
         require_parent = False
         render_template = "automations/automations_cms/empty_template.html"

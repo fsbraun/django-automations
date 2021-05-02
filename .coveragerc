@@ -12,7 +12,7 @@ exclude_lines =
 
 [run]
 omit =
-    */cms/*
+    */cms_automations/*
     */urls.py
     */apps.py
 
