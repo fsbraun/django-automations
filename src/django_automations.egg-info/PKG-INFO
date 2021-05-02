@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: django-automations
-Version: 0.2
+Version: 0.2.1
 Summary: Processes and automations for your Django project
 Home-page: https://github.com/fsbraun/django-automations
 Author: Fabian Braun
@@ -30,8 +30,8 @@ Description: ![GitHub](https://img.shields.io/github/license/fsbraun/django-auto
         
         ## Requirements
         
-        * **Python**: 3.5, 3.6, 3.7, 3.8, 3.9
-        * **Django**: 3.1, 3.2
+        * **Python**: 3.7, 3.8, 3.9
+        * **Django**: 3.0, 3.1, 3.2
         
         ## Roadmap
         
@@ -111,6 +111,7 @@ Classifier: Programming Language :: Python :: 3.9
 Classifier: Framework :: Django
 Classifier: Framework :: Django :: 3.0
 Classifier: Framework :: Django :: 3.1
+Classifier: Framework :: Django :: 3.2
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.7
