@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: django-automations
-Version: 0.2.1
+Version: 0.2.5
 Summary: Processes and automations for your Django project
 Home-page: https://github.com/fsbraun/django-automations
 Author: Fabian Braun
@@ -103,6 +103,7 @@ Description: ![GitHub](https://img.shields.io/github/license/fsbraun/django-auto
         # Documentation
         
         See the [documentation on readthedocs.io](https://django-automations.readthedocs.io/).
+Keywords: django_automations,workflow,automation
 Platform: UNKNOWN
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3.7

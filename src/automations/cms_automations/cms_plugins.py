@@ -157,7 +157,7 @@ try:
         model = cms_models.AutomationHookPlugin
         allow_children = False
         require_parent = False
-        render_template = "automations/automations_cms/empty_template.html"
+        render_template = "automations/cms/empty_template.html"
         form = EditAutomationHook
 
         def render(self, context, instance, placeholder):
@@ -169,7 +169,7 @@ try:
                 atm = cls(automation_id=int(automation_id))
                 atm.send_message(message, request, instance.token)
             else:
-                logger.error("Invalid AutomationHook configuration: %s" % instance)
+                logger.error("Invalid automation instance configuration: %s" % instance)
             return context
 
     plugin_pool.register_plugin(AutomationHook)
