@@ -30,14 +30,17 @@ The ``this`` object serves to avoid unnecessary strings and keep the automation 
         singleton = True
 
         start = flow.Execute(this.worker_job).Next(this.next). # this notation
-        next = flow.Execute("worker_job").Next("start")  # notation with string literals
+        next = flow.Execute("worker_job").Next("self.start")  # alternative notation with string literals
 
         def worker_job(self, task_instance):
             ...
 
 
+Alternatively, forward references can be denoted by a string starting with ``"self."``. Both forms are equivalent and may be used interchangeably.
+
+
 Nodes
-******************************
+*****
 
 flow.Node
 =========

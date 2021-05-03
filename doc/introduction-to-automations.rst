@@ -91,17 +91,11 @@ two node classes are used: ``flow.Execute`` and ``flow.End()``. By making a node
 an attribute of an ``Automation`` class it gets bound to it. Some nodes
 take parameters, like ``flow.Execute``, some do not, like ``flow.End()``.
 
-Please remember:
-* Nodes are processed in their order of declaration in the automation class
-(unless specified differently, see below).
-* Each node has a name (``start``, ``send_welcome_mail``, ...). Each running
-instance of the automation has a state (or program counter) which corresponds
-to the name of the node which is to be executed next.
-* Since at the declaration of the ``Automation`` attributes no object has been
-created there is no ``self`` reference. The ``this`` object replaces ``self``
-during the declaration of the automation class. (``this`` objects are replaced
-by ``self``-references at the time of execution of the automation.)
-* To allow for timed execution, some sort of scheduler is needed in the project.
+.. note::
+    * Nodes are processed in their order of declaration in the automation class (unless specified differently, see below).
+    * Each node has a name (``start``, ``send_welcome_mail``, ...). Each running instance of the automation has a state (or program counter) which corresponds to the name of the node which is to be executed next.
+    * Since at the declaration of the ``Automation`` attributes no object has been created there is no ``self`` reference. The ``this`` object replaces ``self`` during the declaration of the automation class. (``this`` objects are replaced by ``self``-references at the time of execution of the automation.)
+    * To allow for timed execution, some sort of scheduler is needed in the project.
 
 Node types
 ==========

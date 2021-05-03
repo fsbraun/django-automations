@@ -23,17 +23,23 @@ from django.test import RequestFactory
 test_signal = django.dispatch.Signal()
 
 
+class Print(flow.Execute):
+    @staticmethod
+    def method(task_instance, *args):
+        print(task_instance.status, *args)
+
 
 class TestAutomation(flow.Automation):
     start =             flow.Execute(this.init, threaded=True).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
-    intermediate =      flow.Execute("init2")
-    if_clause =         flow.If(lambda x: x.data['more_participants'] == "test").Then("conditional")
+    intermediate =      flow.Execute("self.init2")
+    func_if =           flow.If(lambda x: x.data['more_participants'] == "test").Then().Else(this.print)
+    if_clause =         flow.If(lambda x: x.data['more_participants'] == "test").Then("self.conditional")
     if2 =               flow.If(lambda x: x.data['more_participants'] == "test"
                                 ).Then(this.if_clause
                                 ).Else(this.end)
     end =               flow.End()
 
-    conditional =       flow.Execute(this.init2).Next("if2")
+    conditional =       flow.Execute(this.init2).Next("self.if2")
 
     def init(self, task_instance, *args, **kwargs):
         if 'participants' not in self.data:
@@ -48,11 +54,9 @@ class TestAutomation(flow.Automation):
     def cont(self, task):
         return bool(self) and (task)  # True
 
+    def print(self, task):
+        print("Hello", task.data)
 
-class Print(flow.Execute):
-    @staticmethod
-    def method(task_instance, *args):
-        print(task_instance.status, *args)
 
 
 class TestForm(forms.Form):
@@ -77,14 +81,14 @@ class TestSplitJoin(flow.Automation):
 
     start = Print("Hello, this is the single thread").AfterPausingFor(datetime.timedelta(days=-1))
     l10 = Print("Line 10").AfterWaitingUntil(now()-datetime.timedelta(minutes=1))
-    split = flow.Split().Next("t10").Next("t20").Next("t30")
+    split = flow.Split().Next("self.t10").Next("self.t20").Next("self.t30")
     join = flow.Join()
     l20 = Print("All joined now")
     l30 = flow.End()
 
-    t10 = Print("Thread 10").Next("join")
-    t20 = Print("Thread 20").Next("join")
-    t30 = Print("Thread 30").Next("join")
+    t10 = Print("Thread 10").Next(this.join)
+    t20 = Print("Thread 20").Next(this.join)
+    t30 = Print("Thread 30").Next(this.join)
 
 
 @flow.on_signal(test_signal)
@@ -119,12 +123,12 @@ class FormTest(flow.Automation):
 
 
 class Looping(flow.Automation):
-    start = flow.Split().Next("loop1").Next("loop2").Next("loop3")
+    start = flow.Split().Next("self.loop1").Next("self.loop2").Next("self.loop3")
 
     loop1 = flow.ModelForm(AtmTaskForm, "key_id")
-    loop1_1 = flow.Repeat("loop1").EveryDay().At(21,00)
-    loop2 = flow.Repeat("loop2").EveryNMinutes(30)
-    loop3 = flow.Repeat("loop3").EveryHour()
+    loop1_1 = flow.Repeat("self.loop1").EveryDay().At(21,00)
+    loop2 = flow.Repeat("self.loop2").EveryNMinutes(30)
+    loop3 = flow.Repeat("self.loop3").EveryHour()
 
 
 class BoundToFail(flow.Automation):

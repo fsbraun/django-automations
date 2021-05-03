@@ -166,10 +166,9 @@ try:
             cls = models.get_automation_class(automation)
             automation_id = request.GET.get("atm_id", None)
             if isinstance(automation_id, str) and automation_id.isnumeric():
-                atm = cls(automation_id=int(automation_id))
-                atm.send_message(message, request, instance.token)
+                cls.displatch_message(int(automation_id), message, request, instance.token)
             else:
-                logger.error("Invalid automation instance configuration: %s" % instance)
+                logger.error("Invalid automation instance: %s" % instance)
             return context
 
     plugin_pool.register_plugin(AutomationHook)

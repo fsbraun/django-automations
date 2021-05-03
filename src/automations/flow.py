@@ -25,6 +25,9 @@ class ThisAttribute:
     def __init__(self, attr):
         self.attr = attr
 
+    def __repr__(self):
+        return f"this.{self.attr}"
+
 
 class This:
     """Generator for reference to a named attribute"""
@@ -75,8 +78,7 @@ class Node:
 
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
-        if isinstance(value, ThisAttribute) or (isinstance(value, str) and hasattr(self._automation, value)
-                                                and item != '_name' and item != '_automation'):
+        if isinstance(value, ThisAttribute) or (isinstance(value, str) and value.startswith('self.')):
             value = self.resolve(value)
             setattr(self, item, value)  # remember
         return value
@@ -84,8 +86,8 @@ class Node:
     def resolve(self, value):
         if isinstance(value, ThisAttribute):  # This object?
             value = getattr(self._automation, value.attr)  # get automation attribute
-        elif isinstance(value, str) and hasattr(self._automation, value):  # String literal instead of this
-            value = getattr(self._automation, value)
+        elif isinstance(value, str) and value.startswith('self.'):  # String literal instead of this
+            value = getattr(self._automation, value[5:])
         return value
 
     @atomic
@@ -183,6 +185,7 @@ class End(Node):
 
     def leave(self, task):
         task.finished = now()
+        task.locked = 0;
         task.save()
 
 
@@ -324,6 +327,8 @@ class Execute(Node):
 
     def method(self, task, *args, **kwargs):
         func = args[0]
+        if not callable(func):
+            raise ImproperlyConfigured(f"Execute: expected callable, got {func.__class__.__name__}")
         return func(task, *self.args[1:], **self.kwargs)
 
     @on_execution_path
@@ -339,14 +344,15 @@ class Execute(Node):
                 except TypeError:
                     task.result = None
             except Exception as err:
+                if isinstance(err, ImproperlyConfigured):
+                    raise err
                 self._err = err
                 task.message = repr(err)[:settings.MAX_FIELD_LENGTH]
                 task.result = dict(error=traceback.format_exc())
 
-        if self.args is not None:
+        if self.args is not None and len(self.args) > 0:  # Empty arguments: No-op
             args = (self.resolve(value) for value in self.args)
             kwargs = {key: self.resolve(value) for key, value in self.kwargs.items()}
-
             if kwargs.pop("threaded", False):
                 assert self._on_error is None, "No .OnError statement on threaded executions"
                 threading.Thread(target=func, args=[task] + list(args), kwargs=kwargs).start()
@@ -381,28 +387,33 @@ class If(Execute):
         self._else = None
         self._func = lambda x: None
 
-    def Then(self, func):
+    def Then(self, *clause_args, **clause_kwargs):
         if self._then is not None:
             raise ImproperlyConfigured(f"Multiple .Then statements")
-        self._then = func
+        self._then = (clause_args, clause_kwargs)
         return self
 
-    def Else(self, func):
+    def Else(self, *clause_args, **clause_kwargs):
         if self._else is not None:
             raise ImproperlyConfigured(f"Multiple .Else statements")
-        self._else = func
+        self._else = (clause_args, clause_kwargs)
         return self
 
     @on_execution_path
     def if_handler(self, task: models.AutomationTaskModel):
         if self._then is None:
             raise ImproperlyConfigured(f"Missing .Then statement")
-        opt = self._then if self.eval(self._condition, task) \
-            else self._else
-        if isinstance(opt, Node):
-            self._next = opt
-        elif opt is not None:
-            self._func = opt
+        this_path = self.eval(self._condition, task)
+        clause = self._then if this_path else self._else
+        if clause is not None:
+            opt_args, opt_kwargs = clause
+            if len(opt_args) == 1 and len(opt_kwargs) == 0:
+                resolved = self.resolve(opt_args[0])
+                if isinstance(resolved, Node) and not callable(resolved):
+                    self.Next(resolved)
+                    return task
+            self.args = opt_args
+            self.kwargs = opt_kwargs
             return self.execute_handler(task)
         return task
 
@@ -496,10 +507,7 @@ class ModelForm(Form):
 def on_signal(signal, start=None, **kwargs):
     """decorator for automations to connect to Django signals"""
     def decorator(cls):
-        @functools.wraps(cls)
-        def creator(sender, **sargs):
-            cls.on_signal(start, sender, **sargs)
-        signal.connect(creator, weak=False, **kwargs)
+        cls.on(signal, start, **kwargs)
         return cls
     return decorator
 
@@ -637,8 +645,19 @@ class Automation:
         self._db.delete()
 
     @classmethod
-    def on(cls, signal, **kwargs):
-        signal.connect(cls.on_signal, **kwargs)
+    def dispatch_message(cls, automation, message, token, request):
+        if isinstance(automation, int):
+            automation = cls(automation_id=automation)
+        assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
+                                            f"{automation.__class__.__name__} found, " \
+                                            f"{cls.__name__} expected"
+        return automation.send_message(message, token, request)
+
+    @classmethod
+    def on(cls, signal, start=None, **kwargs):
+        def creator(sender, **sargs):
+            cls.on_signal(start, sender, **sargs)
+        signal.connect(creator, weak=False, **kwargs)
 
     @classmethod
     def on_signal(cls, start, sender, **kwargs):
