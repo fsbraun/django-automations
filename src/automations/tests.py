@@ -30,7 +30,7 @@ class Print(flow.Execute):
 
 
 class TestAutomation(flow.Automation):
-    start =             flow.Execute(this.init, threaded=True).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
+    start =             flow.Execute(this.init).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
     intermediate =      flow.Execute("self.init2")
     func_if =           flow.If(lambda x: x.data['more_participants'] == "test").Then().Else(this.print)
     if_clause =         flow.If(lambda x: x.data['more_participants'] == "test").Then("self.conditional")
@@ -96,7 +96,19 @@ class SignalAutomation(flow.Automation):
     def started_by_signal(self, *args, **kwargs):
         self.data['started'] = 'yeah!'
         self.save()
-    start = flow.End()
+    start = flow.Execute().AfterPausingFor(datetime.timedelta(days=1))
+    end = flow.End()
+
+    def receive_new_user(self, token, data=None):
+        self.data['token'] = token
+        self.save()
+        return "received"
+
+
+class SendMessageAutomation(flow.Automation):
+    start = flow.SendMessage(SignalAutomation, "new_user", "12345678")
+    to_nowhere = flow.SendMessage("automations.tests.FormTest", "this_receiver_does_not_exist")
+    end = flow.End()
 
 
 class AtmTaskForm(forms.ModelForm):
@@ -242,6 +254,12 @@ class SignalTestCase(TestCase):
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("started", ""), "yeah!")
+        sender = SendMessageAutomation()
+        sender.run()
+        inst = models.AutomationModel.objects.filter(
+            automation_class='automations.tests.SignalAutomation',
+        )
+        self.assertEqual(inst[0].data.get("token", ""), "12345678")
 
         self.assertGreater(len(inst[0].automationtaskmodel_set.all()), 0)
 

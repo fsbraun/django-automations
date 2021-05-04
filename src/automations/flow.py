@@ -114,6 +114,16 @@ class Node:
         task.save()
         return None
 
+    @staticmethod
+    def store_result(task: models.AutomationTaskModel, message, result):
+        task.message = message[0:settings.MAX_FIELD_LENGTH]
+        try:  # Check if result is json serializable
+            json.dumps(result)  # Raise error if not json-serializable
+            task.result = result  # if it is, store it
+        except TypeError:
+            task.result = None
+        task.save()
+
     def leave(self, task: models.AutomationTaskModel):
         if task is not None:
             task.finished = now()
@@ -337,23 +347,18 @@ class Execute(Node):
             self._err = None
             try:
                 result = self.method(task, *args, **kwargs)
-                task.message = "OK"
-                try:  # Check if result is json serializable
-                    json.dumps(result)  # Raise error if not json-serializable
-                    task.result = result  # if it is, store it
-                except TypeError:
-                    task.result = None
+                self.store_result(task, "OK", result)
             except Exception as err:
                 if isinstance(err, ImproperlyConfigured):
                     raise err
                 self._err = err
-                task.message = repr(err)[:settings.MAX_FIELD_LENGTH]
-                task.result = dict(error=traceback.format_exc())
+                self.store_result(task, repr(err), dict(error=traceback.format_exc()))
+
 
         if self.args is not None and len(self.args) > 0:  # Empty arguments: No-op
             args = (self.resolve(value) for value in self.args)
             kwargs = {key: self.resolve(value) for key, value in self.kwargs.items()}
-            if kwargs.pop("threaded", False):
+            if kwargs.get("threaded", False):
                 assert self._on_error is None, "No .OnError statement on threaded executions"
                 threading.Thread(target=func, args=[task] + list(args), kwargs=kwargs).start()
             else:
@@ -504,6 +509,52 @@ class ModelForm(Form):
             return dict()
 
 
+class SendMessage(Node):
+    def __init__(self, target, message, token=None, allow_multiple_receivers=False, **argv):
+        self._target = target
+        self._message = message
+        self._token = token
+        self._allow_multiple_receivers = allow_multiple_receivers
+        self.argv = argv
+        super().__init__()
+
+    @on_execution_path
+    def send_handler(self, task):
+        cls = self._target
+        if isinstance(cls, str):
+            cls = models.get_automation_class(cls)
+        if issubclass(cls, Automation):
+            qs = models.AutomationModel.objects.filter(
+                finished=False,
+                automation_class=cls.__module__+"."+cls.__name__
+            )
+            automations = (cls(automation_id=instance.id) for instance in qs)
+        elif isinstance(cls, Automation) or isinstance(cls, int):
+            automations = (cls, )
+        else:
+            raise ImproperlyConfigured("")
+        results = []
+        for automation in automations:
+            result = cls.dispatch_message(automation, self._message, self._token, data=self.argv)
+            results.append((automation.id, result))
+            if result is not None and not self._allow_multiple_receivers:
+                break
+        else:
+            self.store_result(task, "No receiver", dict())
+            return task
+        self.store_result(task, "OK", dict(results=result))
+        return task
+
+    def execute(self, task: models.AutomationTaskModel):
+        task = super().execute(task)
+        return self.send_handler(task)
+
+#
+# Automation class
+#
+#
+
+
 def on_signal(signal, start=None, **kwargs):
     """decorator for automations to connect to Django signals"""
     def decorator(cls):
@@ -632,26 +683,26 @@ class Automation:
     def start_from_request(self, request):              # pragma: no cover
         pass
 
-    def send_message(self, message, token, request): # pragma: no cover
+    def send_message(self, message, token, data=None): # pragma: no cover
         """RECEIVES message and dispatches it within the class
         Called send_message so that sending a message to an automation
         is `automation.send_message(...)"""
         if hasattr(self, "receive_"+message):
             method = getattr(self, "receive_"+message)
-            return method(token, request)
+            return method(token, data)
         return None
 
     def kill_automation(self):
         self._db.delete()
 
     @classmethod
-    def dispatch_message(cls, automation, message, token, request):
+    def dispatch_message(cls, automation, message, token, data):
         if isinstance(automation, int):
             automation = cls(automation_id=automation)
         assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
                                             f"{automation.__class__.__name__} found, " \
                                             f"{cls.__name__} expected"
-        return automation.send_message(message, token, request)
+        return automation.send_message(message, token, data)
 
     @classmethod
     def on(cls, signal, start=None, **kwargs):

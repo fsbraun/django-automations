@@ -15,7 +15,7 @@ def runtests(test_path='automations'):
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:'
+                'NAME': ':memory:',
             }
         }
         # test_db = os.environ.get('DB', 'sqlite')

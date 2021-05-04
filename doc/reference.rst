@@ -2,8 +2,8 @@ Reference
 #########
 
 
-Automations
-***********
+Automation class
+****************
 
 Automations are subclasses of the ``flow.Automation`` class.
 
@@ -39,8 +39,8 @@ The ``this`` object serves to avoid unnecessary strings and keep the automation 
 Alternatively, forward references can be denoted by a string starting with ``"self."``. Both forms are equivalent and may be used interchangeably.
 
 
-Nodes
-*****
+Node class
+**********
 
 flow.Node
 =========
@@ -190,6 +190,20 @@ flow.Join
     stops the automation until all paths spawned by the same ``flow.Split()`` have arrived at this node.
 
 
+flow.SendMessage
+================
+
+.. py:class:: flow.SendMessage(target, message, token=None, data=None)
+
+    Sends a message to other (unfinished) automation instances. ``target`` can either be an ``int`` giving the automation id of the automation instance the message is sent to. It can be an Automation instance that receives the message, or it can be an Automation calls. Then the message is sent to all running instances of that class. The class can be replaced by a string with the dotted path to the class definition.
+
+   A message is nothing but a method of the receiving class called ``receive_<<message_name>>``. This method will be called for the target instance giving the optional parameters ``token`` and ``data``. Token typically is a string to define more specifically what the message is supposed to mean. ``data`` can be any pyhton object.
+
+.. note::
+
+    The message is the same mechanism used by the template tags or CMS plugins to send a message when a specific page is rendered. If the message comes from the template tag or plugin ``date`` is the request object.
+
+
 flow.Form
 =========
 
@@ -302,6 +316,8 @@ Send Message Plugin
 The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewd. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
 
 An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces).
+
+The receiver will be passed an optional token and a data object which in this case is the request object.
 
 Views
 *****

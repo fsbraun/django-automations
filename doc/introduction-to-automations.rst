@@ -40,16 +40,18 @@ using pip. Then `automations has to be added to your project's
 
 
 .. note::
-    Only include the "sub app" ``automations.cms_automations`` if you are using Django CMS.
+    Only include the "sub app" ``automations.cms_automations`` if you are using Django CMS. This sub-application will add additional plugins for Django CMS that integrate nicely with Django Automations.
 
 
 
-Finally, run both
+Finally, run
 
 .. code-block:: bash
 
     python manage.py makemigrations automations
+    python manage.py makemigrations cms_automations
     python manage.py migrate automations
+    python manage.py migrate cms_automations
 
 to create Django Automations' database tables.
 
@@ -110,13 +112,9 @@ More nodes are:
 * ``flow.Repeat()`` declares an infinite loop to define regular worker processes.
 * ``flow.If`` allows conditional branching within the automation.
 * ``flow.Split()`` allows to split the execution of the automation in 2 or more concurring paths.
-* ``flow.Join()`` waits until all paths that have started at the same previous
-``Split()`` have converged again. (All splitted paths must be join before ending
-an automation!)
-* ``flow.Form()`` requires a specific user or a user of a group of users to
-fill in a form before the automation continues.
-* ``flow.ModelForm()`` is a simplified front end of ``flow.Form()`` to create
-or edit model instances.
+* ``flow.Join()`` waits until all paths that have started at the same previous ``Split()`` have converged again. (All splitted paths must be join before ending an automation!)
+* ``flow.Form()`` requires a specific user or a user of a group of users to fill in a form before the automation continues.
+* ``flow.ModelForm()`` is a simplified front end of ``flow.Form()`` to create or edit model instances.
 
 Modifier
 ========
@@ -149,7 +147,7 @@ Especially the ``flow.Execute`` node can be easily subclassed to create specific
 and speaking nodes. E.g., in the above example it might be useful to create a
 node ``SendMail``:
 
-.. code-block:: pyhton
+.. code-block:: python
 
     class SendMail(flow.Execute):
         def method(self, task, mail_id):
