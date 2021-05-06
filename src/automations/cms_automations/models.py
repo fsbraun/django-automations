@@ -23,7 +23,13 @@ class AutomationTasksPlugin(CMSPlugin):
 class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
     class OperationChoices(models.IntegerChoices):
         start = 0, _("Start automaton")
-        callback = 1, _("Automation callback")
+        message = 1, _("Send message to automation")
+
+    operation = models.IntegerField(
+        default=OperationChoices.message,
+        choices=OperationChoices,
+        verbose_name=_("Operation")
+    )
 
     automation = models.CharField(
         blank=False,

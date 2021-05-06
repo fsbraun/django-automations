@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-28 12:54+0200\n"
+"POT-Creation-Date: 2021-05-06 17:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,87 +17,124 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: apps.py:8 cms_plugins.py:21 cms_plugins.py:46
+#: apps.py:8 cms_automations/cms_plugins.py:23
+#: cms_automations/cms_plugins.py:121 cms_automations/cms_plugins.py:156
 msgid "Automations"
 msgstr "Automatisierung"
 
-#: cms_plugins.py:20
+#: cms_automations/apps.py:8
+#, fuzzy
+#| msgid "Automations"
+msgid "CMS Automations"
+msgstr "Automatisierung"
+
+#: cms_automations/cms_plugins.py:22
 msgid "Task list"
 msgstr "Aufgaben-Liste"
 
-#: cms_plugins.py:45
-msgid "Callback hook"
-msgstr "Rückrüf Hook"
-
-#: models.py:32
-msgid "Process class"
-msgstr "Prezess-Klasse"
-
-#: models.py:36
-msgid "Finished"
-msgstr "Beendet"
-
-#: models.py:39
-msgid "Data"
-msgstr "Daten"
-
-#: models.py:44
-msgid "Paused until"
-msgstr "Pausiert bis"
-
-#: models.py:89
-msgid "Previous task"
-msgstr "Vorherige Aufgabe"
-
-#: models.py:94
+#: cms_automations/cms_plugins.py:120 models.py:95
 msgid "Status"
 msgstr ""
 
-#: models.py:98
-msgid "Locked"
-msgstr "Gesperrt"
-
-#: models.py:118
-msgid "Message"
+#: cms_automations/cms_plugins.py:155
+#, fuzzy
+#| msgid "Message"
+msgid "Send message"
 msgstr "Nachricht"
 
-#: models.py:122
-msgid "Result"
-msgstr "Ergebnis"
-
-#: models.py:156
+#: cms_automations/models.py:14
 msgid "Template"
 msgstr "Vorlage"
 
-#: models.py:162
+#: cms_automations/models.py:18
+msgid "Always inform"
+msgstr ""
+
+#: cms_automations/models.py:19
+msgid "If deactivated plugin will out output anything if no task is available."
+msgstr ""
+
+#: cms_automations/models.py:25
 msgid "Start automaton"
 msgstr "Automatisierung starten"
 
-#: models.py:163
-msgid "Automation callback"
-msgstr "Automatisierungs-Rückruf"
+#: cms_automations/models.py:26
+msgid "Send message to automation"
+msgstr "Nachricht an Automatisierung"
 
-#: models.py:168
+#: cms_automations/models.py:31
+msgid "Operation"
+msgstr ""
+
+#: cms_automations/models.py:37
 msgid "Automation"
 msgstr "Automatisierung"
 
-#: models.py:180
-msgid "Callback message"
-msgstr "Rückruf-Nachricht"
+#: cms_automations/models.py:43
+msgid "Optional token"
+msgstr "Optionales Token"
 
-#: models.py:186
-msgid "Automation creation kwargs"
-msgstr "kwargs zur Erstellung der Automatisierung"
+#: cms_automations/models.py:53
+msgid "Task data"
+msgstr "Daten der Aufgabe"
+
+#: models.py:33
+msgid "Process class"
+msgstr "Prezess-Klasse"
+
+#: models.py:37
+msgid "Finished"
+msgstr "Beendet"
+
+#: models.py:40
+msgid "Data"
+msgstr "Daten"
+
+#: models.py:45
+msgid "Paused until"
+msgstr "Pausiert bis"
+
+#: models.py:90
+msgid "Previous task"
+msgstr "Vorherige Aufgabe"
+
+#: models.py:99
+msgid "Locked"
+msgstr "Gesperrt"
+
+#: models.py:105
+msgid "Assigned user"
+msgstr ""
+
+#: models.py:111
+msgid "Assigned group"
+msgstr ""
+
+#: models.py:115
+msgid "Required permissions"
+msgstr ""
+
+#: models.py:116
+msgid "List of permissions of the form app_label.codename"
+msgstr ""
+
+#: models.py:126
+msgid "Message"
+msgstr "Nachricht"
+
+#: models.py:130
+msgid "Result"
+msgstr "Ergebnis"
 
 #: settings.py:16
 msgid "Default template"
 msgstr "Standardvorlage"
 
-#: templates/automations/includes/form_view.html:6
+#: templates/automations/includes/form_view.html:8
 msgid "Back"
 msgstr "Zurück"
 
-#: templates/automations/includes/form_view.html:8
+#: templates/automations/includes/form_view.html:10
 msgid "OK"
 msgstr "OK"
 
@@ -113,10 +150,26 @@ msgstr "Offne Aufgaben für"
 msgid "Currently no tasks for you"
 msgstr "Derzeit keine offenen Aufgaben"
 
-#: views.py:88
-msgid "Please login to see your open tasks."
+#: tests.py:65
+msgid "First name"
 msgstr ""
 
-#: views.py:90
-msgid "Your account has been deactivated."
+#: tests.py:69
+msgid "Your e-mail address"
 msgstr ""
+
+#: tests.py:73
+msgid "Chose session"
+msgstr ""
+
+#~ msgid "Callback hook"
+#~ msgstr "Rückrüf Hook"
+
+#~ msgid "Automation callback"
+#~ msgstr "Automatisierungs-Rückruf"
+
+#~ msgid "Callback message"
+#~ msgstr "Rückruf-Nachricht"
+
+#~ msgid "Automation creation kwargs"
+#~ msgstr "kwargs zur Erstellung der Automatisierung"

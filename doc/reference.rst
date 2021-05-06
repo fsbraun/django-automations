@@ -197,7 +197,7 @@ flow.SendMessage
 
     Sends a message to other (unfinished) automation instances. ``target`` can either be an ``int`` giving the automation id of the automation instance the message is sent to. It can be an Automation instance that receives the message, or it can be an Automation calls. Then the message is sent to all running instances of that class. The class can be replaced by a string with the dotted path to the class definition.
 
-   A message is nothing but a method of the receiving class called ``receive_<<message_name>>``. This method will be called for the target instance giving the optional parameters ``token`` and ``data``. Token typically is a string to define more specifically what the message is supposed to mean. ``data`` can be any pyhton object.
+   A message is nothing but a method of the receiving class called ``receive_<<message>>``. This method will be called for the target instance giving the optional parameters ``token`` and ``data``. Token typically is a string to define more specifically what the message is supposed to mean. ``data`` can be any pyhton object.
 
 .. note::
 
