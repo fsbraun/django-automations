@@ -589,7 +589,7 @@ class Automation:
                 elif not isinstance(kwargs[name], int):  # Convert instance to id
                     kwargs[name] = kwargs[name].id
         self._iter[prev] = None  # Last item
-
+        autorun = kwargs.pop("autorun", True)
         if 'automation' in kwargs:
             self._db = kwargs.pop('automation')
             assert isinstance(self._db, models.AutomationModel), \
@@ -611,12 +611,11 @@ class Automation:
             self._db.data = kwargs
             self._db.finished = False
             self._db.save()
-            return
         elif self.singleton:
             assert isinstance(self.singleton, (list, tuple)), ".singleton can be bool, list, tuple or None"
             for key in self.singleton:
-                assert key not in ("automation", "automation_id"), "automation or automation_id cannot be " \
-                                                                   "parameters to distinguish singleton automations"
+                assert key not in ("automation", "automation_id", "autorun"), \
+                    f"'{key}' cannot be parameter to distinguish singleton automations. Chose a different name."
                 assert key in kwargs, "to ensure singleton property, " \
                                       "create automation with '%s=...' parameter" % key
             qs = self.model_class.objects.filter(finished=False)
@@ -625,12 +624,22 @@ class Automation:
                                   for key in self.singleton))
                 if identical == len(self.singleton):
                     self._db = instance
-                    return
-        self._db = self.model_class.objects.create(
-            automation_class=self.get_automation_class_name(),
-            finished=False,
-            data=kwargs,
-        )
+                    break
+            else:
+                self._db = self.model_class.objects.create(
+                    automation_class=self.get_automation_class_name(),
+                    finished=False,
+                    data=kwargs,
+                )
+        else:
+            self._db = self.model_class.objects.create(
+                automation_class=self.get_automation_class_name(),
+                finished=False,
+                data=kwargs,
+            )
+        assert self._db is not None, "Internal error"
+        if autorun:
+            self.run()
 
     def get_model_instance(self, model, name):
         if not hasattr(self, '_' + name):

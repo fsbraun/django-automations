@@ -58,7 +58,6 @@ class TestAutomation(flow.Automation):
         print("Hello", task.data)
 
 
-
 class TestForm(forms.Form):
     success_url = "https://www.google.de/"
     first_name = forms.CharField(
@@ -172,7 +171,7 @@ class ByEmailSingletonAutomation(flow.Automation):
 class ModelTestCase(TestCase):
 
     def test_modelsetup(self):
-        x = TestAutomation()
+        x = TestAutomation(autorun=False)
         qs = models.AutomationModel.objects.all()
         self.assertEqual(len(qs), 1)
         self.assertEqual(qs[0].automation_class, 'automations.tests.TestAutomation')
@@ -194,7 +193,6 @@ class AutomationTestCase(TestCase):
     def test_split_join(self):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             atm = TestSplitJoin()
-            atm.run()
         output = fake_out.getvalue().splitlines()
         self.assertEqual(output[0], "start Hello, this is the single thread")
         self.assertEqual(output[1], "l10 Line 10")
@@ -215,7 +213,7 @@ class FormTestCase(TestCase):
             username='jacob', email='jacob@…', password='top_secret')
 
     def test_form(self):
-        atm = FormTest()
+        atm = FormTest(autorun=False)
         atm.form._user=dict(id=self.user.id)  # Fake User
         atm.form2._user=dict(id=self.user.id)  # Fake User
         atm.run()
@@ -270,7 +268,6 @@ class SignalTestCase(TestCase):
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("started", ""), "yeah!")
         sender = SendMessageAutomation()
-        sender.run()
         inst = models.AutomationModel.objects.filter(
             automation_class='automations.tests.SignalAutomation',
         )
@@ -282,14 +279,11 @@ class SignalTestCase(TestCase):
 class RepeatTest(TestCase):
     def test_repeat(self):
         atm = Looping()
-        atm.run()
         tasks = atm._db.automationtaskmodel_set.filter(finished=None)
         self.assertEqual(len(tasks), 3)
         atm.run()
         tasks = atm._db.automationtaskmodel_set.filter(finished=None)
         self.assertEqual(len(tasks), 3)
-
-
 
     def test_get_automations(self):
         self.assertEqual(len(flow.get_automations()), 0)
@@ -325,7 +319,6 @@ class ExecutionErrorTest(TestCase):
     def test_managment_command(self):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             atm = BoundToFail()
-            atm.run()
         output = fake_out.getvalue().splitlines()
         self.assertEqual(output[0], "start Will divide by zero.")
         self.assertEqual(output[-1], "error_node Oh dear")
@@ -347,18 +340,18 @@ class SingletonTest(TestCase):
         self.assertNotEqual(inst1, inst2)
 
     def test_rel_singleton(self):
-        inst1 = ByEmailSingletonAutomation(email="none@nowhere.com")
+        inst1 = ByEmailSingletonAutomation(email="none@nowhere.com",autorun=False)
         atm_name = inst1.get_automation_class_name()
         self.assertEqual(atm_name.rsplit(".", 1)[-1], inst1.end.get_automation_name())
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class=atm_name
         )), 1)
-        inst2 = ByEmailSingletonAutomation(email="nowhere@none.com")
+        inst2 = ByEmailSingletonAutomation(email="nowhere@none.com",autorun=False)
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class=atm_name
         )), 2)
         self.assertNotEqual(inst1._db, inst2._db)
-        inst3 = ByEmailSingletonAutomation(email="nowhere@none.com")
+        inst3 = ByEmailSingletonAutomation(email="nowhere@none.com", autorun=False)
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class=atm_name
         )), 2)
@@ -379,4 +372,7 @@ class SingletonTest(TestCase):
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class="automations.tests.ByEmailSingletonAutomation"
         )), 3)
+
+        models.AutomationModel.run()
+
 
