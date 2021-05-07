@@ -510,12 +510,12 @@ class ModelForm(Form):
 
 
 class SendMessage(Node):
-    def __init__(self, target, message, token=None, allow_multiple_receivers=False, **argv):
+    def __init__(self, target, message, token=None, allow_multiple_receivers=False, **kwargs):
         self._target = target
         self._message = message
         self._token = token
         self._allow_multiple_receivers = allow_multiple_receivers
-        self.argv = argv
+        self.kwargs = kwargs
         super().__init__()
 
     @on_execution_path
@@ -524,25 +524,12 @@ class SendMessage(Node):
         if isinstance(cls, str):
             cls = models.get_automation_class(cls)
         if issubclass(cls, Automation):
-            qs = models.AutomationModel.objects.filter(
-                finished=False,
-                automation_class=cls.__module__+"."+cls.__name__
-            )
-            automations = (cls(automation_id=instance.id) for instance in qs)
+            results = cls.broadcast_message(self._message, self._token, data=self.kwargs)
         elif isinstance(cls, Automation) or isinstance(cls, int):
-            automations = (cls, )
+            results = [cls.dispatch_message(self._message, self._token, data=self.kwargs)]
         else:
             raise ImproperlyConfigured("")
-        results = []
-        for automation in automations:
-            result = cls.dispatch_message(automation, self._message, self._token, data=self.argv)
-            results.append((automation.id, result))
-            if result is not None and not self._allow_multiple_receivers:
-                break
-        else:
-            self.store_result(task, "No receiver", dict())
-            return task
-        self.store_result(task, "OK", dict(results=result))
+        self.store_result(task, "OK", dict(results=results))
         return task
 
     def execute(self, task: models.AutomationTaskModel):
@@ -712,7 +699,7 @@ class Automation:
         """RECEIVES message and dispatches it within the class
         Called send_message so that sending a message to an automation
         is `automation.send_message(...)"""
-        if hasattr(self, "receive_"+message):
+        if self.__class__.satisfies_data_requirements(message, data):
             method = getattr(self, "receive_"+message)
             return method(token, data)
         return None
@@ -722,7 +709,7 @@ class Automation:
         if hasattr(cls, "receive_" + message):
             method = getattr(cls, "receive_" + message)
             if not hasattr(method, "data_requirements"):
-                return False
+                return True
             if hasattr(get, 'GET'):
                 get = get.GET
             for param, type_class in method.data_requirements.items():
@@ -741,12 +728,25 @@ class Automation:
 
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
-        if isinstance(automation, int):
-            automation = cls(automation_id=automation)
-        assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
-                                            f"{automation.__class__.__name__} found, " \
-                                            f"{cls.__name__} expected"
-        return automation.send_message(message, token, data)
+        if cls.satisfies_data_requirements(message, data):
+            if isinstance(automation, int):
+                automation = cls(automation_id=automation)
+            assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
+                                                f"{automation.__class__.__name__} found, " \
+                                                f"{cls.__name__} expected"
+            return automation.send_message(message, token, data)
+
+    @classmethod
+    def broadcast_message(cls, message, token, data):
+        if cls.satisfies_data_requirements(message, data):
+            for automation in models.AutomationModel.objects.filter(
+                    finished=False,
+                    automation_class=cls.__module__+"."+cls.__name__,
+            ):
+                automation = cls(automation=automation)
+                result = automation.send_message(message, token, data)
+                if isinstance(result, str) and result == "received":
+                    break
 
     @classmethod
     def create_on_message(cls, message, token, data):
@@ -806,7 +806,9 @@ def get_automations(app=None):
     return automation_list
 
 
-def require_get_parameters(**kwargs):
+def require_data_parameters(**kwargs):
+    """decorates Automation class receiver methods to set the data_requirement attribute
+    It is checked by cls.satisfies_data_requirements"""
     def decorator(method):
         method.data_requirements = kwargs
         return method

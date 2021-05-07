@@ -24,6 +24,7 @@ class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
     class OperationChoices(models.IntegerChoices):
         start = 0, _("Start automaton")
         message = 1, _("Send message to automation")
+        broadcast = 2, _("Broadcast message to all automations")
 
     operation = models.IntegerField(
         default=OperationChoices.message,
@@ -45,6 +46,7 @@ class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
 
     def __str__(self):
         return self.automation.split('.')[-1]
+
 
 class AutomationStatusPlugin(CMSPlugin):            # pragma: no cover
     template = models.CharField(

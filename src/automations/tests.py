@@ -20,8 +20,6 @@ from django.test import RequestFactory
 
 # Create your tests here.
 
-test_signal = django.dispatch.Signal()
-
 
 class Print(flow.Execute):
     @staticmethod
@@ -90,26 +88,6 @@ class TestSplitJoin(flow.Automation):
     t30 = Print("Thread 30").Next(this.join)
 
 
-@flow.on_signal(test_signal)
-class SignalAutomation(flow.Automation):
-    def started_by_signal(self, *args, **kwargs):
-        self.data['started'] = 'yeah!'
-        self.save()
-    start = flow.Execute().AfterPausingFor(datetime.timedelta(days=1))
-    end = flow.End()
-
-    def receive_new_user(self, token, data=None):
-        self.data['token'] = token
-        self.save()
-        return "received"
-
-
-class SendMessageAutomation(flow.Automation):
-    start = flow.SendMessage(SignalAutomation, "new_user", "12345678")
-    to_nowhere = flow.SendMessage("automations.tests.FormTest", "this_receiver_does_not_exist")
-    end = flow.End()
-
-
 class AtmTaskForm(forms.ModelForm):
     class Meta:
         model = models.AutomationTaskModel
@@ -164,7 +142,7 @@ class ByEmailSingletonAutomation(flow.Automation):
 
     end = flow.End()
 
-    @flow.require_get_parameters(email=str, mails=int)
+    @flow.require_data_parameters(email=str, mails=int)
     def receive_test(self, token, data):
         pass
 
@@ -254,6 +232,30 @@ class FormTestCase(TestCase):
         self.assertEqual(len(atm.form2.get_users_with_permission()), 0)
 
 
+
+test_signal = django.dispatch.Signal()
+
+
+@flow.on_signal(test_signal)
+class SignalAutomation(flow.Automation):
+    def started_by_signal(self, *args, **kwargs):
+        self.data['started'] = 'yeah!'
+        self.save()
+    start = flow.Execute().AfterPausingFor(datetime.timedelta(days=1))
+    end = flow.End()
+
+    def receive_new_user(self, token, data=None):
+        self.data['token'] = token
+        self.save()
+        return "received"
+
+
+class SendMessageAutomation(flow.Automation):
+    start = flow.SendMessage(SignalAutomation, "new_user", "12345678")
+    to_nowhere = flow.SendMessage("automations.tests.FormTest", "this_receiver_does_not_exist")
+    end = flow.End()
+
+
 class SignalTestCase(TestCase):
     def test_signal(self):
         self.assertEqual(0, len(models.AutomationModel.objects.filter(
@@ -267,10 +269,11 @@ class SignalTestCase(TestCase):
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("started", ""), "yeah!")
-        sender = SendMessageAutomation()
+        SendMessageAutomation()
         inst = models.AutomationModel.objects.filter(
             automation_class='automations.tests.SignalAutomation',
         )
+        self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("token", ""), "12345678")
 
         self.assertGreater(len(inst[0].automationtaskmodel_set.all()), 0)

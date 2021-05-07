@@ -170,8 +170,10 @@ try:
                     cls.dispatch_message(int(automation_id), message, instance.token, request)
                 else:
                     logger.error("Invalid automation instance: %s" % instance)
-            else:
+            elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start:
                 cls.create_on_message(message, instance.token, request)
+            elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.broadcast:
+                cls.broadcast_message(message, instance.token, request)
             return context
 
 
