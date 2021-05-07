@@ -594,6 +594,7 @@ class Automation:
             self._db = kwargs.pop('automation')
             assert isinstance(self._db, models.AutomationModel), \
                 "automation= parameter needs to be AutomationModel instance"
+            return
         elif 'automation_id' in kwargs:  # Attach to automation in DB
             self._db, _ = self.model_class.objects.get_or_create(
                 id=kwargs.pop('automation_id'),
@@ -602,19 +603,34 @@ class Automation:
                     finished=False,
                     data=kwargs,
                 ))
-        elif self.singleton:  # Create or get singleton in DB
-            self._db, _ = self.model_class.objects.create_or_get(
+            return
+        elif self.singleton is True:  # Create or get singleton in DB
+            self._db, _ = self.model_class.objects.get_or_create(
                 automation_class=self.get_automation_class_name(),
             )
             self._db.data = kwargs
             self._db.finished = False
             self._db.save()
-        else:  # Create new automation in DB
-            self._db = self.model_class.objects.create(
-                automation_class=self.get_automation_class_name(),
-                finished=False,
-                data=kwargs,
-            )
+            return
+        elif self.singleton:
+            assert isinstance(self.singleton, (list, tuple)), ".singleton can be bool, list, tuple or None"
+            for key in self.singleton:
+                assert key not in ("automation", "automation_id"), "automation or automation_id cannot be " \
+                                                                   "parameters to distinguish singleton automations"
+                assert key in kwargs, "to ensure singleton property, " \
+                                      "create automation with '%s=...' parameter" % key
+            qs = self.model_class.objects.filter(finished=False)
+            for instance in qs:
+                identical = sum((0 if key not in instance.data or instance.data[key] != kwargs[key] else 1
+                                  for key in self.singleton))
+                if identical == len(self.singleton):
+                    self._db = instance
+                    return
+        self._db = self.model_class.objects.create(
+            automation_class=self.get_automation_class_name(),
+            finished=False,
+            data=kwargs,
+        )
 
     def get_model_instance(self, model, name):
         if not hasattr(self, '_' + name):
@@ -692,7 +708,26 @@ class Automation:
             return method(token, data)
         return None
 
-    def kill_automation(self):
+    @classmethod
+    def satisfies_data_requirements(cls, message, get):
+        if hasattr(cls, "receive_" + message):
+            method = getattr(cls, "receive_" + message)
+            if not hasattr(method, "data_requirements"):
+                return False
+            if hasattr(get, 'GET'):
+                get = get.GET
+            for param, type_class in method.data_requirements.items():
+                if param not in get:
+                    return False
+                if not isinstance(get[param], type_class):  # Try simple conversion
+                    try:
+                        type_class(get[param])
+                    except (ValueError, TypeError):
+                        return False
+            return True
+        return False
+
+    def kill(self):
         self._db.delete()
 
     @classmethod
@@ -703,6 +738,20 @@ class Automation:
                                             f"{automation.__class__.__name__} found, " \
                                             f"{cls.__name__} expected"
         return automation.send_message(message, token, data)
+
+    @classmethod
+    def create_on_message(cls, message, token, data):
+        if cls.satisfies_data_requirements(message, data):
+            kwargs = dict()
+            accessor = data.GET if hasattr(data, 'GET') else data
+            if isinstance(cls.singleton, (list, tuple)):
+                for param in cls.singleton:
+                    if param in accessor:
+                        kwargs[param] = accessor.get(param)
+            instance = cls(**kwargs)
+            instance.send_message(message, token, data)
+            return instance
+        return None
 
     @classmethod
     def on(cls, signal, start=None, **kwargs):
@@ -716,7 +765,6 @@ class Automation:
         if hasattr(instance, 'started_by_signal') and callable(instance.started_by_signal):
             instance.started_by_signal(sender, kwargs)  # initialize based on sender data
         instance.run(None, None if start is None else getattr(instance, start))  # run
-
 
     def __str__(self):
         return self.__class__.__name__
@@ -748,3 +796,9 @@ def get_automations(app=None):
 
     return automation_list
 
+
+def require_get_parameters(**kwargs):
+    def decorator(method):
+        method.data_requirements = kwargs
+        return method
+    return decorator

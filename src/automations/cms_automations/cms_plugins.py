@@ -160,14 +160,6 @@ try:
         render_template = "automations/cms/empty_template.html"
         form = EditAutomationHook
 
-
-        def start_automation(self, context, instance, placeholder):
-            automation, message = instance.automation.rsplit('.', 1)
-            cls = models.get_automation_class(automation)
-            automation = cls()
-            cls.dispatch_message((automation.id), message, context['request'], instance.token)
-            return context
-
         def render(self, context, instance, placeholder):
             request = context['request']
             automation, message = instance.automation.rsplit('.', 1)
@@ -175,12 +167,11 @@ try:
             if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
                 automation_id = request.GET.get("atm_id", None)
                 if isinstance(automation_id, str) and automation_id.isnumeric():
-                    cls.displatch_message(int(automation_id), message, instance.token, request)
+                    cls.dispatch_message(int(automation_id), message, instance.token, request)
                 else:
                     logger.error("Invalid automation instance: %s" % instance)
             else:
-                automation = cls()
-                cls.dispatch_message(automation.id, message, instance.token, request)
+                cls.create_on_message(message, instance.token, request)
             return context
 
 

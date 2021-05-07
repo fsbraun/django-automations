@@ -8,9 +8,9 @@ Author-email: fsbraun@gmx.de
 License: UNKNOWN
 Project-URL: Bug Tracker, https://github.com/fsbraun/django-automations/issues
 Project-URL: Documentation, https://django-automations.readthedocs.io/en/latest/
-Description: ![GitHub](https://img.shields.io/github/license/fsbraun/django-automations)
-        ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django-automations)
+Description: ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django-automations)
         ![PyPI - Django Version](https://img.shields.io/pypi/djversions/django-automations)
+        ![GitHub](https://img.shields.io/github/license/fsbraun/django-automations)
         
         [![PyPI](https://img.shields.io/pypi/v/django-automations)](https://pypi.org/project/django-automations/)
         [![Read the Docs](https://img.shields.io/readthedocs/django-automations)](https://django-automations.readthedocs.io/en/latest/)

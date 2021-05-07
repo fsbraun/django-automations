@@ -154,6 +154,21 @@ class BoundToFail(flow.Automation):
     error_node = Print("Oh dear").Next(this.not_caught)
 
 
+class SingletonAutomation(flow.Automation):
+    singleton = True
+
+    end = flow.End()
+
+
+class ByEmailSingletonAutomation(flow.Automation):
+    singleton = ("email", )
+
+    end = flow.End()
+
+    @flow.require_get_parameters(email=str, mails=int)
+    def receive_test(self, token, data):
+        pass
+
 class ModelTestCase(TestCase):
 
     def test_modelsetup(self):
@@ -300,7 +315,7 @@ class ManagementCommandTest(TestCase):
         self.assertGreater(len(models.AutomationTaskModel.objects.filter(
             automation_id=db_id
         )), 0)
-        atm.kill_automation()
+        atm.kill()
         self.assertEqual(len(models.AutomationTaskModel.objects.filter(
             automation_id=db_id
         )), 0)
@@ -316,3 +331,52 @@ class ExecutionErrorTest(TestCase):
         self.assertEqual(output[-1], "error_node Oh dear")
         self.assertNotIn("never This should NOT be printed", output)
         self.assertNotIn("never_reached Will not reach this", output)
+
+
+class SingletonTest(TestCase):
+    def test_singleton(self):
+        inst1 = SingletonAutomation()
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class="automations.tests.SingletonAutomation"
+        )), 1)
+        inst2 = SingletonAutomation()
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class="automations.tests.SingletonAutomation"
+        )), 1)
+        self.assertEqual(inst1._db, inst2._db)
+        self.assertNotEqual(inst1, inst2)
+
+    def test_rel_singleton(self):
+        inst1 = ByEmailSingletonAutomation(email="none@nowhere.com")
+        atm_name = inst1.get_automation_class_name()
+        self.assertEqual(atm_name.rsplit(".", 1)[-1], inst1.end.get_automation_name())
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class=atm_name
+        )), 1)
+        inst2 = ByEmailSingletonAutomation(email="nowhere@none.com")
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class=atm_name
+        )), 2)
+        self.assertNotEqual(inst1._db, inst2._db)
+        inst3 = ByEmailSingletonAutomation(email="nowhere@none.com")
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class=atm_name
+        )), 2)
+        self.assertEqual(inst2._db, inst3._db)
+
+        self.assertTrue(ByEmailSingletonAutomation.satisfies_data_requirements("test", dict(email="test", mails="2")))
+        self.assertTrue(ByEmailSingletonAutomation.satisfies_data_requirements("test", dict(email="test", mails=2)))
+        self.assertFalse(ByEmailSingletonAutomation.satisfies_data_requirements("test", dict(email="test", mails="t2")))
+        self.assertFalse(ByEmailSingletonAutomation.satisfies_data_requirements("test", dict(mails="t2")))
+        self.assertFalse(ByEmailSingletonAutomation.satisfies_data_requirements("nonexistent", dict(mails="t2")))
+
+        ByEmailSingletonAutomation.create_on_message("test", None, dict(email="new", mails=2))
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class="automations.tests.ByEmailSingletonAutomation"
+        )), 3)
+
+        ByEmailSingletonAutomation.create_on_message("test", None, dict(email="also_new"))
+        self.assertEqual(len(models.AutomationModel.objects.filter(
+            automation_class="automations.tests.ByEmailSingletonAutomation"
+        )), 3)
+

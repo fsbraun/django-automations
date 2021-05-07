@@ -27,7 +27,7 @@ class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
 
     operation = models.IntegerField(
         default=OperationChoices.message,
-        choices=OperationChoices,
+        choices=OperationChoices.choices,
         verbose_name=_("Operation")
     )
 

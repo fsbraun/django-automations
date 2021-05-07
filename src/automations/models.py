@@ -77,6 +77,8 @@ class AutomationModel(models.Model):
                 automation.save()
                 logger.error(f'Error: {repr(e)}', exc_info=sys.exc_info())
 
+    def __str__(self):
+        return f"<AutomationModel for {self.automation_class}>"
 
 class AutomationTaskModel(models.Model):
     automation = models.ForeignKey(
