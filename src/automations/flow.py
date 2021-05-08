@@ -48,8 +48,18 @@ def on_execution_path(m):
     case of WaitUntil, PauseFor and When"""
     @functools.wraps(m)
     def wrapper(self, task, *args, **kwargs):
-        return None if task is None else m(self, task, *args, **kwargs)
+        try:
+            return None if task is None else m(self, task, *args, **kwargs)
+        except Exception as err:
+            if isinstance(err, ImproperlyConfigured):
+                raise err
+            if task is not None:
+                self.store_result(task, repr(err), dict(error=traceback.format_exc()))
+                self.release_lock(task)
+                self._automation._db.finished = True
+                self._automation._db.save()
 
+            return None
     return wrapper
 
 
@@ -133,7 +143,7 @@ class Node:
             else:
                 next_node = self._next
             if next_node is None:
-                raise ImproperlyConfigured("No End statement")
+                raise ImproperlyConfigured("No End() node after %s" % self._name)
             return next_node
 
     @on_execution_path
@@ -367,7 +377,7 @@ class Execute(Node):
                     if self._on_error:
                         self._next = self._on_error
                     else:
-                        self.leave(task)
+                        self.release_lock(task)
                         self._automation._db.finished = True
                         self._automation._db.save()
                         return None
@@ -553,8 +563,6 @@ def on_signal(signal, start=None, **kwargs):
 class Automation:
     model_class = models.AutomationModel
     singleton = False
-
-    end = End()  # Endpoint of automation
 
     def __init__(self, **kwargs):
         super().__init__()

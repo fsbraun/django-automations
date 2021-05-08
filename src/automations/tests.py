@@ -379,3 +379,44 @@ class SingletonTest(TestCase):
         models.AutomationModel.run()
 
 
+class BogusAutomation1(flow.Automation):
+    start = flow.Execute(this.test).OnError(this.error)
+    end = flow.End()
+    error = flow.Execute(this.test)
+
+    def test(self, task):
+        raise SyntaxError("Darn, this is not good")
+
+    def time(self, task):
+        return True  # not a datetime
+
+
+class BogusAutomation2(flow.Automation):
+    start = flow.Execute(this.test)
+    mid = flow.Execute(this.test).AfterWaitingUntil(this.time)
+    end = flow.End().AfterWaitingUntil(this.time)
+
+    def test(self, task):
+        return "Truth"
+
+    def time(self, task):
+        return True  # not a datetime
+
+
+class ErrorTest(TestCase):
+    def test_errors(self):
+        atm = BogusAutomation1()
+        self.assertTrue(atm.finished())
+        self.assertEqual(len(atm._db.automationtaskmodel_set.all()), 2)
+        self.assertEqual(atm._db.automationtaskmodel_set.all()[1].message,
+                         "SyntaxError('Darn, this is not good')")
+
+        atm = BogusAutomation2()
+        self.assertTrue(atm.finished())
+        self.assertEqual(len(atm._db.automationtaskmodel_set.all()), 2)
+        self.assertEqual(atm._db.automationtaskmodel_set.all()[0].result,
+                         'Truth')
+        self.assertEqual(atm._db.automationtaskmodel_set.all()[1].message,
+                         "TypeError(\"'<' not supported between instances of 'bool' and 'datetime.datetime'\")")
+
+
