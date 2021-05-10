@@ -718,21 +718,23 @@ class Automation:
             method = getattr(cls, "receive_" + message)
             if not hasattr(method, "data_requirements"):
                 return True
-            if hasattr(get, 'GET'):
-                get = get.GET
+            accessor = get.GET if hasattr(get, 'GET') else get
             for param, type_class in method.data_requirements.items():
-                if param not in get:
+                if param not in accessor:
                     return False
-                if not isinstance(get[param], type_class):  # Try simple conversion
+                if not isinstance(accessor[param], type_class):  # Try simple conversion
                     try:
-                        type_class(get[param])
+                        type_class(accessor[param])
                     except (ValueError, TypeError):
                         return False
             return True
         return False
 
     def kill(self):
+        """Deletes the automation instance in models.AutomationModel"""
         self._db.delete()
+        self._db = None
+
 
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
@@ -746,6 +748,7 @@ class Automation:
 
     @classmethod
     def broadcast_message(cls, message, token, data):
+        results = []
         if cls.satisfies_data_requirements(message, data):
             for automation in models.AutomationModel.objects.filter(
                     finished=False,
@@ -753,8 +756,10 @@ class Automation:
             ):
                 automation = cls(automation=automation)
                 result = automation.send_message(message, token, data)
+                results.append(result)
                 if isinstance(result, str) and result == "received":
                     break
+        return results
 
     @classmethod
     def create_on_message(cls, message, token, data):
@@ -765,7 +770,7 @@ class Automation:
                 for param in cls.singleton:
                     if param in accessor:
                         kwargs[param] = accessor.get(param)
-            instance = cls(**kwargs)
+            instance = cls(autorun=False, **kwargs)
             instance.send_message(message, token, data)
             return instance
         return None

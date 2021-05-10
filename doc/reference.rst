@@ -10,6 +10,86 @@ Automations are subclasses of the ``flow.Automation`` class.
 flow.Automation
 ===============
 
+
+.. py:method:: instance.kill()
+
+    Deletes the instance entry in ``models.AutomationModel``.
+
+    This implies that the execution of the automation is stopped and its history and status are removed from the database. Use this method only if an instance has been created in error, e.g., if you detect invalid arguments after creation. Killing an instance is also removing it from all analytics.
+
+To prematurely stop the execution of an automation consider using ``If()`` nodes to branch to an ``End()`` node. This makes the stopping condition explicit in the declaration of an automation.
+
+
+flow.Automation.Meta
+====================
+
+Messages
+========
+
+Declaring receivers
+-------------------
+
+Sending messages
+----------------
+
+.. py:method:: instance.send_message(message, token, data)
+
+    ``automation.send_message()`` sends the message ``message`` to the automation instance ``autoamtion``. Its class needs to have declared a receiver by providing a method named ``receive_<<message>>`` where ``<<message>>`` is to be replaced by the string ``message``.
+
+    ``token`` is a string parameter which may be used to give the receiver additional information on, e.g., the sender or the specific content of the message. Sender and receiver are free to agree on its meaning. ``data`` typically is a dict of additional data passed to the receiver. The receiving part is supposed not to alter it and to make a copy of it if it is to be stored.
+
+    If the message is sent from a template tag or CMS plugin ``data`` is the request object.
+
+
+.. py:classmethod:: Automation.dispatch_message(automation, message, token, data)
+
+    If the first parameter ``automation`` is an instance of an automation this is equivalent to ``automation.send_message(..)``. If ``automation`` is of type ``int`` it is interpreted as the id of the automation and the instance is created before it is sent the message. Hence this class method can be used as a shortcut if only an automation's id is known.
+
+
+.. py:classmethod:: Automation.create_on_message(message, token, data)
+
+    The class method creates an instance of the automation and immediately sends the message. If the automation is a singleton with respect to certain properties these property values must be given in the ``data`` dict or request object.
+
+    The message is sent ``before`` the automation's ``run`` method is called the first time. This means the first Node will not have been executed yet.
+
+
+.. py:classmethod:: Automation.broadcast_message(message, token, data)
+
+    The class method sends the message to all running instances of the automation. The order is undefined.
+
+    An instance can "catch" a message by returning the string ``"received"``. This will stop the broadcast and not all instances might get the message. All other return values do not influence the broadcast.
+
+    The class method returns a list of all return values. If the broadcast was caught then the last element in this list will be the string ``"received"``.
+
+
+flow.require_data_parameters
+----------------------------
+
+.. py:function:: @flow.require_data_parameters(**kwargs)
+
+    This decorator for receivers (i.e., methods the name of which starts with ``receive_``) declares that the receiver needs certain parameters of certain type, e.g. ``email=str`` denotes that it requires an parameter named ``email`` which has the type ``str`` (string). The parameters must be present in the ``data`` dict or - if ``data`` is the request object - in the requests GET parameters.
+
+    If a sender does not provide the listed parameters the message will not be sent to the receiver in the first place. Using this decorator avoids that a message is sent if, e.g., the required GET parameters are not present.
+
+.. py:classmethod:: Automation.satisfies_data_requirements(message, data)
+
+    This class method checks if ``data`` satisfies the declaration of ``require_data_parameters`` of the message receiver. If the receiver does not have required data parameters defined, it will return ``True``.
+
+Singletons
+==========
+
+models.AutomationModel
+======================
+
+All automation instances share a Django model class called ``models.AutomationModel``. To distinguish different automations each instance has a field ``automation_class`` which contains the dotted path to the declaration of the automation class.
+
+All interactions with automations go through their classes and instances. With a few exceptions
+
+.. py:classmethod:: models.AutomationModel.run()
+
+    This class method is to be called by the scheduler (e.g., through the management command ``./manage.py automation_step``) regularly. It will check any unfinished automation instances and process them as appropriate.
+
+
 flow.This and flow.this
 ***********************
 
@@ -58,21 +138,21 @@ Modifiers for all subclasses of flow.Node
 
 The ``flow.Node`` class defines the following **modifiers** common to all subclasses. Some subclasses, however, add specific modifiers for their use.
 
-.. py:method:: .Next(node)
+.. py:method:: Node.Next(node)
 
     Sets the node to continue with after finishing this node. If omitted the automation continues with the chronologically next node of the class. ``.Next`` resembles a goto statement. ``.Next`` takes a string or a ``This`` object as a parameter. A string denotes the name of the next node. The this object allows for a different syntax. ``.Next("next_node")`` and ``this.next_node`` are equivalent.
 
-.. py:method:: .AsSoonAs(condition)
+.. py:method:: Node.AsSoonAs(condition)
 
     Waits for condition before continuing the automation. If condition is ``False`` the automation is interrupted and ``condition`` is checked the next time the automation instance is run.
 
     If ``condition`` is callable it will be called every time the condition needs to be evaluated.
 
-.. py:method:: .AfterWaitingUntil(datetime)
+.. py:method:: Node.AfterWaitingUntil(datetime)
 
     stops the automation until the specific datetime has passed. Note that depending on how the scheduler runs the automation there might be a significant time slip between ``datetime`` and the real execution time. It is only guaranteed that the node is not executed before. ``datetime`` may be a callable.
 
-.. py:method:: .AfterPausingFor(timedelta)
+.. py:method:: Node.AfterPausingFor(timedelta)
 
     stops the automation for a specific amount of time. This is roughly equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``. ``timedelta`` may be a callable.
 
@@ -80,7 +160,7 @@ The ``flow.Node`` class defines the following **modifiers** common to all subcla
 Attributes
 ----------
 
-.. py:attribute:: .data
+.. py:attribute:: Node.data
 
     References a JsonField of the node's automation instance. Each instance of an automation can carry additional data in form of a JsonField. This data is shared by all nodes of the automation instance. The node's attribute returns the common JsonField. Any changes in the field need to be saved using ``.data.save()`` or they might be lost.
 
@@ -91,15 +171,15 @@ Additional methods
 
 Additional methods differ from modifiers since they do **not** return ``self``.
 
-.. py:method:: .ready(self, automation_instance)
+.. py:method:: Node.ready(automation_instance)
 
     Is called by the newly initialized Automation instance to bind the nodes to the instance. Typically, there is no need to call it from other apps.
 
-.. py:method:: .get_automation_name(self)
+.. py:method:: Node.get_automation_name()
 
     Returns the (dotted) name of the Automation instance class the node is bound to. Automations are identified by this name.
 
-.. py:method:: .resolve(self, value)
+.. py:method:: Node.resolve(value)
 
     Resolves the value to the node's automation attribute if ``value`` is either a ``This`` object or a string with the name of a node's automation attribute.
 
@@ -124,15 +204,15 @@ flow.Repeat
 
 The repetition patter is described by **modifiers**:
 
-.. py:method:: .EveryDayAt(hour, minute)
+.. py:method:: Repeat.EveryDayAt(hour, minute)
 
     for daily automations which need to run at a certain hour and minute.
 
-.. py:method:: .EveryHour(no_of_hours=1)
+.. py:method:: Repeat.EveryHour(no_of_hours=1)
 
     for hourly automations or automations that need to run every ``no_of_hours`` hour.
 
-.. py:method:: .EveryNMinutes(minutes)
+.. py:method:: Repeat.EveryNMinutes(minutes)
 
     for regular automations that need to run every ``minutes`` minutes.
 
@@ -152,7 +232,7 @@ flow.Execute
 
 ``flow.Execute`` has one specific modifier.
 
-.. py:method:: .OnError(next_node)
+.. py:method:: Execute.OnError(next_node)
 
     defines a node to continue with in case the ``Execute`` node fails with an exception. If no ``.OnError`` modifier is given the automation will stop if an error occurs. The error information is kept in the task instance in the database.
 
@@ -163,11 +243,11 @@ flow.If
 
     is a conditional node which needs at least the ``.Then()`` modifier and optionally can contain an ``.Else()`` modifier.
 
-.. py:method:: .Then(parameter)
+.. py:method:: If.Then(parameter)
 
     contains either a callable that is Executed (see ``flow.Execute``) or a reference to another node where the automation is continued, if the condition is ``True``.
 
-.. py:method:: .Else(parameter)
+.. py:method:: If.Else(parameter)
 
     specifies what is to be done in case the condition is ``False``. If it is omitted the automation continues with the next node.
 
@@ -221,15 +301,15 @@ flow.Form
 
 The ``flow.Form`` has two extra modifiers to assign the task to a user or a group of users:
 
-.. py:method:: .User(**kwargs)
+.. py:method:: Form.User(**kwargs)
 
     assigns the form to a single user who will have to process it. For the time being the user needs to be unique.
 
-.. py:method:: .Group(**kwargs)
+.. py:method:: Form.Group(**kwargs)
 
     assigns the form to all members of a user group. Selectors typically are only ``id=1`` or ``name="admins"``.
 
-.. py:method:: .Permission(str)
+.. py:method:: From.Permission(str)
 
     assigns the form to all users who have the permission given by a string dot-formatted: ``app_name.codename``. ``app_name`` ist the name of the Django app which provides the permission and ``codename`` is the permission's name. An example could be ``my_app.add_mymodel``. This permission allows an user to add an instance of My_App's ``MyModel`` model. For details on permissions see `Django's Permission documentation <https://docs.djangoproject.com/en/dev/topics/auth/default/#permissions-and-authorization>`_. Multiple ``.Permission(str)`` modifiers can be added implying the a user woulde require **all** permissions requested.
 
@@ -267,7 +347,6 @@ Alternatively pure Django users can use :ref:`template tags<Template tags>` inst
 
 CMS Plugins
 ===========
-
 
 
 Task List Plugin
