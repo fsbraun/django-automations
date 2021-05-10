@@ -562,7 +562,7 @@ def on_signal(signal, start=None, **kwargs):
 
 class Automation:
     model_class = models.AutomationModel
-    singleton = False
+    unique = False
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -599,25 +599,25 @@ class Automation:
                     data=kwargs,
                 ))
             return
-        elif self.singleton is True:  # Create or get singleton in DB
+        elif self.unique is True:  # Create or get singleton in DB
             self._db, _ = self.model_class.objects.get_or_create(
                 automation_class=self.get_automation_class_name(),
             )
             self._db.data = kwargs
             self._db.finished = False
             self._db.save()
-        elif self.singleton:
-            assert isinstance(self.singleton, (list, tuple)), ".singleton can be bool, list, tuple or None"
-            for key in self.singleton:
+        elif self.unique:
+            assert isinstance(self.unique, (list, tuple)), ".singleton can be bool, list, tuple or None"
+            for key in self.unique:
                 assert key not in ("automation", "automation_id", "autorun"), \
-                    f"'{key}' cannot be parameter to distinguish singleton automations. Chose a different name."
-                assert key in kwargs, "to ensure singleton property, " \
+                    f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
+                assert key in kwargs, "to ensure unqiue property, " \
                                       "create automation with '%s=...' parameter" % key
             qs = self.model_class.objects.filter(finished=False)
             for instance in qs:
                 identical = sum((0 if key not in instance.data or instance.data[key] != kwargs[key] else 1
-                                  for key in self.singleton))
-                if identical == len(self.singleton):
+                                 for key in self.unique))
+                if identical == len(self.unique):
                     self._db = instance
                     break
             else:
@@ -700,10 +700,7 @@ class Automation:
     def finished(self):
         return self._db.finished
 
-    def start_from_request(self, request):              # pragma: no cover
-        pass
-
-    def send_message(self, message, token, data=None): # pragma: no cover
+    def send_message(self, message, token, data=None):
         """RECEIVES message and dispatches it within the class
         Called send_message so that sending a message to an automation
         is `automation.send_message(...)"""
@@ -766,8 +763,8 @@ class Automation:
         if cls.satisfies_data_requirements(message, data):
             kwargs = dict()
             accessor = data.GET if hasattr(data, 'GET') else data
-            if isinstance(cls.singleton, (list, tuple)):
-                for param in cls.singleton:
+            if isinstance(cls.unique, (list, tuple)):
+                for param in cls.unique:
                     if param in accessor:
                         kwargs[param] = accessor.get(param)
             instance = cls(autorun=False, **kwargs)

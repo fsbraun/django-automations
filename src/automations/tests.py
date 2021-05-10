@@ -132,13 +132,13 @@ class BoundToFail(flow.Automation):
 
 
 class SingletonAutomation(flow.Automation):
-    singleton = True
+    unique = True
 
     end = flow.End()
 
 
 class ByEmailSingletonAutomation(flow.Automation):
-    singleton = ("email", )
+    unique = ("email",)
 
     end = flow.End()
 

@@ -5,13 +5,181 @@ Reference
 Automation class
 ****************
 
-Automations are subclasses of the ``flow.Automation`` class.
-
+``flow.Automation`` is a class that provides the core functionality of Django Automations. To create an automation ``flow.Automation`` is subclassed with a list of properties of type ``flow.Note`` which are to executed one after the other.
 flow.Automation
 ===============
 
+Creating a subclass of ``flow.Automation`` is simple and similar to creating forms or models in Django.
+The order of the properties defines the order of execution. All nodes can be adapted using modifiers.
 
-.. py:method:: instance.kill()
+Example:
+
+.. code-block:: python
+
+    from automations import flow
+
+    this = flow.This()
+
+    class IssueDiscussion(flow.Automation):
+        issue_list = models.IssueList
+
+        start =         flow.Execute(this.publish_announcement)
+        parallel =      flow.Split().Next(this.moderation).Next(this.warning).Next(this.conf_call)
+
+        moderation =    flow.If(this.no_new_mails).Then(this.repeat)
+        moderate =      flow.Form(forms.MailModeration).Group(name='Moderators')
+        repeat =        (flow.If(this.moderation_deadline_reached)
+                            .Then(this.join)
+                            .Else(this.moderation)
+                        ).AfterPausingFor(datetime.timedelta(hours=1))
+
+        warning =       (flow.Execute(this.send_deadline_warning)
+                            .AfterPausingFor(datetime.timedelta(days=6))
+                            .Next(this.join))
+
+        conf_call =     flow.If(this.conf_call_this_week).Then(this.moderate_call).Else(this.join)
+        moderate_call = flow.Execute(this.block_calendar)
+
+        join          = flow.Join()
+        evaluate      = flow.Execute(this.evaluate)
+        end           = flow.End()
+
+        def publish_anncouncement(self, task):
+            ...
+
+        def no_new_mails(self, task):
+            # Do something to check mails
+            return not new_mail_found
+
+        ...
+
+
+Note that each node has a name (start, parallel, ...). Execution of the automation starts at the first node and continues node by node as long as no branches are set (``.Next()``, ``.Then()``, or ``.Else()`` modifiers). Nodes need to have a name even if they are not the target of a branch.
+
+It is customary to bracket nodes that continue over line breaks.
+
+The ``.End()`` node deontes the end of the automation. Once it is reached the automation's instances' finished flag is set.
+
+Short programs to execute are realized as methods which take one argument besides ``self``: ``task`` is an instance of ``models.AutomationTaskModel`` and has access to the automations json data field through ``task.data``. This is a convenience solution since it allows lambda expressions, e.g., as parameters for the ``If()`` node:
+
+.. code-block:: python
+
+    branch = (If(lambda x: x.data.get('has_signed_contract', False))
+              .Then(this.process_contract)
+              .Else(this.send_reminder))
+
+
+
+Self-referencing can be achieved using the ``this`` instance of the ``This()`` object or by denoting the reference as string:  ``"self.last_node"`` is equivalent to ``this.last_node``.
+
+.. warning::
+
+    The property names might shadow attributes or methods of the ``flow.Automations`` class. Avoid using existing names like ``id``, ``data``, ``save``, etc. See the list below. Shadowing might lead to unexpected side-effects. Names beginning with underscore ``_`` are reserved and not to used for nodes.
+
+    Here is a list of names to avoid:
+
+    * ``broadcast_message``
+
+    * ``create_on_message``
+
+    * ``data``
+
+    * ``dispatch_message``
+
+    * ``finished``
+
+    * ``get_automation_class_name``
+
+    * ``get_model_instance``
+
+    * ``get_verbose_name``
+
+    * ``get_verbose_name_plural``
+
+    * ``id``
+
+    * ``kill``
+
+    * ``model_class``
+
+    * ``nice``
+
+    * ``on``
+
+    * ``on_signal``
+
+    * ``run``
+
+    * ``satisfies_data_requirements``
+
+    * ``save``
+
+    * ``send_message``
+
+    * ``unique``
+
+
+Automations are started when instantiated, e.g., by ``instance = IssueDiscussion(issue_list=this_weeks_list)``.
+
+.. note::
+
+    Parameters to the ``__init__`` method are stored in the instance's data json field. The values need to be json-serializable. the only exception are Django model instances. If a model instance is passed the id will be stored in the data field. Also, a property will be created where the respective instance of the model is available.
+
+There are three special parameters when creating an instance:
+
+* ``automation`` denotes the ``models.AutomationModel`` instance to bind this automation to. Hence, not a new automation will be created but an exisiting automation instance will be created from the database data.
+
+* ``automation_id`` is an integer, denoting the id of an ``models.AutomationModel`` instance. The effect is the same as binding directly to the automation.
+
+* ``autorun`` is a boolean value indicating whether the execution shall start immediately when creating the instance. Its default is ``True``. Set it ``False`` if you need to do additional initialization work.
+
+.. py:attribute:: Automation.unique
+
+    The unique attribute is declared when subclassing ``flow.Automation``. It takes either a boolean value or is a list or tuple of strings.
+
+    If ``True`` it makes the automation a singleton, i.e. only one instance can run at a time. If a singleton is instantiated and already an instance is running it will return this running instance.
+
+    If ``.unique`` is a list of strings it declares a set of parameters for the automation which are unique for any instance of it. Parameters of an automation instance are stored in its ``.data`` json field. For example, if you want to avoid sending the same e-mails to an email address multiple times, you can use ``unique = ('email', )`` to only alow one instance of the automation per email.
+
+    ``.unique`` defaults to ``False``.
+
+
+
+.. py:attribute:: Automation.id
+
+    Gives the id of the automation instance. It can be used, e.g., to send messages to this instance. Since it is an integer, it can easily serialized and, e.g., passed as a GET parameter.
+
+.. py:attribute:: Automation.data
+
+    Gives the automation instance's ``data`` json field. It is a dictionary of json-serializable data: an instance of Django's ``JSONField``.
+
+.. py:method:: Automation.save()
+
+    Saves the data field back to the database. This method needs to be called after modifying the ``.data`` attribute.
+
+.. py:method:: Automation.run()
+
+    Starts the execution loop of the automation and runs until the automation
+
+    1. Finishes
+
+    2. Reaches a node which requires user interaction (subclass of ``flow.Flow()``)
+
+    3. Reaches a node which requires waiting for a condition or a certain amount of time
+
+    Automations should only contain nodes that do not need more than a few milliseconds to reach one of these conditions. Complex algorithms are supposed to be coded in Python directly. If an automation needs to do complex calculations these calculations should use the ``threaded=True`` option fo the ``Execute()`` node.
+
+    ``run()`` returns the node at which one of the three conditions was reached.
+
+.. py:method:: Automation.nice()
+
+    Starts the execution loop in a new thread using Python's ``threading`` library and returns immediately.
+
+.. py:method:: Automation.is_finished()
+
+    Returns ``True`` if the automation has finished, ``False`` if it is still running. Finished automations remain in the database for analytics.
+
+.. py:method:: Automation.kill()
 
     Deletes the instance entry in ``models.AutomationModel``.
 
@@ -23,11 +191,66 @@ To prematurely stop the execution of an automation consider using ``If()`` nodes
 flow.Automation.Meta
 ====================
 
+Meta data on automations can be stored in a nested ``Meta`` class.
+
+.. code-block:: python
+
+    class MyAutomation(flow.Automation):
+        class Meta:
+            ...
+
+
+Currently the following attributes are used.
+
+.. py:attribute:: Automation.Meta.verbose_name
+.. py:attribute:: Automation.Meta.verbose_name_plural
+
+    This is a human-readable verbose name of the automation which can be used, e.g., in templates to refer the user to which automation she is for example filling a form.
+
+    If unset it will be ``Automation <<class__name>>``.
+
+
+.. py:method:: Automation.get_verbose_name()
+.. py:method:: Automation.get_verbose_name_plural()
+
+    Returns the verbose name set in the automation's meta class, or, if unset, the standard verbose name ``"Automation <<class_name>>"`` and ``"Automations <<class_name>>"``, respectively.
+
+
 Messages
 ========
 
+Automations can receive messages. Messages are used to update an automation instance once it has started, e.g., when a user visits a certain page fo your Django project.
+
+Also, messages can be used create an instance of an automation and start it.
+
+
 Declaring receivers
 -------------------
+
+To receive messages automations have to declare receivers. Receivers are spacial methods of an automation class. Messages are always received by instances (and not the class itself).
+
+Receivers have names that begin with ``receive_`` followed by the message name. They take three parameters: ``self``, ``token``, and ``data``.
+
+They have access to the automation's ``data`` property using ``self.data``. After updating ``self.data`` receivers need to call ``self.save()`` to avoid changes to be lost.
+
+``token`` specifies either an expected action or specifics about the sender of the message. It is either None or of type ``str``.
+
+``data`` is either a dictionary of additional information or - if called by a template tag or a CMS plugin - a request object. Receivers are not to change the dictionary and only to keep copies and not references to avoid side effects.
+
+Example:
+
+.. code-block:: python
+
+    def receive_update_subscriber(self, token, data):
+        if token == "subscribe":
+            self.data['subscriber_list'].append(data['details'])
+            self.save()
+        elif token == "unsubscribe":
+            ...
+
+
+This receiver can be sent the message ``"update_subscriber"`` and will require a token to specify the exected action.
+
 
 Sending messages
 ----------------
