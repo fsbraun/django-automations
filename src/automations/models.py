@@ -1,5 +1,5 @@
 # coding=utf-8
-
+import hashlib
 import sys
 from logging import getLogger
 
@@ -39,6 +39,11 @@ class AutomationModel(models.Model):
             verbose_name=_("Data"),
             default=dict,
     )
+    key = models.CharField(
+            verbose_name=_("_Unique hash"),
+            default="",
+            max_length=64,
+    )
     paused_until = models.DateTimeField(
             null=True,
             verbose_name=_("Paused until"),
@@ -51,6 +56,10 @@ class AutomationModel(models.Model):
     )
 
     _automation_class = None
+
+    def save(self, *args, **kwargs):
+        self.key = self.get_key()
+        return super().save(*args, **kwargs)
 
     def get_automation_class(self):
         if self._automation_class is None:
@@ -75,6 +84,9 @@ class AutomationModel(models.Model):
                 automation.finished = True
                 automation.save()
                 logger.error(f'Error: {repr(e)}', exc_info=sys.exc_info())
+
+    def get_key(self):
+        return hashlib.sha1(f"{self.automation_class}-{self.id}".encode("utf-8")).hexdigest()
 
     def __str__(self):
         return f"<AutomationModel for {self.automation_class}>"

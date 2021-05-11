@@ -85,27 +85,16 @@ def get_task_receiver_choices():
         return None
     return get_task_choices(lambda x: x.startswith("receive_"), convert=convert)
 
-def get_int(get_data, data):
-    if data in get_data and isinstance(get_data[data], str) and get_data[data].isnumeric():
-        return int(get_data[data])
-    return None
-
 
 def get_automation_instance(get_params):
-    task_id, atm_id = get_int(get_params, "task_id"), get_int(get_params, "atm_id")
-    if atm_id is not None:
+    key = get_params.et("key", None)
+    if key is not None:
         try:
-            automation_instance = models.AutomationModel.objects.get(id=atm_id)
+            automation_instance = models.AutomationModel.objects.get(key=key)
+            return automation_instance
         except models.AutomationModel.DoesNotExist:
             return None
-    elif task_id is not None:
-        try:
-            automation_instance = models.AutomationTaskModel.objects.get(id=atm_id).automation
-        except models.AutomationTaskModel.DoesNotExist:
-            return None
-    else:
-        return None
-    return automation_instance
+    return None
 
 
 def get_automation_data(context, template):
@@ -188,11 +177,10 @@ class AutomationHook(CMSPluginBase):
         automation, message = instance.automation.rsplit('.', 1)
         cls = models.get_automation_class(automation)
         if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
-            automation_id = request.GET.get("atm_id", None)
-            if isinstance(automation_id, str) and automation_id.isnumeric():
-                cls.dispatch_message(int(automation_id), message, instance.token, request)
-            else:
-                logger.error("Invalid automation instance: %s" % instance)
+            try:
+                cls.dispatch_message(request.GET.get("key", None), message, instance.token, request)
+            except Exception:
+                pass
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start:
             cls.create_on_message(message, instance.token, request)
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.broadcast:

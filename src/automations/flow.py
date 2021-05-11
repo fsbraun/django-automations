@@ -1,6 +1,7 @@
 # coding=utf-8
 import datetime
 import functools
+import hashlib
 import json
 import sys
 import threading
@@ -587,24 +588,24 @@ class Automation:
         self._iter[prev] = None  # Last item
         autorun = kwargs.pop("autorun", True)
         if 'automation' in kwargs:
-            self._db = kwargs.pop('automation')
             autorun = False
-            assert isinstance(self._db, models.AutomationModel), \
-                "automation= parameter needs to be AutomationModel instance"
+            if isinstance(kwargs.get("automation"), models.AutomationModel):
+                self._db = kwargs.pop('automation')
+            else:
+                self._db = self.model_class.objects.get(
+                    key=kwargs.pop('automation'),
+                )
+            assert self._db.automation_class == self.get_automation_class_name(), \
+                f"Wrong automation class: expected {self.get_automation_class_name()} " \
+                f"got {self._db.automation_class}"
             assert not kwargs, "Too many arguments for automation %s. " \
-                               "If 'automation' is given, no parameters allowed" % self.__clas__.__name__
+                               "If 'automation' is given, no parameters allowed" % self.__class__.__name__
         elif 'automation_id' in kwargs:  # Attach to automation in DB
             self._create_model_properties(kwargs)
-            self._db, _ = self.model_class.objects.get_or_create(
-                id=kwargs.pop('automation_id'),
-                defaults=dict(
-                    automation_class=self.get_automation_class_name(),
-                    finished=False,
-                    data=kwargs,
-                ))
+            self._db = self.model_class.objects.get(id=kwargs.pop('automation_id'))
             autorun = False
             assert not kwargs, "Too many arguments for automation %s. " \
-                               "If 'automation' is given, no parameters allowed" % self.__clas__.__name__
+                               "If 'automation' is given, no parameters allowed" % self.__class__.__name__
         elif self.unique is True:  # Create or get singleton in DB
             self._db, created = self.model_class.objects.get_or_create(
                 automation_class=self.get_automation_class_name(),
@@ -615,7 +616,7 @@ class Automation:
                 self._db.save()
             else:
                 assert not kwargs, "Too many arguments for automation %s. " \
-                                   "If 'automation' is given, no parameters allowed" % self.__clas__.__name__
+                                   "If 'automation' is given, no parameters allowed" % self.__class__.__name__
         elif self.unique:
             assert isinstance(self.unique, (list, tuple)), ".singleton can be bool, list, tuple or None"
             for key in self.unique:
@@ -752,12 +753,16 @@ class Automation:
         self._db.delete()
         self._db = None
 
+    def get_key(self):
+        return self._db.get_key()
 
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
         if cls.satisfies_data_requirements(message, data):
             if isinstance(automation, int):
                 automation = cls(automation_id=automation)
+            elif isinstance(automation, str):
+                automation = cls(automation=automation)
             assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
                                                 f"{automation.__class__.__name__} found, " \
                                                 f"{cls.__name__} expected"
@@ -787,8 +792,10 @@ class Automation:
                 for param in cls.unique:
                     if param in accessor:
                         kwargs[param] = accessor.get(param)
-            instance = cls(autorun=False, **kwargs)
-            instance.send_message(message, token, data)
+            instance = cls(autorun=False, **kwargs)      # Create
+            instance.send_message(message, token, data)  # Allow message to be processes before ..
+            if not instance.finished():
+                instance.run()                           # ... automation is run
             return instance
         return None
 

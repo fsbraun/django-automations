@@ -6,6 +6,8 @@ Automation class
 ****************
 
 ``flow.Automation`` is a class that provides the core functionality of Django Automations. To create an automation ``flow.Automation`` is subclassed with a list of properties of type ``flow.Note`` which are to executed one after the other.
+
+
 flow.Automation
 ===============
 
@@ -589,9 +591,9 @@ Status Plugin
 
 .. py:class:: AutomationStatus
 
-This plugin allows a user to see the status of the automation. The automation instance is defined by get parameters, either ``atm_id`` giving the automation model instance id or ``task_id`` giving the id of an automation's task.
+This plugin allows a user to see a detailed status of an automation instance. The automation instance is defined by get parameters, either ``atm_id`` giving the automation model instance id or ``task_id`` giving the id of an automation's task.
 
-Additionally a parameter ``KEY`` is specified which is unique for an automation and is used to prevent unauthorized access.
+Additionally a parameter ``key`` is specified which is unique for an automation instance and is used to prevent unauthorized access.
 
 Automations may chose to offer status templates. They have to be declared in the Automations Meta class:
 
@@ -602,9 +604,9 @@ Automations may chose to offer status templates. They have to be declared in the
             status_template = "my_automation/status.html", _("Current status")
             issue_template = "my_automation/issues.html", _("Problem sheet")
 
-Any property with a name that ends on ``_template`` in the automation's Meta class is considered to be a template path for some sort of status view. For user friedlyness a verbose name can be added. Once declared the plugin will offer all status templates.
+Any property with a name that ends on ``_template`` in the automation's Meta class is considered to be a template path for some sort of status view. For user friendliness a verbose name can be added. Once declared the plugin will offer all status templates.
 
-The templates receive the automation class and automation instance in the context with the keys ``automation`` and ``automation_instance``, respectively.
+The templates receive the  automation instance in the context with the key ``automation_instance``.
 
 
 .. _automation_hook:
@@ -641,10 +643,11 @@ All template can be replaced simply by offering alternatives in your project's t
 
     └── automations
         ├── base.html
-        ├── cms
-        │   └── empty_template.html
+        ├── dashboard.html
         ├── form_view.html
         ├── includes
+        │   ├── dashboard.html
+        │   ├── dashboard_item.html
         │   ├── form_view.html
         │   ├── task_item.html
         │   └── task_list.html
@@ -700,4 +703,4 @@ Settings in ``settings.py``
 
 .. py:attribute:: settings.ATM_FORM_VIEW_CONTEXT
 
-    The ``Form()`` nodes and its subclasses present the forms to the user using a Django ``FormView``. It is an dictionary which will be added to the template's context when rendering. The dictionary items may be overwritten by an automation classes ``context`` attribute or by a node's ``context`` parameter.
+    The ``Form()`` nodes and its subclasses present the forms to the user using a Django ``FormView``. This attribute is an dictionary which will be added to the template's context when rendering. The dictionary items may be overwritten by an automation classes' ``context`` attribute or by a node's ``context`` parameter. Hence, this setting in practice is used to set default context elements.
