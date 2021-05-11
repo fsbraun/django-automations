@@ -587,10 +587,13 @@ class Automation:
         autorun = kwargs.pop("autorun", True)
         if 'automation' in kwargs:
             self._db = kwargs.pop('automation')
+            autorun = False
             assert isinstance(self._db, models.AutomationModel), \
                 "automation= parameter needs to be AutomationModel instance"
-            return
+            assert not kwargs, "Too many arguments for automation %s. " \
+                               "If 'automation' is given, no parameters allowed" % self.__clas__.__name__
         elif 'automation_id' in kwargs:  # Attach to automation in DB
+            self._create_model_properties(kwargs)
             self._db, _ = self.model_class.objects.get_or_create(
                 id=kwargs.pop('automation_id'),
                 defaults=dict(
@@ -598,14 +601,20 @@ class Automation:
                     finished=False,
                     data=kwargs,
                 ))
-            return
+            autorun = False
+            assert not kwargs, "Too many arguments for automation %s. " \
+                               "If 'automation' is given, no parameters allowed" % self.__clas__.__name__
         elif self.unique is True:  # Create or get singleton in DB
-            self._db, _ = self.model_class.objects.get_or_create(
+            self._db, created = self.model_class.objects.get_or_create(
                 automation_class=self.get_automation_class_name(),
             )
-            self._db.data = kwargs
-            self._db.finished = False
-            self._db.save()
+            if created:
+                self._db.data = kwargs
+                self._db.finished = False
+                self._db.save()
+            else:
+                assert not kwargs, "Too many arguments for automation %s. " \
+                                   "If 'automation' is given, no parameters allowed" % self.__clas__.__name__
         elif self.unique:
             assert isinstance(self.unique, (list, tuple)), ".singleton can be bool, list, tuple or None"
             for key in self.unique:
@@ -621,12 +630,14 @@ class Automation:
                     self._db = instance
                     break
             else:
+                self._create_model_properties(kwargs)
                 self._db = self.model_class.objects.create(
                     automation_class=self.get_automation_class_name(),
                     finished=False,
                     data=kwargs,
                 )
         else:
+            self._create_model_properties(kwargs)
             self._db = self.model_class.objects.create(
                 automation_class=self.get_automation_class_name(),
                 finished=False,
@@ -635,6 +646,14 @@ class Automation:
         assert self._db is not None, "Internal error"
         if autorun:
             self.run()
+
+    def _create_model_properties(self, kwargs):
+        for name, value in kwargs.items():
+            if isinstance(value, ModelBase):
+                model_class = value.__class__
+                setattr(self, name,  # Replace property by get_model_instance
+                        property(lambda slf: slf.get_model_instance(model_class, name), self))
+                kwargs[name] = kwargs[name].id
 
     def get_model_instance(self, model, name):
         if not hasattr(self, '_' + name):

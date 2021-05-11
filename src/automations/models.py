@@ -3,9 +3,8 @@
 import sys
 from logging import getLogger
 
-from django import forms
-from django.contrib.auth.models import Permission, User
-from django.db.models import Q, QuerySet
+from django.contrib.auth.models import User
+from django.db.models import Q
 from django.utils.module_loading import import_string
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
@@ -79,6 +78,7 @@ class AutomationModel(models.Model):
 
     def __str__(self):
         return f"<AutomationModel for {self.automation_class}>"
+
 
 class AutomationTaskModel(models.Model):
     automation = models.ForeignKey(
@@ -162,4 +162,3 @@ class AutomationTaskModel(models.Model):
     def get_open_tasks(cls, user):
         candidates = cls.objects.filter(finished=None)
         return tuple(task for task in candidates if user in task.get_users_with_permission())
-

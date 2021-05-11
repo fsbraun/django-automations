@@ -28,7 +28,7 @@ class Print(flow.Execute):
 
 
 class TestAutomation(flow.Automation):
-    start =             flow.Execute(this.init).AsSoonAs(lambda x:True).AsSoonAs(this.cont)
+    start =             flow.Execute(this.init).AsSoonAs(lambda x: True).AsSoonAs(this.cont)
     intermediate =      flow.Execute("self.init2")
     func_if =           flow.If(lambda x: x.data['more_participants'] == "test").Then().Else(this.print)
     if_clause =         flow.If(lambda x: x.data['more_participants'] == "test").Then("self.conditional")
@@ -39,7 +39,7 @@ class TestAutomation(flow.Automation):
 
     conditional =       flow.Execute(this.init2).Next("self.if2")
 
-    def init(self, task_instance, *args, **kwargs):
+    def init(self, task, *args, **kwargs):
         if 'participants' not in self.data:
             self.data['participants'] = []
             self.save()
@@ -50,7 +50,7 @@ class TestAutomation(flow.Automation):
         return task  # Illegal since not json serializable
 
     def cont(self, task):
-        return bool(self) and (task)  # True
+        return bool(self) and bool(task)  # True
 
     def print(self, task):
         print("Hello", task.data)
@@ -103,7 +103,7 @@ class FormTest(flow.Automation):
     form = (flow.Form(TestForm, context=dict(claim="Save"))
             .User(id=0))
     form2 = (flow.Form(TestForm, context=dict(claim="Save")).User(id=0)
-            .Permission("automations.create_automationmodel"))
+             .Permission("automations.create_automationmodel"))
     end = flow.End()
 
     def init_with_item(self, task_instance):
@@ -331,11 +331,11 @@ class ExecutionErrorTest(TestCase):
 
 class SingletonTest(TestCase):
     def test_singleton(self):
-        inst1 = SingletonAutomation()
+        inst1 = SingletonAutomation(autorun=False)
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class="automations.tests.SingletonAutomation"
         )), 1)
-        inst2 = SingletonAutomation()
+        inst2 = SingletonAutomation(autorun=False)
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class="automations.tests.SingletonAutomation"
         )), 1)
@@ -343,13 +343,13 @@ class SingletonTest(TestCase):
         self.assertNotEqual(inst1, inst2)
 
     def test_rel_singleton(self):
-        inst1 = ByEmailSingletonAutomation(email="none@nowhere.com",autorun=False)
+        inst1 = ByEmailSingletonAutomation(email="none@nowhere.com", autorun=False)
         atm_name = inst1.get_automation_class_name()
         self.assertEqual(atm_name.rsplit(".", 1)[-1], inst1.end.get_automation_name())
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class=atm_name
         )), 1)
-        inst2 = ByEmailSingletonAutomation(email="nowhere@none.com",autorun=False)
+        inst2 = ByEmailSingletonAutomation(email="nowhere@none.com", autorun=False)
         self.assertEqual(len(models.AutomationModel.objects.filter(
             automation_class=atm_name
         )), 2)
@@ -418,5 +418,3 @@ class ErrorTest(TestCase):
                          'Truth')
         self.assertEqual(atm._db.automationtaskmodel_set.all()[1].message,
                          "TypeError(\"'<' not supported between instances of 'bool' and 'datetime.datetime'\")")
-
-

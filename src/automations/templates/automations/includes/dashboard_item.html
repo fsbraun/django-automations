@@ -1,0 +1,11 @@
+{% load i18n %}{% spaceless %}
+<div class="card h-100">
+    <h5 class="card-header">{{ automation.verbose_name }}</h5>
+    <div class="card-body">
+      <ul>
+        <li>{% trans "Finished" %}: {{ automation.finished.count }}</li>
+        <li>{% trans "Running" %}: {{ automation.running.count }}</li>
+      </ul>
+    </div>
+</div>
+{% endspaceless %}

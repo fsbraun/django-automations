@@ -1,0 +1,13 @@
+{% load i18n %}{% spaceless %}
+  <div class="row row-cols-1 row-cols-lg-3">
+    {% for dashboard in automations %}
+      <div class="col mb-3">
+        {% if dashboard.dashboard_template %}
+          {% include dashboard.automation.Meta.dashboard_template with automation=dashboard %}
+        {% else %}
+          {% include "automations/includes/dashboard_item.html" with automation=dashboard %}
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endspaceless %}
