@@ -460,6 +460,7 @@ class Form(Node):
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
             if task.data.get(f"_{self._name}_validated", None) is None:
+                task.requires_interaction = True
                 self.release_lock(task)  # Release lock and stop automation until form is validated
                 return None
         return task  # Continue with validated form

@@ -100,6 +100,10 @@ class AutomationTaskModel(models.Model):
             default=0,
             verbose_name=_("Locked"),
     )
+    requires_interaction = models.BooleanField(
+        default=False,
+        verbose_name=_("Requires interaction")
+    )
     interaction_user = models.ForeignKey(
             'auth.User',
             null=True,
@@ -161,4 +165,5 @@ class AutomationTaskModel(models.Model):
     @classmethod
     def get_open_tasks(cls, user):
         candidates = cls.objects.filter(finished=None)
-        return tuple(task for task in candidates if user in task.get_users_with_permission())
+        return tuple(task for task in candidates
+                     if task.requires_interaction and user in task.get_users_with_permission())
