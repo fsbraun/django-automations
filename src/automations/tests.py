@@ -189,6 +189,10 @@ class FormTestCase(TestCase):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(
             username='jacob', email='jacob@…', password='top_secret')
+        self.admin = User.objects.create_user(
+            username="admin", email="admin@...", password="Even More Secr3t",
+            is_staff=True,
+        )
 
     def test_form(self):
         atm = FormTest(autorun=False)
@@ -226,6 +230,11 @@ class FormTestCase(TestCase):
         request = self.factory.get(f"/tasks")
         request.user = self.user
         response = views.TaskListView.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get("/dashboard")
+        request.user = self.admin
+        response = views.TaskDashboardView.as_view()(request)
         self.assertEqual(response.status_code, 200)
 
         atm.run()

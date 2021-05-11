@@ -33,8 +33,7 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         self.node = self.task.get_node()
 
     def get_form_kwargs(self):
-        if not hasattr(self, "node"):
-            self.bind_to_node()
+        assert hasattr(self, "node"), "Not bound to node"
         kwargs = super().get_form_kwargs()
         task_kwargs = self.node._form_kwargs
         kwargs.update(task_kwargs(self.task) if callable(task_kwargs) else task_kwargs)
@@ -94,7 +93,9 @@ class TaskDashboardView(UserIsStaff, TemplateView):
     template_name = 'automations/dashboard.html'
 
     def get_context_data(self, **kwargs):
-        qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=30))
+        days = self.request.GET.get("history", "")
+        days = int(days) if days.isnumeric() else 30
+        qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=days))
         automations = []
         for item in qs.order_by("automation_class").values("automation_class").distinct():
             automation = models.get_automation_class(item['automation_class'])
@@ -106,6 +107,7 @@ class TaskDashboardView(UserIsStaff, TemplateView):
                                     verbose_name_plural=automation.get_verbose_name_plural(),
                                     running=qs_filtered.filter(finished=False),
                                     finished=qs_filtered.filter(finished=True),
-                                    dashboard_template= getattr(automations, "dashboard_template", ""),
+                                    dashboard_template= getattr(getattr(automation, "Meta", None),
+                                                                "dashboard_template", ""),
                                     dashboard=dashboard))
         return dict(automations=automations)

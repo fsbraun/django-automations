@@ -21,6 +21,8 @@ src/automations/cms_automations/tests.py
 src/automations/cms_automations/views.py
 src/automations/cms_automations/migrations/0001_initial.py
 src/automations/cms_automations/migrations/0002_auto_20210506_1957.py
+src/automations/cms_automations/migrations/0003_auto_20210511_0825.py
+src/automations/cms_automations/migrations/0004_auto_20210511_1042.py
 src/automations/cms_automations/migrations/__init__.py
 src/automations/cms_automations/templates/automations/cms/empty_template.html
 src/automations/locale/de_DE/LC_MESSAGES/django.mo
@@ -30,10 +32,15 @@ src/automations/management/commands/__init__.py
 src/automations/management/commands/automation_step.py
 src/automations/migrations/0001_initial.py
 src/automations/migrations/0002_auto_20210506_1957.py
+src/automations/migrations/0003_auto_20210511_0825.py
+src/automations/migrations/0004_auto_20210511_1042.py
 src/automations/migrations/__init__.py
 src/automations/templates/automations/base.html
+src/automations/templates/automations/dashboard.html
 src/automations/templates/automations/form_view.html
 src/automations/templates/automations/task_list.html
+src/automations/templates/automations/includes/dashboard.html
+src/automations/templates/automations/includes/dashboard_item.html
 src/automations/templates/automations/includes/form_view.html
 src/automations/templates/automations/includes/task_item.html
 src/automations/templates/automations/includes/task_list.html
