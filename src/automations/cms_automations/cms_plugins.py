@@ -140,13 +140,13 @@ class AutomationStatus(CMSPluginBase):
     def render(self, context, instance, placeholder):
         self.render_template = instance.template
 
-        automation_instance = get_automation_data(context, self.render_template)
-        if automation_instance is not None:
-            automation = automation_instance.get_automation_class()(automation_id=automation_instance.id)
+        automation_model = get_automation_data(context, self.render_template)
+        if automation_model is not None:
+            automation = automation_model.get_automation_class()(automation=automation_model)
         else:
             automation = None
         context.update(dict(automation=automation,
-                            automation_instance=automation_instance,
+                            automation_model=automation_model,
                             instance=instance))
         return context
 
