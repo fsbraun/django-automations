@@ -144,7 +144,7 @@ msgstr "Ansehen"
 
 #: templates/automations/task_list.html:3
 msgid "Open tasks for"
-msgstr "Offne Aufgaben für"
+msgstr "Offene Aufgaben für"
 
 #: templates/automations/task_list.html:6
 msgid "Currently no tasks for you"
