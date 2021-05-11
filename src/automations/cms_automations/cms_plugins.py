@@ -87,7 +87,7 @@ def get_task_receiver_choices():
 
 
 def get_automation_instance(get_params):
-    key = get_params.et("key", None)
+    key = get_params.get("key", None)
     if key is not None:
         try:
             automation_instance = models.AutomationModel.objects.get(key=key)
