@@ -581,9 +581,7 @@ class Automation:
                 nm_c = copy(name)
                 setattr(self.__class__, name,  # Replace property by get_model_instance
                         property(lambda slf: slf.get_model_instance(at_c, nm_c), self))
-                if name not in kwargs:
-                    kwargs[name] = None
-                elif not isinstance(kwargs[name], int):  # Convert instance to id
+                if name in kwargs and not isinstance(kwargs[name], int):  # Convert instance to id
                     kwargs[name] = kwargs[name].id
         self._iter[prev] = None  # Last item
         autorun = kwargs.pop("autorun", True)
@@ -601,7 +599,6 @@ class Automation:
             assert not kwargs, "Too many arguments for automation %s. " \
                                "If 'automation' is given, no parameters allowed" % self.__class__.__name__
         elif 'automation_id' in kwargs:  # Attach to automation in DB
-            self._create_model_properties(kwargs)
             self._db = self.model_class.objects.get(id=kwargs.pop('automation_id'))
             autorun = False
             assert not kwargs, "Too many arguments for automation %s. " \
