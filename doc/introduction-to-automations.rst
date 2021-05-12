@@ -115,6 +115,8 @@ More nodes are:
 * ``flow.Join()`` waits until all paths that have started at the same previous ``Split()`` have converged again. (All splitted paths must be join before ending an automation!)
 * ``flow.Form()`` requires a specific user or a user of a group of users to fill in a form before the automation continues.
 * ``flow.ModelForm()`` is a simplified front end of ``flow.Form()`` to create or edit model instances.
+* ``flow.SendMessage()`` allows to communicate with other automations.
+
 
 Modifier
 ========
@@ -135,6 +137,7 @@ Modifiers for all nodes (with the exception for ``flow.Form`` and
 * ``.AsSoonAs(condition)`` waits for condition before continuing the automation. If condition is ``False`` the automation is interrupted and ``condition`` is checked the next time the automation instance is run.
 * ``.AfterWaitingUntil(datetime)`` stops the automation until the specific datetime has passed. Note that depending on how the scheduler runs the automation there might be a significant time slip between ``datetime`` and the real execution time. It is only guaranteed that the node is not executed before. ``datetime`` may be a callable.
 * ``.AfterPausingFor(timedelta)`` stops the automation for a specific amount of time. This is equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``.
+* ``.SkipIf`` leaves a node unprocessed if a condition is fulfilled.
 
 Other nodes implement additional modifiers, e.g., ``.Then()`` and
 ``.Else()`` in the ``If()`` node. A different example is
@@ -172,3 +175,4 @@ Similar to Django's meta options, Django Automations allows to define verbose na
 Verbose names can appear in Django Automations' views. If no verbose name
 is given the standard name "Automation " plus the class name is used. In
 this example it is ``Automation WebinarWorkflow``.
+
