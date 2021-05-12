@@ -723,8 +723,9 @@ class Automation:
         Called send_message so that sending a message to an automation
         is `automation.send_message(...)"""
         if self.__class__.satisfies_data_requirements(message, data):
-            method = getattr(self, "receive_"+message)
-            return method(token, data)
+            if not self.finished():
+                method = getattr(self, "receive_"+message)
+                return method(token, data)
         return None
 
     @classmethod
