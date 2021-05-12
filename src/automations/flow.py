@@ -177,15 +177,16 @@ class Node:
         for item in self._skipif:
             if self.eval(item, task):
                 task.finished = now()
+                task.message = "skipped"
                 self.release_lock(task)
                 self._leave = True
                 return None
         return task
 
     def execute(self, task: models.AutomationTaskModel):
-        return self.skip_handler(
-            self.when_handler(
-                self.wait_handler(task)))
+        return self.when_handler(
+            self.wait_handler(
+                self.skip_handler(task)))
 
     def Next(self, next_node):
         if self._next is not None:

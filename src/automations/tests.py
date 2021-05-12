@@ -431,8 +431,9 @@ class ErrorTest(TestCase):
 
 class SkipAutomation(flow.Automation):
     start = Print("NOT SKIPPED").SkipIf(lambda x: False)
-    second = Print("SKIPPED").SkipIf(True)
+    second = Print("SKIPPED").SkipIf(True).AsSoonAs(False)   # precedence of SkipIf over AsSoonAs
     third = Print("Clearly printed")
+    forth = flow.Execute()  # Noop
     end = flow.End()
 
 
@@ -441,7 +442,7 @@ class SkipTest(TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             atm = SkipAutomation()
         output = fake_out.getvalue().splitlines()
-        print(output)
+        self.assertTrue(atm.finished())
         self.assertEqual(len(output), 2)
         self.assertEqual(output[0], "start NOT SKIPPED")
         self.assertEqual(output[-1], "third Clearly printed")

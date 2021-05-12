@@ -391,10 +391,13 @@ The ``flow.Node`` class defines the following **modifiers** common to all subcla
 
 .. py:method:: Node.SkipIf(condition)
 
-    Skips the current node if ``condition`` is truthy (i.e., ``bool(condition)`` evaluates to ``True``) or evaluates to a truthy value.
+    Skips the current node if ``condition`` is truthy (i.e., ``bool(condition)`` evaluates to ``True``) or evaluates to a truthy value. The node is left with ``"skipped"`` in the message field of the ``AutomationTaskModel``.
 
     The ``SkipIf()`` modifier is useful to skip, e.g., user interactions or sending emails under a certain condition.
 
+.. note::
+
+    ``.SkipIf()`` has precedence over waiting/pausing modifiers. If a node is skipped, e.g., it is not guaranteed that the ``contiditon`` of ``.AsSoonAs()`` is fulfilled. If the condition has to be fulfilled separate the modifiers and add them to different nodes.
 
 
 
