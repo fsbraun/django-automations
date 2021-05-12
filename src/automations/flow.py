@@ -757,7 +757,6 @@ class Automation:
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
         if cls.satisfies_data_requirements(message, data) and automation is not None:
-            print("REQUIREMENT SATISFIED")
             try:
                 if isinstance(automation, int):
                     automation = cls(automation_id=automation)

@@ -176,19 +176,18 @@ class AutomationHook(CMSPluginBase):
 
     def render(self, context, instance, placeholder):
         request = context['request']
-        print("REQUEST.GET:", request.GET)
         automation, message = instance.automation.rsplit('.', 1)
         cls = models.get_automation_class(automation)
-        print("CLS", cls)
         if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
             model_instance = get_automation_model(request.GET)
-            print("MODEL_INSTANCE", model_instance)
             if model_instance:
-                cls.dispatch_message(model_instance, message, instance.token, request)
+                threading.Thread(
+                    target=lambda: cls.dispatch_message(model_instance, message, instance.token, request),
+                ).start()
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start:
-            cls.create_on_message(message, instance.token, request)
+            threading.Thread(target=lambda: cls.create_on_message(message, instance.token, request)).start()
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.broadcast:
-            cls.broadcast_message(message, instance.token, request)
+            threading.Thread(target=lambda: cls.broadcast_message(message, instance.token, request)).start()
         return context
 
 

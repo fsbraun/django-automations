@@ -1,0 +1,82 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-05-12 10:43+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: apps.py:8
+msgid "CMS Automations"
+msgstr "CMS Automatisierung"
+
+#: cms_plugins.py:25
+msgid "Task list"
+msgstr "Aufgaben-Liste"
+
+#: cms_plugins.py:26 cms_plugins.py:43 cms_plugins.py:134 cms_plugins.py:170
+msgid "Automations"
+msgstr "Automatisierung"
+
+#: cms_plugins.py:42
+msgid "Dashboard"
+msgstr ""
+
+#: cms_plugins.py:133
+msgid "Status"
+msgstr ""
+
+#: cms_plugins.py:169
+msgid "Send message"
+msgstr "Nachricht senden"
+
+#: models.py:14
+msgid "Template"
+msgstr "Vorlage"
+
+#: models.py:18
+msgid "Always inform"
+msgstr "Immer informieren"
+
+#: models.py:19
+msgid "If deactivated plugin will out output anything if no task is available."
+msgstr "Wenn deaktiviert wird das Plugin nichts anzeigen, wenn keine Aufgabe verfügbar ist."
+
+#: models.py:25
+msgid "Start automaton"
+msgstr "Automatisierung starten"
+
+#: models.py:26
+msgid "Send message to automation"
+msgstr "Nachricht an Automatisierung senden"
+
+#: models.py:27
+msgid "Broadcast message to all automations"
+msgstr "Nachrichten-Broadcast an alle Automatisierungen"
+
+#: models.py:32
+msgid "Operation"
+msgstr "Kommando"
+
+#: models.py:38
+msgid "Automation"
+msgstr "Automation"
+
+#: models.py:44
+msgid "Optional token"
+msgstr "Optionales Token"
+
+#: models.py:55
+msgid "Task data"
+msgstr "Aufgaben-Datensatz"
