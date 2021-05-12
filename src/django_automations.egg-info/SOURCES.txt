@@ -19,6 +19,8 @@ src/automations/cms_automations/cms_plugins.py
 src/automations/cms_automations/models.py
 src/automations/cms_automations/tests.py
 src/automations/cms_automations/views.py
+src/automations/cms_automations/locale/de_DE/LC_MESSAGES/django.mo
+src/automations/cms_automations/locale/de_DE/LC_MESSAGES/django.po
 src/automations/cms_automations/migrations/0001_initial.py
 src/automations/cms_automations/migrations/0002_auto_20210506_1957.py
 src/automations/cms_automations/migrations/0003_auto_20210511_0825.py
