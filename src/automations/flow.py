@@ -615,7 +615,7 @@ class Automation:
                 assert not kwargs, "Too many arguments for automation %s. " \
                                    "If 'automation' is given, no parameters allowed" % self.__class__.__name__
         elif self.unique:
-            assert isinstance(self.unique, (list, tuple)), ".singleton can be bool, list, tuple or None"
+            assert isinstance(self.unique, (list, tuple)), ".unique can be bool, list, tuple or None"
             for key in self.unique:
                 assert key not in ("automation", "automation_id", "autorun"), \
                     f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
@@ -716,7 +716,7 @@ class Automation:
         return f"Automations {cls.__name__}"
 
     def finished(self):
-        return self._db.finished
+        return self._db is not None and self._db.finished
 
     def send_message(self, message, token, data=None):
         """RECEIVES message and dispatches it within the class
@@ -756,13 +756,13 @@ class Automation:
 
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
-        if cls.satisfies_data_requirements(message, data):
+        if cls.satisfies_data_requirements(message, data) and automation is not None:
             try:
                 if isinstance(automation, int):
                     automation = cls(automation_id=automation)
                 elif isinstance(automation, str):
                     automation = cls(automation=automation)
-            except cls.DoesNotExist:
+            except models.models.ObjectDoesNotExist:
                 return None
             assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
                                                 f"{automation.__class__.__name__} found, " \
