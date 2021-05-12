@@ -9,7 +9,7 @@ import traceback
 from copy import copy
 
 from django.contrib.auth.models import User, Group, Permission
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.db.models.base import ModelBase
 from django.db.transaction import atomic
@@ -757,12 +757,13 @@ class Automation:
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
         if cls.satisfies_data_requirements(message, data) and automation is not None:
+            print("REQUIREMENT SATISFIED")
             try:
                 if isinstance(automation, int):
                     automation = cls(automation_id=automation)
-                elif isinstance(automation, str):
+                elif isinstance(automation, (str, models.AutomationModel)):
                     automation = cls(automation=automation)
-            except models.models.ObjectDoesNotExist:
+            except (ObjectDoesNotExist, MultipleObjectsReturned):
                 return None
             assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
                                                 f"{automation.__class__.__name__} found, " \

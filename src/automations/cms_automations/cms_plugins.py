@@ -2,6 +2,7 @@
 
 """Soft dependecy on django-automations_cms: Define plugins for open tasks"""
 import logging
+import threading
 
 from django import forms
 
@@ -75,7 +76,8 @@ def get_task_status_choices():
         if isinstance(attr, str):
             attr = attr, item.replace('_', ' ').capitalize()
         return attr
-    return get_task_choices(lambda x: x.endswith("_template"), convert=convert, subcls="Meta")
+    return get_task_choices(lambda x: x.endswith("_template") and x != "dashboard_template",
+                            convert=convert, subcls="Meta")
 
 
 def get_task_receiver_choices():
@@ -86,7 +88,7 @@ def get_task_receiver_choices():
     return get_task_choices(lambda x: x.startswith("receive_"), convert=convert)
 
 
-def get_automation_instance(get_params):
+def get_automation_model(get_params):
     key = get_params.get("key", None)
     if key is not None:
         try:
@@ -97,17 +99,17 @@ def get_automation_instance(get_params):
     return None
 
 
-def get_automation_data(context, template):
-    automation_instance = get_automation_instance(context.get("request", dict()).GET)
-    if automation_instance:
-        cls = models.get_automation_class(automation_instance.automation_class)
+def get_valid_automation_model(context, template):
+    model_instance = get_automation_model(context.get("request", dict()).GET)
+    if model_instance:
+        cls = models.get_automation_class(model_instance.automation_class)
         if hasattr(cls, "Meta"):
             for item in dir(cls.Meta):
                 if item.endswith('_template') and item != "dashboard_template":
                     attr = getattr(cls.Meta, item)
                     if (isinstance(attr, str) and attr == template or
                             isinstance(attr, (tuple, list)) and attr[0] == template):
-                        return automation_instance
+                        return model_instance
     return None
 
 
@@ -140,7 +142,7 @@ class AutomationStatus(CMSPluginBase):
     def render(self, context, instance, placeholder):
         self.render_template = instance.template
 
-        automation_model = get_automation_data(context, self.render_template)
+        automation_model = get_valid_automation_model(context, self.render_template)
         if automation_model is not None:
             automation = automation_model.get_automation_class()(automation=automation_model)
         else:
@@ -174,10 +176,15 @@ class AutomationHook(CMSPluginBase):
 
     def render(self, context, instance, placeholder):
         request = context['request']
+        print("REQUEST.GET:", request.GET)
         automation, message = instance.automation.rsplit('.', 1)
         cls = models.get_automation_class(automation)
+        print("CLS", cls)
         if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
-            cls.dispatch_message(request.GET.get("key", None), message, instance.token, request)
+            model_instance = get_automation_model(request.GET)
+            print("MODEL_INSTANCE", model_instance)
+            if model_instance:
+                cls.dispatch_message(model_instance, message, instance.token, request)
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start:
             cls.create_on_message(message, instance.token, request)
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.broadcast:
