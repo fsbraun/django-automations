@@ -343,7 +343,7 @@ The ``this`` object serves to avoid unnecessary strings and keep the automation 
         singleton = True
 
         start = flow.Execute(this.worker_job).Next(this.next). # this notation
-        next = flow.Execute("worker_job").Next("self.start")  # alternative notation with string literals
+        next = flow.Execute("self.worker_job").Next("self.start")  # alternative notation with string literals
 
         def worker_job(self, task_instance):
             ...
