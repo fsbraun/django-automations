@@ -92,6 +92,8 @@ Self-referencing can be achieved using the ``this`` instance of the ``This()`` o
 
     * ``get_automation_class_name``
 
+    * ``get_key``
+
     * ``get_model_instance``
 
     * ``get_verbose_name``
@@ -187,7 +189,13 @@ There are three special parameters when creating an instance:
 
     This implies that the execution of the automation is stopped and its history and status are removed from the database. Use this method only if an instance has been created in error, e.g., if you detect invalid arguments after creation. Killing an instance is also removing it from all analytics.
 
-To prematurely stop the execution of an automation consider using ``If()`` nodes to branch to an ``End()`` node. This makes the stopping condition explicit in the declaration of an automation.
+.. note::
+
+    To prematurely stop the execution of an automation consider using ``If()`` nodes to branch to an ``End()`` node. This makes the stopping condition explicit in the declaration of an automation.
+
+.. py:method:: Automation.get_key()
+
+    Retrieves a unique key (hash) to be used to identify an automation instance. This has can be used as a ``key`` parameter to send messages if, e.g., a page is viewed. Just add ``?key={{ atm.get_key }}`` to the page's url.
 
 
 flow.Automation.Meta
@@ -380,6 +388,14 @@ The ``flow.Node`` class defines the following **modifiers** common to all subcla
 .. py:method:: Node.AfterPausingFor(timedelta)
 
     stops the automation for a specific amount of time. This is roughly equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``. ``timedelta`` may be a callable.
+
+.. py:method:: Node.SkipIf(condition)
+
+    Skips the current node if ``condition`` is truthy (i.e., ``bool(condition)`` evaluates to ``True``) or evaluates to a truthy value.
+
+    The ``SkipIf()`` modifier is useful to skip, e.g., user interactions or sending emails under a certain condition.
+
+
 
 
 Attributes

@@ -427,3 +427,21 @@ class ErrorTest(TestCase):
                          'Truth')
         self.assertEqual(atm._db.automationtaskmodel_set.all()[1].message,
                          "TypeError(\"'<' not supported between instances of 'bool' and 'datetime.datetime'\")")
+
+
+class SkipAutomation(flow.Automation):
+    start = Print("NOT SKIPPED").SkipIf(lambda x: False)
+    second = Print("SKIPPED").SkipIf(True)
+    third = Print("Clearly printed")
+    end = flow.End()
+
+
+class SkipTest(TestCase):
+    def test_skipif(self):
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            atm = SkipAutomation()
+        output = fake_out.getvalue().splitlines()
+        print(output)
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output[0], "start NOT SKIPPED")
+        self.assertEqual(output[-1], "third Clearly printed")

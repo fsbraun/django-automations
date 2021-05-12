@@ -71,6 +71,8 @@ class Node:
         self._conditions = []
         self._next = None
         self._wait = None
+        self._skipif = []
+        self._leave = False
         self.description = kwargs.pop('description', '')
 
     @staticmethod
@@ -113,6 +115,7 @@ class Node:
                 locked=0,
             ),
         )
+        self._leave = False
         if task.locked > 0:
             return None
         task.locked += 1
@@ -139,6 +142,7 @@ class Node:
         if task is not None:
             task.finished = now()
             self.release_lock(task)
+        if task is not None or self._leave:
             if self._next is None:
                 next_node = self._automation._iter[self]
             else:
@@ -168,8 +172,20 @@ class Node:
         self._automation._db.save()
         return self.release_lock(task)
 
+    @on_execution_path
+    def skip_handler(self, task: models.AutomationTaskModel):
+        for item in self._skipif:
+            if self.eval(item, task):
+                task.finished = now()
+                self.release_lock(task)
+                self._leave = True
+                return None
+        return task
+
     def execute(self, task: models.AutomationTaskModel):
-        return self.when_handler(self.wait_handler(task))
+        return self.skip_handler(
+            self.when_handler(
+                self.wait_handler(task)))
 
     def Next(self, next_node):
         if self._next is not None:
@@ -191,6 +207,10 @@ class Node:
         if self._wait is not None:
             raise ImproperlyConfigured(f"Multiple .WaitUntil or .PauseFor statements")
         self._wait = lambda x: x.created + self.eval(timedelta, x)
+        return self
+
+    def SkipIf(self, condition):
+        self._skipif.append(condition)
         return self
 
     def __repr__(self):
