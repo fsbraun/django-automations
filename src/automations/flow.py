@@ -602,7 +602,7 @@ class Automation:
             self._db = self.model_class.objects.get(id=kwargs.pop('automation_id'))
             autorun = False
             assert not kwargs, "Too many arguments for automation %s. " \
-                               "If 'automation' is given, no parameters allowed" % self.__class__.__name__
+                               "If 'automation_id' is given, no parameters allowed" % self.__class__.__name__
         elif self.unique is True:  # Create or get singleton in DB
             self._db, created = self.model_class.objects.get_or_create(
                 automation_class=self.get_automation_class_name(),
@@ -756,10 +756,13 @@ class Automation:
     @classmethod
     def dispatch_message(cls, automation, message, token, data):
         if cls.satisfies_data_requirements(message, data):
-            if isinstance(automation, int):
-                automation = cls(automation_id=automation)
-            elif isinstance(automation, str):
-                automation = cls(automation=automation)
+            try:
+                if isinstance(automation, int):
+                    automation = cls(automation_id=automation)
+                elif isinstance(automation, str):
+                    automation = cls(automation=automation)
+            except cls.DoesNotExist:
+                return None
             assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
                                                 f"{automation.__class__.__name__} found, " \
                                                 f"{cls.__name__} expected"

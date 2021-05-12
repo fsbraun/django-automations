@@ -604,7 +604,7 @@ Automations may chose to offer status templates. They have to be declared in the
 
 Any property with a name that ends on ``_template`` in the automation's Meta class is considered to be a template path for some sort of status view. For user friendliness a verbose name can be added. Once declared the plugin will offer all status templates.
 
-The templates receive the  automation instance in the context with the key ``automation_instance`` and the corresponding automation model instance with the key ``automation_model``.
+The templates receive the  automation instance in the context with the key ``automation`` and the corresponding automation model instance with the key ``automation_model``.
 
 
 .. _automation_hook:

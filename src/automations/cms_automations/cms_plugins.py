@@ -177,10 +177,7 @@ class AutomationHook(CMSPluginBase):
         automation, message = instance.automation.rsplit('.', 1)
         cls = models.get_automation_class(automation)
         if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
-            try:
-                cls.dispatch_message(request.GET.get("key", None), message, instance.token, request)
-            except Exception:
-                pass
+            cls.dispatch_message(request.GET.get("key", None), message, instance.token, request)
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start:
             cls.create_on_message(message, instance.token, request)
         elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.broadcast:
