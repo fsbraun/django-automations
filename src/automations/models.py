@@ -40,7 +40,7 @@ class AutomationModel(models.Model):
             default=dict,
     )
     key = models.CharField(
-            verbose_name=_("_Unique hash"),
+            verbose_name=_("Unique hash"),
             default="",
             max_length=64,
     )
