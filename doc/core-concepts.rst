@@ -16,7 +16,7 @@ Events
 Events can start an automation or can change its course once it is running. Django automations can be started by Django signals (see `Django documentation <https://docs.djangoproject.com/en/3.1/topics/signals/>`_), programmatically by instantiating an automation, or by sending it a message.
 
 Tasks
-====
+=====
 
 Taks describe work that has to be done, either by the Django application or by an user: Send an email or update a model instance are respective examples.
 

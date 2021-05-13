@@ -311,18 +311,6 @@ flow.require_data_parameters
 Singletons
 ==========
 
-models.AutomationModel
-======================
-
-All automation instances share a Django model class called ``models.AutomationModel``. To distinguish different automations each instance has a field ``automation_class`` which contains the dotted path to the declaration of the automation class.
-
-All interactions with automations go through their classes and instances. With a few exceptions
-
-.. py:classmethod:: models.AutomationModel.run()
-
-    This class method is to be called by the scheduler (e.g., through the management command ``./manage.py automation_step``) regularly. It will check any unfinished automation instances and process them as appropriate.
-
-
 flow.This and flow.this
 ***********************
 
@@ -579,66 +567,88 @@ flow.get_automations
 
 The result is a list of tuples, the first one being the automations dotted path, the second one its human readably name. It differs only from the path if ``verbose_name`` is set in the automations ``Meta`` subclass.
 
-Django-CMS integration
-**********************
 
-The `Django-CMS <https://www.django-cms.org/>`_ dependency is weak. Installing Django Automations will not require or trigger the installation of Django-CMS.
+Models
+******
+All automations share the same two models.
 
-.. note::
-    If you want to use Django Automations's CMS plugins, be sure to include ``automations.cms_automations`` in your ``INSTALLED_APPS`` settings.
+models.AutomationModel
+======================
 
-Alternatively pure Django users can use :ref:`template tags<Template tags>` instead.
+All automation instances share a Django model class called ``models.AutomationModel``. To distinguish different automations each instance has a field ``automation_class`` which contains the dotted path to the declaration of the automation class.
 
-CMS Plugins
-===========
+.. py:classmethod:: models.AutomationModel.run()
 
-
-Task List Plugin
-----------------
-
-.. py:class:: AutomationTaskList
+    This class method is to be called by the scheduler (e.g., through the management command ``./manage.py automation_step``) regularly. It will check any unfinished automation instances and process them as appropriate.
 
 
-This plugin shows all interactions required for automations to continue their work from the current user. It will never show tasks for the anonymous user (nobody logged in).
+All interactions with automations go through their classes and instances. Since the views provide querysets, templates use some additional automation model attributes and methods.
 
-With this plugin the task list can be part of any CMS page. It is helpful if the user's tasks are to be shown as a part of a page, say, a dashboard.
+.. py:attribute:: AutomationModel.automation_class
 
-In the project settings a choice of template can be defined. CMS page authors can chose the appropriate template do adjust the plugin's look and feel.
+    The ``automation_class`` field contains the dotted path to the automation class declaration.
 
-Status Plugin
--------------
+.. py:attribute:: AutomationModel.data
 
-.. py:class:: AutomationStatus
+    ``data`` is as json field to store state information of the process it is shared between the tasks, i.e. later tasks see results of earlier tasks if they are retained in the data field. If a Django model is bound to an automation the data field will contain its bound instance id. Bound models are accessed through the automation instance not the automation model (see below).
 
-This plugin allows a user to see a detailed status of an automation instance. The automation instance is defined by a get parameter: ``key`` is an unique identifier for an automation instance.
+.. py:attribute:: AutomationModel.instance
 
-Automations may chose to offer status templates. They have to be declared in the Automations Meta class:
+    The ``instance`` property yields the corresponding automation instance. It is often used in templates since the views provide querysets of the ``AutomationModel`` and access to bound Django models is through the automation instance. To avoid unnecessary instantiations keep the instance if it is needed more than once. In templates this is achieved using the ``{% with %}`` template tag.
 
-.. code-block:: python
+.. py:method:: AutomationModel.get_automation_class()
 
-    class MyAutomation(flow.Automation):
-        class Meta:
-            status_template = "my_automation/status.html", _("Current status")
-            issue_template = "my_automation/issues.html", _("Problem sheet")
+    Returns the class of an automation model instance without instantiating it. The class is imported and buffered in the model instance.
 
-Any property with a name that ends on ``_template`` in the automation's Meta class is considered to be a template path for some sort of status view. For user friendliness a verbose name can be added. Once declared the plugin will offer all status templates.
+.. py:attribute:: AutomationModel.finished
 
-The templates receive the  automation instance in the context with the key ``automation`` and the corresponding automation model instance with the key ``automation_model``.
+    ``True`` if the automation instance is finished executing, ``False`` otherwise.
 
 
-.. _automation_hook:
+models.AutomationTaskModel
+==========================
 
-Send Message Plugin
--------------------
+The automation task model stores start time, end time and result of each task executed. Open tasks have no end time assigned.
 
-.. py:class:: AutomationHook
+Execution errors are stored as task results. If not caught by ``.OnError`` an error will stop the task **and** automation.
+
+.. py:attribute:: AutomationTaskModel.created
+
+    ``DateTimeField`` when the task is first entered and created.
+
+.. py:attribute:: AutomationTaskModel.finished
+
+    ``DateTimeField`` when the task was finished. This field is ``None`` for open tasks.
 
 
-The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewd. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
+.. py:attribute:: AutomationTaskModel.status
 
-An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces).
+    Name of the node corresponding to the task.
 
-The receiver will be passed an optional token and a data object which in this case is the request object.
+.. py:attribute:: AutomationTaskModel.message
+
+    Short message on the result of the task.
+
+    *   ``OK`` for ``Execute()`` nodes which did execute without error. The result returned by the executed function is json serialized in ``result`` if possible.
+    *   ``skipped`` if execution did not happen after a ``.SkipIf()`` modifier
+    *  An error message (i.e., ``TypeError(...)``) if an ``Execute()`` node did fail. `result`` will contain an dict with a key ``error`` that contains the traceback.
+
+
+
+.. py:attribute:: AutomationTaskModel.result
+
+    A json field with the result of an ``Execute()`` node. See above.
+
+.. py:attribute:: AutomationTaskModel.automation
+
+    ``ForeignKey`` to the ``AutomationModel``
+
+.. py:attribute:: AutomationTaskModel.data
+
+    Short for ``AutomationTaskModel.automation.data``.
+
+
+
 
 Views
 *****
@@ -648,6 +658,9 @@ TaskView
 
 TaskListView
 ============
+
+DashboardView
+=============
 
 Templates
 *********
@@ -721,3 +734,66 @@ Settings in ``settings.py``
 .. py:attribute:: settings.ATM_FORM_VIEW_CONTEXT
 
     The ``Form()`` nodes and its subclasses present the forms to the user using a Django ``FormView``. This attribute is an dictionary which will be added to the template's context when rendering. The dictionary items may be overwritten by an automation classes' ``context`` attribute or by a node's ``context`` parameter. Hence, this setting in practice is used to set default context elements.
+
+
+Django-CMS integration
+**********************
+
+The `Django-CMS <https://www.django-cms.org/>`_ dependency is weak. Installing Django Automations will not require or trigger the installation of Django-CMS.
+
+.. note::
+    If you want to use Django Automations's CMS plugins, be sure to include ``automations.cms_automations`` in your ``INSTALLED_APPS`` settings.
+
+Alternatively pure Django users can use :ref:`template tags<Template tags>` instead.
+
+CMS Plugins
+===========
+
+
+Task List Plugin
+----------------
+
+.. py:class:: AutomationTaskList
+
+
+This plugin shows all interactions required for automations to continue their work from the current user. It will never show tasks for the anonymous user (nobody logged in).
+
+With this plugin the task list can be part of any CMS page. It is helpful if the user's tasks are to be shown as a part of a page, say, a dashboard.
+
+In the project settings a choice of template can be defined. CMS page authors can chose the appropriate template do adjust the plugin's look and feel.
+
+Status Plugin
+-------------
+
+.. py:class:: AutomationStatus
+
+This plugin allows a user to see a detailed status of an automation instance. The automation instance is defined by a get parameter: ``key`` is an unique identifier for an automation instance.
+
+Automations may chose to offer status templates. They have to be declared in the Automations Meta class:
+
+.. code-block:: python
+
+    class MyAutomation(flow.Automation):
+        class Meta:
+            status_template = "my_automation/status.html", _("Current status")
+            issue_template = "my_automation/issues.html", _("Problem sheet")
+
+Any property with a name that ends on ``_template`` in the automation's Meta class is considered to be a template path for some sort of status view. For user friendliness a verbose name can be added. Once declared the plugin will offer all status templates.
+
+The templates receive the  automation instance in the context with the key ``automation`` and the corresponding automation model instance with the key ``automation_model``.
+
+
+.. _automation_hook:
+
+Send Message Plugin
+-------------------
+
+.. py:class:: AutomationHook
+
+
+The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewd. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
+
+An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces).
+
+The receiver will be passed an optional token and a data object which in this case is the request object.
+
