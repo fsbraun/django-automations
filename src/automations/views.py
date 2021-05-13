@@ -120,4 +120,4 @@ class TaskDashboardView(UserIsStaff, TemplateView):
                                     finished=qs_filtered.filter(finished=True),
                                     dashboard_template=dashboard_template,
                                     dashboard=dashboard))
-        return dict(automations=automations)
+        return dict(automations=automations, timespan=_("Last %d days") % days)
