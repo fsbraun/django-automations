@@ -12,9 +12,7 @@ from .. import flow
 from .. import views
 
 
-
 from cms.plugin_base import CMSPluginBase
-from cms.utils import get_current_site
 from cms.plugin_pool import plugin_pool
 from django.utils.translation import gettext_lazy as _
 
@@ -35,6 +33,7 @@ class AutomationTaskList(CMSPluginBase):
         context.update(dict(tasks=qs, count=len(qs), always_inform=instance.always_inform))
         return context
 
+
 plugin_pool.register_plugin(AutomationTaskList)
 
 
@@ -49,6 +48,7 @@ class AutomationDashboard(CMSPluginBase):
         view = views.TaskDashboardView(request=context['request'])
         context.update(view.get_context_data())
         return context
+
 
 plugin_pool.register_plugin(AutomationDashboard)
 
@@ -72,7 +72,7 @@ def get_task_choices(pattern, convert, subcls=None):
 
 
 def get_task_status_choices():
-    def convert(attr, item, cls_name):
+    def convert(attr, item, _):
         if isinstance(attr, str):
             attr = attr, item.replace('_', ' ').capitalize()
         return attr
@@ -192,3 +192,16 @@ class AutomationHook(CMSPluginBase):
 
 
 plugin_pool.register_plugin(AutomationHook)
+
+
+class AutomationsDashboard(CMSPluginBase):
+    module = _("Automations")
+    name = _("Automations dashboard")
+    render_template = "automations/includes/dashboard.html"
+    allow_children = False
+    require_parent = False
+
+    def render(self, context, instance, placeholder):
+        view = views.TaskDashboardView(request=context['request'])
+        context.update(view.get_context_data())
+        return context
