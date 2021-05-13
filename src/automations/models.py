@@ -66,6 +66,10 @@ class AutomationModel(models.Model):
             self._automation_class = get_automation_class(self.automation_class)
         return self._automation_class
 
+    @property
+    def instance(self):
+        return self.get_automation_class()(automation=self)
+
     @classmethod
     def run(cls, timestamp=None):
         if timestamp is None:

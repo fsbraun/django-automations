@@ -9,6 +9,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.timezone import now
+from django.utils.translation import gettext as _
 from django.views.generic import TemplateView, FormView
 from django.forms import BaseForm
 
@@ -98,16 +99,25 @@ class TaskDashboardView(UserIsStaff, TemplateView):
         qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=days))
         automations = []
         for item in qs.order_by("automation_class").values("automation_class").distinct():
-            automation = models.get_automation_class(item['automation_class'])
+            try:
+                automation = models.get_automation_class(item['automation_class'])
+                verbose_name = automation.get_verbose_name()
+                verbose_name_plural = automation.get_verbose_name_plural()
+                dashboard_template = getattr(getattr(automation, "Meta", None),
+                                             "dashboard_template", "")
+                dashboard = (automation.get_dashboard_context(qs_filtered)
+                             if hasattr(automation, "get_dashboard_context") else dict())
+            except AttributeError:
+                verbose_name = _("Obsolete automation %s") % item['automation_class'].rsplit(".")[-1]
+                verbose_name_plural = _("Obsolete automations %s") % item['automation_class'].rsplit(".")[-1]
+                dashboard_template = ""
+                dashboard = ()
             qs_filtered = qs.filter(**item)
-            dashboard = (automation.get_dashboard_context(qs_filtered)
-                         if hasattr(automation, "get_dashboard_context") else dict())
             automations.append(dict(cls=item['automation_class'],
-                                    verbose_name=automation.get_verbose_name(),
-                                    verbose_name_plural=automation.get_verbose_name_plural(),
+                                    verbose_name=verbose_name,
+                                    verbose_name_plural=verbose_name_plural,
                                     running=qs_filtered.filter(finished=False),
                                     finished=qs_filtered.filter(finished=True),
-                                    dashboard_template= getattr(getattr(automation, "Meta", None),
-                                                                "dashboard_template", ""),
+                                    dashboard_template=dashboard_template,
                                     dashboard=dashboard))
         return dict(automations=automations)
