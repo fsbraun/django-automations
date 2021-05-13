@@ -144,7 +144,7 @@ class AutomationStatus(CMSPluginBase):
 
         automation_model = get_valid_automation_model(context, self.render_template)
         if automation_model is not None:
-            automation = automation_model.get_automation_class()(automation=automation_model)
+            automation = automation_model.instance
         else:
             automation = None
         context.update(dict(automation=automation,

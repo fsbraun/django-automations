@@ -22,8 +22,7 @@ class AutomationMixin:
 
     def get_automation_instance(self, task):
         if self._automation_instance is None or self._task_id != task.id:
-            cls = task.automation.get_automation_class()
-            self._automation_instance = cls(automation=task.automation)
+            self._automation_instance = task.automation.instance
             self._task_id = task.id
         return self._automation_instance
 
@@ -99,6 +98,7 @@ class TaskDashboardView(UserIsStaff, TemplateView):
         qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=days))
         automations = []
         for item in qs.order_by("automation_class").values("automation_class").distinct():
+            qs_filtered = qs.filter(**item)
             try:
                 automation = models.get_automation_class(item['automation_class'])
                 verbose_name = automation.get_verbose_name()
@@ -111,8 +111,7 @@ class TaskDashboardView(UserIsStaff, TemplateView):
                 verbose_name = _("Obsolete automation %s") % item['automation_class'].rsplit(".")[-1]
                 verbose_name_plural = _("Obsolete automations %s") % item['automation_class'].rsplit(".")[-1]
                 dashboard_template = ""
-                dashboard = ()
-            qs_filtered = qs.filter(**item)
+                dashboard = dict()
             automations.append(dict(cls=item['automation_class'],
                                     verbose_name=verbose_name,
                                     verbose_name_plural=verbose_name_plural,

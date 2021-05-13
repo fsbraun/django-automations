@@ -174,8 +174,7 @@ class AutomationTaskModel(models.Model):
         return users
 
     def get_node(self):
-        cls = self.automation.get_automation_class()
-        instance = cls(automation=self.automation)
+        instance = self.automation.instance
         return getattr(instance, self.status)
 
     @classmethod
