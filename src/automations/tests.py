@@ -284,7 +284,9 @@ class SignalTestCase(TestCase):
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("token", ""), "12345678")
-
+        self.assertEqual(SignalAutomation.dispatch_message(1, "new_user", "", None), "received")
+        self.assertEqual(SignalAutomation.dispatch_message(2, "new_user", "", None), None)
+        self.assertEqual(SignalAutomation.dispatch_message("non-existing-key", "new_user", "", None), None)
         self.assertGreater(len(inst[0].automationtaskmodel_set.all()), 0)
 
 
@@ -442,6 +444,7 @@ class SkipTest(TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             atm = SkipAutomation()
         output = fake_out.getvalue().splitlines()
+        self.assertEqual(atm.get_key(), atm.get_key())
         self.assertTrue(atm.finished())
         self.assertEqual(len(output), 2)
         self.assertEqual(output[0], "start NOT SKIPPED")

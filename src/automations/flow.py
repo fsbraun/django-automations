@@ -607,7 +607,6 @@ class Automation:
         self._iter[prev] = None  # Last item
         autorun = kwargs.pop("autorun", True)
         if 'automation' in kwargs:
-            autorun = False
             if isinstance(kwargs.get("automation"), models.AutomationModel):
                 self._db = kwargs.pop('automation')
             else:
@@ -621,7 +620,6 @@ class Automation:
                                "If 'automation' is given, no parameters allowed" % self.__class__.__name__
         elif 'automation_id' in kwargs:  # Attach to automation in DB
             self._db = self.model_class.objects.get(id=kwargs.pop('automation_id'))
-            autorun = False
             assert not kwargs, "Too many arguments for automation %s. " \
                                "If 'automation_id' is given, no parameters allowed" % self.__class__.__name__
         elif self.unique is True:  # Create or get singleton in DB
@@ -664,7 +662,7 @@ class Automation:
                 data=kwargs,
             )
         assert self._db is not None, "Internal error"
-        if autorun:
+        if autorun and not self.finished():
             self.run()
 
     def _create_model_properties(self, kwargs):

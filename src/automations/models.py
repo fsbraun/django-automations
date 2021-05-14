@@ -80,7 +80,7 @@ class AutomationModel(models.Model):
 
         for automation in automations:
             klass = import_string(automation.automation_class)
-            instance = klass(automation_id=automation.id)
+            instance = klass(automation_id=automation.id, autorun=False)
             logger.info(f"Running automation {automation.automation_class}")
             try:
                 instance.run()
