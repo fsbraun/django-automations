@@ -18,6 +18,22 @@ Use cases:
 
 Django-automations works with plain Django but also integrates with Django-CMS.
 
+## Key features
+
+* Describe automations as python classes
+
+* Bind automations to models from other Django apps
+  
+* Use Django forms for user interaction
+
+* Create transparency through extendable dashboard
+
+* Declare automations as unique or unique for a certain data set
+  
+* Start automations on signals or when, e.g., user visits a page
+
+* Send messages between automations
+
 ## Requirements
 
 * **Python**: 3.7, 3.8, 3.9
