@@ -462,10 +462,11 @@ class If(Execute):
 
 
 class Form(Node):
-    def __init__(self, form, template_name=None, context=None, **kwargs):
+    def __init__(self, form, template_name=None, context=None, repeated_form=False, **kwargs):
         super().__init__(**kwargs)
         self._form = form
         self._context = context if context is not None else {}
+        self._repeated_form = repeated_form
         self._template_name = template_name
         self._user = None
         self._group = None
@@ -481,13 +482,13 @@ class Form(Node):
                 raise ImproperlyConfigured("From: at least one .User, .Group, .Permission has to be specified")
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
-            if task.data.get(f"_{self._name}_validated", None) is None:
+            if self._repeated_form or task.data.get(f"_{self._name}_validated", None) is None:
                 task.requires_interaction = True
                 self.release_lock(task)  # Release lock and stop automation until form is validated
                 return None
         return task  # Continue with validated form
 
-    def validate(self, task: models.AutomationTaskModel, request, form):
+    def is_valid(self, task: models.AutomationTaskModel, request, form):
         task.automation.data[f"_{self._name}_validated"] = request.user.id
         task.automation.save()
 

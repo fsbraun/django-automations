@@ -1,5 +1,5 @@
 {% load crispy_forms_tags i18n %}{% spaceless %}
-  <form class="automations form" novalidate action="{{ request.get_full_path }}" method="post">
+  <form {%  if form.is_multipart %}enctype="multipart/form-data" {% endif %}class="automations form" novalidate action="{{ request.get_full_path }}" method="post">
     {% csrf_token %}
     <div class="crispy">
     {% crispy form %}

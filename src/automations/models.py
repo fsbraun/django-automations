@@ -18,10 +18,9 @@ logger = getLogger(__name__)
 
 
 def get_automation_class(dotted_name):
-    components = dotted_name.split('.')
-    cls = __import__(components[0])
-    for path in components[1:]:
-        cls = getattr(cls, path)
+    components = dotted_name.rsplit('.',1)
+    cls = __import__(components[0], fromlist=[components[-1]])
+    cls = getattr(cls, components[-1])
     return cls
 
 
