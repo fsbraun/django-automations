@@ -226,6 +226,16 @@ Currently the following attributes are used.
     Returns the verbose name set in the automation's meta class, or, if unset, the standard verbose name ``"Automation <<class_name>>"`` and ``"Automations <<class_name>>"``, respectively.
 
 
+.. py:attribute:: Automation.Meta.dashboard_template
+
+    specifies a Django template for rendering the dashboard content of this specififc ``Automation`` subclass. If not specified the standard template will be used: ``automations/includes/dashboard_item.html``. A simple implementation is part of the module but may be overwritten in the projects template path.
+
+.. py:method:: Automation.get_dashboard_context(queryset)
+
+    If present this method returns a context dictionary to be added to the rendering context for the automation's dashboard item. It gets passed a queryset of ``AutomationModel`` instances if the specific automation.
+
+
+
 Messages
 ========
 
@@ -383,9 +393,13 @@ The ``flow.Node`` class defines the following **modifiers** common to all subcla
 
     The ``SkipIf()`` modifier is useful to skip, e.g., user interactions or sending emails under a certain condition.
 
+.. py:method:: Node.SkipAfter(timedelta)
+
+    Skips the current node ``timedelta`` after its creation. This modifier allows, e.g., to continue after a user interaction has not been received after a certain amount of time.
+
 .. note::
 
-    ``.SkipIf()`` has precedence over waiting/pausing modifiers. If a node is skipped, e.g., it is not guaranteed that the ``contiditon`` of ``.AsSoonAs()`` is fulfilled. If the condition has to be fulfilled separate the modifiers and add them to different nodes.
+    ``.SkipIf()`` and ``.SkipAfter()`` have precedence over waiting/pausing modifiers. If a node is skipped, e.g., it is not guaranteed that the ``contiditon`` of ``.AsSoonAs()`` is fulfilled. If the condition has to be fulfilled separate the modifiers and add them to different nodes.
 
 
 
@@ -647,6 +661,9 @@ Execution errors are stored as task results. If not caught by ``.OnError`` an er
 
     Short for ``AutomationTaskModel.automation.data``.
 
+.. py:method:: AutomationTaskModel.hours_since_created()
+
+    returns a float indicating the number of hours since the task has been created and has not been finished. Once finished the method returns 0. This is useful if, e.g., the urgency of a task needs to be shown, e.g. by coloring the task item in the task list yellow or red.
 
 
 

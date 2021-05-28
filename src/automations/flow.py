@@ -183,8 +183,8 @@ class Node:
             return None
 
         if self._skipafter is not None:
-            latest_execution = self.eval(self._skipafter, task)
-            if latest_execution > now():
+            latest_execution = task.created + self.eval(self._skipafter, task)
+            if latest_execution < now():
                 return skip()
         for item in self._skipif:
             if self.eval(item, task):
@@ -225,7 +225,7 @@ class Node:
     def SkipAfter(self, timedelta):
         if self._skipafter is not None:
             raise ImproperlyConfigured(f"Multiple .SkipAfter statements")
-        self._skipafter = lambda x: x.created + self.eval(timedelta, x)
+        self._skipafter = timedelta
         return self
 
     def __repr__(self):
