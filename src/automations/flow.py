@@ -72,6 +72,7 @@ class Node:
         self._next = None
         self._wait = None
         self._skipif = []
+        self._skipafter = None
         self._leave = False
         self.description = kwargs.pop('description', '')
 
@@ -174,13 +175,20 @@ class Node:
 
     @on_execution_path
     def skip_handler(self, task: models.AutomationTaskModel):
+        def skip():
+            task.finished = now()
+            task.message = "skipped"
+            self.release_lock(task)
+            self._leave = True
+            return None
+
+        if self._skipafter is not None:
+            latest_execution = self.eval(self._skipafter, task)
+            if latest_execution > now():
+                return skip()
         for item in self._skipif:
             if self.eval(item, task):
-                task.finished = now()
-                task.message = "skipped"
-                self.release_lock(task)
-                self._leave = True
-                return None
+                return skip()
         return task
 
     def execute(self, task: models.AutomationTaskModel):
@@ -200,18 +208,24 @@ class Node:
 
     def AfterWaitingUntil(self, time):
         if self._wait is not None:
-            raise ImproperlyConfigured(f"Multiple .WaitUntil or .PauseFor statements")
+            raise ImproperlyConfigured(f"Multiple .AfterWaitingUntil or .AfterWaitingFor statements")
         self._wait = time
         return self
 
-    def AfterPausingFor(self, timedelta):
+    def AfterWaitingFor(self, timedelta):
         if self._wait is not None:
-            raise ImproperlyConfigured(f"Multiple .WaitUntil or .PauseFor statements")
+            raise ImproperlyConfigured(f"Multiple .AfterWaitingUntil or .AfterWaitingFor statements")
         self._wait = lambda x: x.created + self.eval(timedelta, x)
         return self
 
     def SkipIf(self, condition):
         self._skipif.append(condition)
+        return self
+
+    def SkipAfter(self, timedelta):
+        if self._skipafter is not None:
+            raise ImproperlyConfigured(f"Multiple .SkipAfter statements")
+        self._skipafter = lambda x: x.created + self.eval(timedelta, x)
         return self
 
     def __repr__(self):

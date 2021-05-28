@@ -76,7 +76,7 @@ class TestSplitJoin(flow.Automation):
         verbose_name = "Allow to split and join"
         verbose_name_plural = "Allow splitS and joinS"
 
-    start = Print("Hello, this is the single thread").AfterPausingFor(datetime.timedelta(days=-1))
+    start = Print("Hello, this is the single thread").AfterWaitingFor(datetime.timedelta(days=-1))
     l10 = Print("Line 10").AfterWaitingUntil(now()-datetime.timedelta(minutes=1))
     split = flow.Split().Next("self.t10").Next("self.t20").Next("self.t30")
     join = flow.Join()
@@ -250,7 +250,7 @@ class SignalAutomation(flow.Automation):
     def started_by_signal(self, *args, **kwargs):
         self.data['started'] = 'yeah!'
         self.save()
-    start = flow.Execute().AfterPausingFor(datetime.timedelta(days=1))
+    start = flow.Execute().AfterWaitingFor(datetime.timedelta(days=1))
     end = flow.End()
 
     def receive_new_user(self, token, data=None):

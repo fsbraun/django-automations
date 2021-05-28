@@ -113,11 +113,12 @@ class TaskDashboardView(UserIsStaff, TemplateView):
                 verbose_name_plural = _("Obsolete automations %s") % item['automation_class'].rsplit(".")[-1]
                 dashboard_template = ""
                 dashboard = dict()
-            automations.append(dict(cls=item['automation_class'],
-                                    verbose_name=verbose_name,
-                                    verbose_name_plural=verbose_name_plural,
-                                    running=qs_filtered.filter(finished=False),
-                                    finished=qs_filtered.filter(finished=True),
-                                    dashboard_template=dashboard_template,
-                                    dashboard=dashboard))
+            if dashboard_template is not None:
+                automations.append(dict(cls=item['automation_class'],
+                                        verbose_name=verbose_name,
+                                        verbose_name_plural=verbose_name_plural,
+                                        running=qs_filtered.filter(finished=False),
+                                        finished=qs_filtered.filter(finished=True),
+                                        dashboard_template=dashboard_template,
+                                        dashboard=dashboard))
         return dict(automations=automations, timespan=_("Last %d days") % days)

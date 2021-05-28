@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: django-automations
-Version: 0.4.2
+Version: 0.4.3
 Summary: Processes and automations for your Django project
 Home-page: https://github.com/fsbraun/django-automations
 Author: Fabian Braun
@@ -27,6 +27,22 @@ Description: ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dja
         * Running regular tasks
         
         Django-automations works with plain Django but also integrates with Django-CMS.
+        
+        ## Key features
+        
+        * Describe automations as python classes
+        
+        * Bind automations to models from other Django apps
+          
+        * Use Django forms for user interaction
+        
+        * Create transparency through extendable dashboard
+        
+        * Declare automations as unique or unique for a certain data set
+          
+        * Start automations on signals or when, e.g., user visits a page
+        
+        * Send messages between automations
         
         ## Requirements
         
@@ -105,6 +121,7 @@ Description: ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dja
         See the [documentation on readthedocs.io](https://django-automations.readthedocs.io/).
 Keywords: django_automations,workflow,automation
 Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8

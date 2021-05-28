@@ -33,10 +33,10 @@ Example:
         repeat =        (flow.If(this.moderation_deadline_reached)
                             .Then(this.join)
                             .Else(this.moderation)
-                        ).AfterPausingFor(datetime.timedelta(hours=1))
+                        ).AfterWaitingFor(datetime.timedelta(hours=1))
 
         warning =       (flow.Execute(this.send_deadline_warning)
-                            .AfterPausingFor(datetime.timedelta(days=6))
+                            .AfterWaitingFor(datetime.timedelta(days=6))
                             .Next(this.join))
 
         conf_call =     flow.If(this.conf_call_this_week).Then(this.moderate_call).Else(this.join)
@@ -373,7 +373,7 @@ The ``flow.Node`` class defines the following **modifiers** common to all subcla
 
     stops the automation until the specific datetime has passed. Note that depending on how the scheduler runs the automation there might be a significant time slip between ``datetime`` and the real execution time. It is only guaranteed that the node is not executed before. ``datetime`` may be a callable.
 
-.. py:method:: Node.AfterPausingFor(timedelta)
+.. py:method:: Node.AfterWaitingFor(timedelta)
 
     stops the automation for a specific amount of time. This is roughly equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``. ``timedelta`` may be a callable.
 

@@ -158,6 +158,12 @@ class AutomationTaskModel(models.Model):
     def data(self):
         return self.automation.data
 
+    def hours_since_created(self):
+        """returns the number of hours since creation of node, 0 if finished"""
+        if self.finished:
+            return 0
+        return (now()-self.created).total_seconds()/3600
+
     def get_users_with_permission(self, include_superusers=True,
                                   backend="django.contrib.auth.backends.ModelBackend"):
 
