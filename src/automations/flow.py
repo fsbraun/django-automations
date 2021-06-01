@@ -503,8 +503,11 @@ class Form(Node):
         return task  # Continue with validated form
 
     def is_valid(self, task: models.AutomationTaskModel, request, form):
-        task.automation.data[f"_{self._name}_validated"] = request.user.id
+        task.automation.data[f"_{self._name}_validated"] = dict(user_id=request.user.id, time=now().isoformat())
         task.automation.save()
+        task.requires_interaction = False
+        task.finished = now()
+        task.save()
 
     def User(self, **kwargs):
         if self._user is not None:

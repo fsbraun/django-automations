@@ -95,8 +95,11 @@ class TaskDashboardView(UserIsStaff, TemplateView):
     def get_context_data(self, **kwargs):
         days = self.request.GET.get("history", "")
         days = int(days) if days.isnumeric() else 30
-        qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=days))\
-            .order_by("-created")
+        if days > 0:
+            qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=days))\
+                .order_by("-created")
+        else:
+            qs = models.AutomationModel.objects.order_by("-created")
         automations = []
         for item in qs.order_by("automation_class").values("automation_class").distinct():
             qs_filtered = qs.filter(**item)
