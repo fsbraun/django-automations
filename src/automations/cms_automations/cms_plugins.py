@@ -57,17 +57,18 @@ def get_task_choices(pattern, convert, subcls=None):
     status_choices = []
     for cls_name, verbose_name in flow.get_automations():
         cls = models.get_automation_class(cls_name)
-        choices = []
-        if subcls is not None and hasattr(cls, subcls):
-            cls = getattr(cls, subcls)
-        for item in dir(cls):
-            if pattern(item):
-                attr = getattr(cls, item)
-                tpl = convert(attr, item, cls_name)
-                if isinstance(tpl, (tuple, list)):
-                    choices.append(tuple(tpl))
-        if choices:
-            status_choices.append((verbose_name, tuple(choices)))
+        if getattr(cls, "publish_receivers", False):
+            choices = []
+            if subcls is not None and hasattr(cls, subcls):
+                cls = getattr(cls, subcls)
+            for item in dir(cls):
+                if pattern(item):
+                    attr = getattr(cls, item)
+                    tpl = convert(attr, item, cls_name)
+                    if isinstance(tpl, (tuple, list)):
+                        choices.append(tuple(tpl))
+            if choices:
+                status_choices.append((verbose_name, tuple(choices)))
     return tuple(status_choices)   # make immutable
 
 

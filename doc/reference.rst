@@ -271,6 +271,12 @@ Example:
 
 This receiver can be sent the message ``"update_subscriber"`` and will require a token to specify the exected action.
 
+.. py:method:: Automation.publish_receivers
+
+    If this attribute is set to ``True`` the receivers of an automation are supposed to be visible to the outside. For now this implies that CMS plugins offer the receivers in their forms. Messages can be sent despite the setting von ``.publish_receivers``.
+
+    It is common practice not to define this attribute in base classes other classes inherit from to avoid receivers to be offered to users that are present only in base classes.
+
 
 Sending messages
 ----------------
@@ -810,7 +816,7 @@ Send Message Plugin
 
 The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewd. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
 
-An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces).
+An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces) if the ``Automation.publish_receivers`` is set to ``True``.
 
 The receiver will be passed an optional token and a data object which in this case is the request object.
 
