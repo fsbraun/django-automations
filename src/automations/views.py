@@ -5,6 +5,7 @@ import datetime
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -96,8 +97,10 @@ class TaskDashboardView(UserIsStaff, TemplateView):
         days = self.request.GET.get("history", "")
         days = int(days) if days.isnumeric() else 30
         if days > 0:
-            qs = models.AutomationModel.objects.filter(created__gt=now()-datetime.timedelta(days=days))\
-                .order_by("-created")
+            qs = models.AutomationModel.objects.filter(
+                Q(created__gte=now()-datetime.timedelta(days=days)) |  # Not older than days
+                Q(finished=False)  # or still runnning
+            ).order_by("-created")
         else:
             qs = models.AutomationModel.objects.order_by("-created")
         automations = []
