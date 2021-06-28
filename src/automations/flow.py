@@ -400,7 +400,6 @@ class Execute(Node):
                 self._err = err
                 self.store_result(task, repr(err), dict(error=traceback.format_exc()))
 
-
         if self.args is not None and len(self.args) > 0:  # Empty arguments: No-op
             args = (self.resolve(value) for value in self.args)
             kwargs = {key: self.resolve(value) for key, value in self.kwargs.items()}
@@ -656,7 +655,7 @@ class Automation:
             for key in self.unique:
                 assert key not in ("automation", "automation_id", "autorun"), \
                     f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
-                assert key in kwargs, "to ensure unqiue property, " \
+                assert key in kwargs, "to ensure unique property, " \
                                       "create automation with '%s=...' parameter" % key
             qs = self.model_class.objects.filter(finished=False)
             for instance in qs:
@@ -720,7 +719,7 @@ class Automation:
 
     def run(self, task=None, next_node=None):
         """Execute automation until external responses are necessary"""
-        assert not self.finished(), ValueError("Trying to run an already finished automation")
+        assert not self.finished(), ValueError("Trying to run an already finished or killed automation")
 
         if next_node is None:
             last_tasks = self._db.automationtaskmodel_set.filter(finished=None)
@@ -752,8 +751,11 @@ class Automation:
                 return cls.Meta.verbose_name_plural
         return f"Automations {cls.__name__}"
 
+    def killed(self):
+        return self._db is None
+
     def finished(self):
-        return self._db is not None and self._db.finished
+        return self.killed() or self._db.finished
 
     def send_message(self, message, token, data=None):
         """RECEIVES message and dispatches it within the class
@@ -789,6 +791,7 @@ class Automation:
         self._db = None
 
     def get_key(self):
+        assert self._db, "no key for killed instance"
         return self._db.get_key()
 
     @classmethod
@@ -834,7 +837,7 @@ class Automation:
             instance.send_message(message, token, data)  # Allow message to be processes before ..
             if not instance.finished():
                 instance.run()                           # ... automation is run
-            return instance
+            return None if instance.killed() else instance
         return None
 
     @classmethod
