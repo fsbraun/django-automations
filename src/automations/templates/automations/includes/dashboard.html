@@ -1,13 +1,15 @@
 {% load i18n %}{% spaceless %}
   <div class="row row-cols-1 row-cols-lg-3">
     {% for item in automations %}
-      <div class="col mb-3">
-        {% if item.dashboard_template %}
-          {% include item.dashboard_template with automation=item %}
-        {% else %}
-          {% include "automations/includes/dashboard_item.html" with automation=item %}
-        {% endif %}
-      </div>
+      {% if item.running %}
+          <div class="col mb-3">
+            {% if item.dashboard_template %}
+              {% include item.dashboard_template with automation=item %}
+            {% else %}
+              {% include "automations/includes/dashboard_item.html" with automation=item %}
+            {% endif %}
+          </div>
+      {% endif %}
     {% endfor %}
   </div>
 {% endspaceless %}
