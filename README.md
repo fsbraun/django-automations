@@ -39,14 +39,9 @@ Django-automations works with plain Django but also integrates with Django-CMS.
 * **Python**: 3.7, 3.8, 3.9
 * **Django**: 3.0, 3.1, 3.2
 
-## Roadmap
-
-* End of June 2021, core functionality
-* August 2021, first release
-
 ## Feedback
 
-This project is in a very early stage. All feedback is welcome! Please mail me at fsbraun(at)gmx.de
+This project is in a early stage. All feedback is welcome! Please mail me at fsbraun(at)gmx.de
 
 # Installation
 
