@@ -198,6 +198,7 @@ There are three special parameters when creating an instance:
     Retrieves a unique key (hash) to be used to identify an automation instance. This has can be used as a ``key`` parameter to send messages if, e.g., a page is viewed. Just add ``?key={{ atm.get_key }}`` to the page's url.
 
 
+
 flow.Automation.Meta
 ====================
 
@@ -326,6 +327,9 @@ flow.require_data_parameters
 
 Singletons
 ==========
+
+work in progress
+
 
 flow.This and flow.this
 ***********************
@@ -600,6 +604,24 @@ All automation instances share a Django model class called ``models.AutomationMo
 .. py:classmethod:: models.AutomationModel.run()
 
     This class method is to be called by the scheduler (e.g., through the management command ``./manage.py automation_step``) regularly. It will check any unfinished automation instances and process them as appropriate.
+
+.. py:classmethod:: models.AutomationModel.delete_history(days=30)
+
+    Deletes all history of automations finished longer than ``days`` ago. Once deleted,
+    those automation instances will not be available for analysis any more.
+
+    ``models.AutomationModel.delete_history`` returns a tuple with two entries: The first is the number of deleted objects, the second
+    a dictionary specifying how many automations and how many automation task objects have been deleted from the database.
+
+    .. note::
+
+        Regular deletion of the history keeps the database size from growing endlessly. It also might be required for
+        privacy reasons. Alternatives
+        include removing all person-related data from the automation.
+
+    .. warning::
+
+        ``models.AutomationModel.delete_history`` only affects the database not any instances of ``Automation`` objects.
 
 
 All interactions with automations go through their classes and instances. Since the views provide querysets, templates use some additional automation model attributes and methods.

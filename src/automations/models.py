@@ -1,6 +1,7 @@
 # coding=utf-8
 import hashlib
 import sys
+import datetime
 from logging import getLogger
 
 from django.contrib.auth.models import User
@@ -90,6 +91,12 @@ class AutomationModel(models.Model):
 
     def get_key(self):
         return hashlib.sha1(f"{self.automation_class}-{self.id}".encode("utf-8")).hexdigest()
+
+    @classmethod
+    def delete_history(cls, days=30):
+        automations = cls.objects.filter(finished=True, updated__lt=now()-datetime.timedelta(days=days))
+        return automations.delete()
+
 
     def __str__(self):
         return f"<AutomationModel for {self.automation_class}>"
