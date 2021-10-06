@@ -97,7 +97,6 @@ class AutomationModel(models.Model):
         automations = cls.objects.filter(finished=True, updated__lt=now()-datetime.timedelta(days=days))
         return automations.delete()
 
-
     def __str__(self):
         return f"<AutomationModel for {self.automation_class}>"
 

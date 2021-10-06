@@ -36,7 +36,7 @@ Django-automations works with plain Django but also integrates with Django-CMS.
 
 ## Requirements
 
-* **Python**: 3.7, 3.8, 3.9
+* **Python**: 3.7, 3.8, 3.9, 3.10
 * **Django**: 3.0, 3.1, 3.2
 
 ## Feedback
