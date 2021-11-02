@@ -1,7 +1,6 @@
 # coding=utf-8
 import datetime
 import functools
-import hashlib
 import json
 import sys
 import threading
@@ -10,8 +9,7 @@ from copy import copy
 
 from django.contrib.auth.models import User, Group, Permission
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist, MultipleObjectsReturned
-from django.db.models import Q
-from django.db.models.base import ModelBase
+from django.db.models import Model, Q
 from django.db.transaction import atomic
 from django.utils.timezone import now
 
@@ -614,7 +612,7 @@ class Automation:
                 self._iter[prev] = attr
                 attr.ready(self, name)
                 prev = attr
-            if isinstance(attr, ModelBase):  # Attach to Model instance
+            if isinstance(attr, Model):  # Attach to Model instance
                 at_c = copy(attr)  # Create copies of name and Model (attr)
                 nm_c = copy(name)
                 setattr(self.__class__, name,  # Replace property by get_model_instance
@@ -684,7 +682,7 @@ class Automation:
 
     def _create_model_properties(self, kwargs):
         for name, value in kwargs.items():
-            if isinstance(value, ModelBase):
+            if isinstance(value, Model):
                 model_class = value.__class__
                 setattr(self, name,  # Replace property by get_model_instance
                         property(lambda slf: slf.get_model_instance(model_class, name), self))
