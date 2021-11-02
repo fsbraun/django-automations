@@ -684,7 +684,7 @@ class Automation:
         for name, value in kwargs.items():
             if isinstance(value, Model):
                 model_class = value.__class__
-                setattr(self, name,  # Replace property by get_model_instance
+                setattr(self.__class__, name,  # Replace property by get_model_instance
                         property(lambda slf: slf.get_model_instance(model_class, name), self))
                 kwargs[name] = kwargs[name].id
 
