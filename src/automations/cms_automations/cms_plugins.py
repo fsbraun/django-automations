@@ -178,7 +178,13 @@ class AutomationHook(CMSPluginBase):
     def render(self, context, instance, placeholder):
         request = context['request']
         automation, message = instance.automation.rsplit('.', 1)
-        cls = models.get_automation_class(automation)
+        print("##>", automation)
+        try:
+            cls = models.get_automation_class(automation)
+            if not issubclass(cls, flow.Automation):
+                raise AttributeError
+        except (AttributeError, ModuleNotFoundError):
+            return {'error': _("Automation class not present: %s") % automation}
         if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
             model_instance = get_automation_model(request.GET)
             if model_instance:
