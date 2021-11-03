@@ -656,6 +656,7 @@ class Automation:
                 assert key in kwargs, "to ensure unique property, " \
                                       "create automation with '%s=...' parameter" % key
             qs = self.model_class.objects.filter(finished=False)
+            self._create_model_properties(kwargs)
             for instance in qs:
                 identical = sum((0 if key not in instance.data or instance.data[key] != kwargs[key] else 1
                                  for key in self.unique))
@@ -663,7 +664,6 @@ class Automation:
                     self._db = instance
                     break
             else:
-                self._create_model_properties(kwargs)
                 self._db = self.model_class.objects.create(
                     automation_class=self.get_automation_class_name(),
                     finished=False,
