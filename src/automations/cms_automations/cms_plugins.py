@@ -178,7 +178,6 @@ class AutomationHook(CMSPluginBase):
     def render(self, context, instance, placeholder):
         request = context['request']
         automation, message = instance.automation.rsplit('.', 1)
-        print("##>", automation)
         try:
             cls = models.get_automation_class(automation)
             if not issubclass(cls, flow.Automation):
