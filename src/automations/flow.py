@@ -7,13 +7,16 @@ import threading
 import traceback
 from copy import copy
 
-from django.contrib.auth.models import User, Group, Permission
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Model, Q
 from django.db.transaction import atomic
 from django.utils.timezone import now
 
 from . import models, settings
+
+User = get_user_model()
 
 """To allow forward references in Automation object "this" is defined"""
 
