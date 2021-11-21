@@ -4,7 +4,7 @@ import sys
 import datetime
 from logging import getLogger
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.module_loading import import_string
 from django.utils.timezone import now
@@ -16,6 +16,8 @@ from . import settings
 # Create your models here.
 
 logger = getLogger(__name__)
+
+User = get_user_model()
 
 
 def get_automation_class(dotted_name):
@@ -126,7 +128,7 @@ class AutomationTaskModel(models.Model):
         verbose_name=_("Requires interaction")
     )
     interaction_user = models.ForeignKey(
-            'auth.User',
+            settings.AUTH_USER_MODEL,
             null=True,
             on_delete=models.PROTECT,
             verbose_name=_("Assigned user"),

@@ -15,3 +15,5 @@ TASK_LIST_TEMPLATES = getattr(settings, 'ATM_TASK_LIST_TEMPLATES',
                               (
                                   ('automations/includes/task_list.html', _("Default template")),
                               ))
+
+AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")

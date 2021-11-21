@@ -3,7 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django import forms
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management import execute_from_command_line
 from django.test import TestCase
 import datetime
@@ -19,6 +19,8 @@ from django.test import RequestFactory
 
 
 # Create your tests here.
+
+User = get_user_model()
 
 
 class Print(flow.Execute):
