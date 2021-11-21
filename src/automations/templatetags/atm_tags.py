@@ -5,7 +5,6 @@ from .. import models
 register = template.Library()
 
 
-
 # @register.simple_tag(takes_context=True)
 # def task_info(context, automation_class, info, debug=False):
 #     get_data = context.get("request", dict()).GET

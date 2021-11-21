@@ -4,17 +4,13 @@
 import logging
 import threading
 
-from django import forms
-
-from .. import models
-from . import models as cms_models
-from .. import flow
-from .. import views
-
-
 from cms.plugin_base import CMSPluginBase
 from cms.plugin_pool import plugin_pool
+from django import forms
 from django.utils.translation import gettext_lazy as _
+
+from .. import flow, models, views
+from . import models as cms_models
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +25,10 @@ class AutomationTaskList(CMSPluginBase):
 
     def render(self, context, instance, placeholder):
         self.render_template = instance.template
-        qs = models.AutomationTaskModel.get_open_tasks(context['request'].user)
-        context.update(dict(tasks=qs, count=len(qs), always_inform=instance.always_inform))
+        qs = models.AutomationTaskModel.get_open_tasks(context["request"].user)
+        context.update(
+            dict(tasks=qs, count=len(qs), always_inform=instance.always_inform)
+        )
         return context
 
 
@@ -45,7 +43,7 @@ class AutomationDashboard(CMSPluginBase):
     render_template = "automations/includes/dashboard.html"
 
     def render(self, context, instance, placeholder):
-        view = views.TaskDashboardView(request=context['request'])
+        view = views.TaskDashboardView(request=context["request"])
         context.update(view.get_context_data())
         return context
 
@@ -69,23 +67,28 @@ def get_task_choices(pattern, convert, subcls=None):
                         choices.append(tuple(tpl))
             if choices:
                 status_choices.append((verbose_name, tuple(choices)))
-    return tuple(status_choices)   # make immutable
+    return tuple(status_choices)  # make immutable
 
 
 def get_task_status_choices():
     def convert(attr, item, _):
         if isinstance(attr, str):
-            attr = attr, item.replace('_', ' ').capitalize()
+            attr = attr, item.replace("_", " ").capitalize()
         return attr
-    return get_task_choices(lambda x: x.endswith("_template") and x != "dashboard_template",
-                            convert=convert, subcls="Meta")
+
+    return get_task_choices(
+        lambda x: x.endswith("_template") and x != "dashboard_template",
+        convert=convert,
+        subcls="Meta",
+    )
 
 
 def get_task_receiver_choices():
     def convert(attr, item, cls_name):
         if callable(attr) and len(item) > 8:
-            return cls_name+'.'+item[8:], item[8:].replace('_', ' ').capitalize()
+            return cls_name + "." + item[8:], item[8:].replace("_", " ").capitalize()
         return None
+
     return get_task_choices(lambda x: x.startswith("receive_"), convert=convert)
 
 
@@ -106,10 +109,14 @@ def get_valid_automation_model(context, template):
         cls = models.get_automation_class(model_instance.automation_class)
         if hasattr(cls, "Meta"):
             for item in dir(cls.Meta):
-                if item.endswith('_template') and item != "dashboard_template":
+                if item.endswith("_template") and item != "dashboard_template":
                     attr = getattr(cls.Meta, item)
-                    if (isinstance(attr, str) and attr == template or
-                            isinstance(attr, (tuple, list)) and attr[0] == template):
+                    if (
+                        isinstance(attr, str)
+                        and attr == template
+                        or isinstance(attr, (tuple, list))
+                        and attr[0] == template
+                    ):
                         return model_instance
     return None
 
@@ -118,8 +125,8 @@ class EditTaskData(forms.ModelForm):
     class Meta:
         model = cms_models.AutomationStatusPlugin
         widgets = {
-            'template': forms.Select(choices=get_task_status_choices()),
-            'name': forms.HiddenInput(),
+            "template": forms.Select(choices=get_task_status_choices()),
+            "name": forms.HiddenInput(),
         }
         fields = "__all__"
 
@@ -127,7 +134,7 @@ class EditTaskData(forms.ModelForm):
         choices = {}
         for _, chapter in get_task_status_choices():
             choices.update({key: value for key, value in chapter})
-        return choices.get(self.data['template'], "")
+        return choices.get(self.data["template"], "")
 
 
 class AutomationStatus(CMSPluginBase):
@@ -148,9 +155,13 @@ class AutomationStatus(CMSPluginBase):
             automation = automation_model.instance
         else:
             automation = None
-        context.update(dict(automation=automation,
-                            automation_model=automation_model,
-                            instance=instance))
+        context.update(
+            dict(
+                automation=automation,
+                automation_model=automation_model,
+                instance=instance,
+            )
+        )
         return context
 
 
@@ -161,7 +172,7 @@ class EditAutomationHook(forms.ModelForm):
     class Meta:
         model = cms_models.AutomationHookPlugin
         widgets = {
-            'automation':   forms.Select(choices=get_task_receiver_choices()),
+            "automation": forms.Select(choices=get_task_receiver_choices()),
         }
         fields = "__all__"
 
@@ -176,24 +187,38 @@ class AutomationHook(CMSPluginBase):
     form = EditAutomationHook
 
     def render(self, context, instance, placeholder):
-        request = context['request']
-        automation, message = instance.automation.rsplit('.', 1)
+        request = context["request"]
+        automation, message = instance.automation.rsplit(".", 1)
         try:
             cls = models.get_automation_class(automation)
             if not issubclass(cls, flow.Automation):
                 raise AttributeError
         except (AttributeError, ModuleNotFoundError):
-            return {'error': _("Automation class not present: %s") % automation}
-        if instance.operation == cms_models.AutomationHookPlugin.OperationChoices.message:
+            return {"error": _("Automation class not present: %s") % automation}
+        if (
+            instance.operation
+            == cms_models.AutomationHookPlugin.OperationChoices.message
+        ):
             model_instance = get_automation_model(request.GET)
             if model_instance:
                 threading.Thread(
-                    target=lambda: cls.dispatch_message(model_instance, message, instance.token, request),
+                    target=lambda: cls.dispatch_message(
+                        model_instance, message, instance.token, request
+                    ),
                 ).start()
-        elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start:
-            threading.Thread(target=lambda: cls.create_on_message(message, instance.token, request)).start()
-        elif instance.operation == cms_models.AutomationHookPlugin.OperationChoices.broadcast:
-            threading.Thread(target=lambda: cls.broadcast_message(message, instance.token, request)).start()
+        elif (
+            instance.operation == cms_models.AutomationHookPlugin.OperationChoices.start
+        ):
+            threading.Thread(
+                target=lambda: cls.create_on_message(message, instance.token, request)
+            ).start()
+        elif (
+            instance.operation
+            == cms_models.AutomationHookPlugin.OperationChoices.broadcast
+        ):
+            threading.Thread(
+                target=lambda: cls.broadcast_message(message, instance.token, request)
+            ).start()
         return context
 
 
@@ -208,6 +233,6 @@ class AutomationsDashboard(CMSPluginBase):
     require_parent = False
 
     def render(self, context, instance, placeholder):
-        view = views.TaskDashboardView(request=context['request'])
+        view = views.TaskDashboardView(request=context["request"])
         context.update(view.get_context_data())
         return context

@@ -9,7 +9,11 @@ from copy import copy
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
-from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import (
+    ImproperlyConfigured,
+    MultipleObjectsReturned,
+    ObjectDoesNotExist,
+)
 from django.db.models import Model, Q
 from django.db.transaction import atomic
 from django.utils.timezone import now
@@ -48,6 +52,7 @@ this = This()
 def on_execution_path(m):
     """Decorator to ensure automatic pausing of automations in
     case of WaitUntil, PauseFor and When"""
+
     @functools.wraps(m)
     def wrapper(self, task, *args, **kwargs):
         try:
@@ -62,6 +67,7 @@ def on_execution_path(m):
                 self._automation._db.save()
 
             return None
+
     return wrapper
 
 
@@ -75,7 +81,7 @@ class Node:
         self._skipif = []
         self._skipafter = None
         self._leave = False
-        self.description = kwargs.pop('description', '')
+        self.description = kwargs.pop("description", "")
 
     @staticmethod
     def eval(sth, task):
@@ -93,7 +99,9 @@ class Node:
 
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
-        if isinstance(value, ThisAttribute) or (isinstance(value, str) and value.startswith('self.')):
+        if isinstance(value, ThisAttribute) or (
+            isinstance(value, str) and value.startswith("self.")
+        ):
             value = self.resolve(value)
             setattr(self, item, value)  # remember
         return value
@@ -101,13 +109,17 @@ class Node:
     def resolve(self, value):
         if isinstance(value, ThisAttribute):  # This object?
             value = getattr(self._automation, value.attr)  # get automation attribute
-        elif isinstance(value, str) and value.startswith('self.'):  # String literal instead of this
+        elif isinstance(value, str) and value.startswith(
+            "self."
+        ):  # String literal instead of this
             value = getattr(self._automation, value[5:])
         return value
 
     @atomic
     def enter(self, prev_task=None):
-        assert prev_task is None or prev_task.finished is not None, "Node entered w/o previous node left"
+        assert (
+            prev_task is None or prev_task.finished is not None
+        ), "Node entered w/o previous node left"
         db = self._automation._db
         assert isinstance(db, models.AutomationModel)
         task, _ = db.automationtaskmodel_set.get_or_create(
@@ -132,7 +144,7 @@ class Node:
 
     @staticmethod
     def store_result(task: models.AutomationTaskModel, message, result):
-        task.message = message[0:settings.MAX_FIELD_LENGTH]
+        task.message = message[0 : settings.MAX_FIELD_LENGTH]
         try:  # Check if result is json serializable
             json.dumps(result)  # Raise error if not json-serializable
             task.result = result  # if it is, store it
@@ -168,7 +180,9 @@ class Node:
         if earliest_execution < now():
             return task
         if self._automation._db.paused_until:
-            self._automation._db.paused_until = min(self._automation._db.paused_until, earliest_execution)
+            self._automation._db.paused_until = min(
+                self._automation._db.paused_until, earliest_execution
+            )
         else:
             self._automation._db.paused_until = earliest_execution
         self._automation._db.save()
@@ -193,13 +207,11 @@ class Node:
         return task
 
     def execute(self, task: models.AutomationTaskModel):
-        return self.when_handler(
-            self.wait_handler(
-                self.skip_handler(task)))
+        return self.when_handler(self.wait_handler(self.skip_handler(task)))
 
     def Next(self, next_node):
         if self._next is not None:
-            raise ImproperlyConfigured(f"Multiple .Next statements")
+            raise ImproperlyConfigured("Multiple .Next statements")
         self._next = next_node
         return self
 
@@ -209,13 +221,17 @@ class Node:
 
     def AfterWaitingUntil(self, time):
         if self._wait is not None:
-            raise ImproperlyConfigured(f"Multiple .AfterWaitingUntil or .AfterWaitingFor statements")
+            raise ImproperlyConfigured(
+                "Multiple .AfterWaitingUntil or .AfterWaitingFor statements"
+            )
         self._wait = time
         return self
 
     def AfterWaitingFor(self, timedelta):
         if self._wait is not None:
-            raise ImproperlyConfigured(f"Multiple .AfterWaitingUntil or .AfterWaitingFor statements")
+            raise ImproperlyConfigured(
+                "Multiple .AfterWaitingUntil or .AfterWaitingFor statements"
+            )
         self._wait = lambda x: x.created + self.eval(timedelta, x)
         return self
 
@@ -225,13 +241,15 @@ class Node:
 
     def SkipAfter(self, timedelta):
         if self._skipafter is not None:
-            raise ImproperlyConfigured(f"Multiple .SkipAfter statements")
+            raise ImproperlyConfigured("Multiple .SkipAfter statements")
         self._skipafter = timedelta
         return self
 
     def __repr__(self):
-        return f"<{f'{self._name}: ' if self._automation else ''}" \
-               f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
+        return (
+            f"<{f'{self._name}: ' if self._automation else ''}"
+            f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
+        )
 
 
 class End(Node):
@@ -242,7 +260,7 @@ class End(Node):
 
     def leave(self, task):
         task.finished = now()
-        task.locked = 0;
+        task.locked = 0
         task.save()
 
 
@@ -279,30 +297,32 @@ class Repeat(Node):
 
     def At(self, hour, minute):
         if self._interval is None:
-            raise ImproperlyConfigured(f"Repeat().At: interval statement necessary before")
+            raise ImproperlyConfigured(
+                "Repeat().At: interval statement necessary before"
+            )
         if self._interval < datetime.timedelta(days=1):
-            raise ImproperlyConfigured(f"Repeat().At: interval >= one day required")
+            raise ImproperlyConfigured("Repeat().At: interval >= one day required")
         if self._startpoint is not None:
-            raise ImproperlyConfigured(f"Repeat(): Only one .At modifier possible")
+            raise ImproperlyConfigured("Repeat(): Only one .At modifier possible")
         self._startpoint = now()
         self._startpoint.replace(hour=hour, minute=minute)
         return self
 
     def EveryHour(self, hours=1):
         if self._interval is not None:
-            raise ImproperlyConfigured(f"Repeat(): Multiple interval statements")
+            raise ImproperlyConfigured("Repeat(): Multiple interval statements")
         self._interval = datetime.timedelta(hours=hours)
         return self
 
     def EveryNMinutes(self, minutes):
         if self._interval is not None:
-            raise ImproperlyConfigured(f"Repeat(): Multiple interval statements")
+            raise ImproperlyConfigured("Repeat(): Multiple interval statements")
         self._interval = datetime.timedelta(minutes=minutes)
         return self
 
     def EveryNDays(self, days):
         if self._interval is not None:
-            raise ImproperlyConfigured(f"Repeat(): Multiple interval statements")
+            raise ImproperlyConfigured("Repeat(): Multiple interval statements")
         self._interval = datetime.timedelta(days=days)
         return self
 
@@ -324,17 +344,23 @@ class Split(Node):
     def execute(self, task: models.AutomationTaskModel):
         task = super().execute(task)
         if task:
-            assert len(self._splits) > 0, "at least one .Next statement needed for Split()"
+            assert (
+                len(self._splits) > 0
+            ), "at least one .Next statement needed for Split()"
             db = self._automation._db
             tasks = list(
                 db.automationtaskmodel_set.create(  # Create splits
                     previous=task,
                     status=self.resolve(split)._name,
                     locked=0,
-                ) for split in self._splits)
+                )
+                for split in self._splits
+            )
             self.leave(task)
             for task in tasks:
-                self._automation.run(task.previous, getattr(self._automation, task.status))  # Run other splits
+                self._automation.run(
+                    task.previous, getattr(self._automation, task.status)
+                )  # Run other splits
             return None
         return task
 
@@ -353,13 +379,15 @@ class Join(Node):
                 raise ImproperlyConfigured("Join() without Split()")
             all_splits = []
             for open_task in self._automation._db.automationtaskmodel_set.filter(
-                    finished=None,
+                finished=None,
             ):
                 split = self.get_split(open_task)
                 if split and split.id == split_task.id:
                     all_splits.append(open_task)
             assert len(all_splits) > 0, "Internal error: at least one split expected"
-            if len(all_splits) > 1:  # more than one split at the moment: close this split
+            if (
+                len(all_splits) > 1
+            ):  # more than one split at the moment: close this split
                 self.leave(task)
                 return None
         return task
@@ -385,7 +413,9 @@ class Execute(Node):
     def method(self, task, *args, **kwargs):
         func = args[0]
         if not callable(func):
-            raise ImproperlyConfigured(f"Execute: expected callable, got {func.__class__.__name__}")
+            raise ImproperlyConfigured(
+                f"Execute: expected callable, got {func.__class__.__name__}"
+            )
         return func(task, *self.args[1:], **self.kwargs)
 
     @on_execution_path
@@ -405,8 +435,12 @@ class Execute(Node):
             args = (self.resolve(value) for value in self.args)
             kwargs = {key: self.resolve(value) for key, value in self.kwargs.items()}
             if kwargs.get("threaded", False):
-                assert self._on_error is None, "No .OnError statement on threaded executions"
-                threading.Thread(target=func, args=[task] + list(args), kwargs=kwargs).start()
+                assert (
+                    self._on_error is None
+                ), "No .OnError statement on threaded executions"
+                threading.Thread(
+                    target=func, args=[task] + list(args), kwargs=kwargs
+                ).start()
             else:
                 func(task, *args, **kwargs)
                 if self._err:
@@ -425,7 +459,7 @@ class Execute(Node):
 
     def OnError(self, next_node):
         if self._on_error is not None:
-            raise ImproperlyConfigured(f"Multiple .OnError statements")
+            raise ImproperlyConfigured("Multiple .OnError statements")
         self._on_error = next_node
         return self
 
@@ -440,20 +474,20 @@ class If(Execute):
 
     def Then(self, *clause_args, **clause_kwargs):
         if self._then is not None:
-            raise ImproperlyConfigured(f"Multiple .Then statements")
+            raise ImproperlyConfigured("Multiple .Then statements")
         self._then = (clause_args, clause_kwargs)
         return self
 
     def Else(self, *clause_args, **clause_kwargs):
         if self._else is not None:
-            raise ImproperlyConfigured(f"Multiple .Else statements")
+            raise ImproperlyConfigured("Multiple .Else statements")
         self._else = (clause_args, clause_kwargs)
         return self
 
     @on_execution_path
     def if_handler(self, task: models.AutomationTaskModel):
         if self._then is None:
-            raise ImproperlyConfigured(f"Missing .Then statement")
+            raise ImproperlyConfigured("Missing .Then statement")
         this_path = self.eval(self._condition, task)
         clause = self._then if this_path else self._else
         if clause is not None:
@@ -476,7 +510,9 @@ class If(Execute):
 
 
 class Form(Node):
-    def __init__(self, form, template_name=None, context=None, repeated_form=False, **kwargs):
+    def __init__(
+        self, form, template_name=None, context=None, repeated_form=False, **kwargs
+    ):
         super().__init__(**kwargs)
         self._form = form
         self._context = context if context is not None else {}
@@ -493,17 +529,26 @@ class Form(Node):
 
         if task is not None:
             if self._user is None and self._group and not self._permissions:
-                raise ImproperlyConfigured("From: at least one .User, .Group, .Permission has to be specified")
+                raise ImproperlyConfigured(
+                    "From: at least one .User, .Group, .Permission has to be specified"
+                )
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
-            if self._repeated_form or task.data.get(f"_{self._name}_validated", None) is None:
+            if (
+                self._repeated_form
+                or task.data.get(f"_{self._name}_validated", None) is None
+            ):
                 task.requires_interaction = True
-                self.release_lock(task)  # Release lock and stop automation until form is validated
+                self.release_lock(
+                    task
+                )  # Release lock and stop automation until form is validated
                 return None
         return task  # Continue with validated form
 
     def is_valid(self, task: models.AutomationTaskModel, request, form):
-        task.automation.data[f"_{self._name}_validated"] = dict(user_id=request.user.id, time=now().isoformat())
+        task.automation.data[f"_{self._name}_validated"] = dict(
+            user_id=request.user.id, time=now().isoformat()
+        )
         task.automation.save()
         task.requires_interaction = False
         task.finished = now()
@@ -546,8 +591,10 @@ class ModelForm(Form):
     def __init__(self, form, key, template_name=None, **kwargs):
         super().__init__(form, template_name, **kwargs)
         if hasattr(Automation, key):
-            raise ImproperlyConfigured(f"Chose different key for ModelForm node: {key} is a property of "
-                                       f"flow.Automations")
+            raise ImproperlyConfigured(
+                f"Chose different key for ModelForm node: {key} is a property of "
+                f"flow.Automations"
+            )
         self._instance_key = key
         self._form_kwargs = self.get_model_from_kwargs
 
@@ -561,7 +608,9 @@ class ModelForm(Form):
 
 
 class SendMessage(Node):
-    def __init__(self, target, message, token=None, allow_multiple_receivers=False, **kwargs):
+    def __init__(
+        self, target, message, token=None, allow_multiple_receivers=False, **kwargs
+    ):
         self._target = target
         self._message = message
         self._token = token
@@ -575,9 +624,13 @@ class SendMessage(Node):
         if isinstance(cls, str):
             cls = models.get_automation_class(cls)
         if issubclass(cls, Automation):
-            results = cls.broadcast_message(self._message, self._token, data=self.kwargs)
+            results = cls.broadcast_message(
+                self._message, self._token, data=self.kwargs
+            )
         elif isinstance(cls, Automation) or isinstance(cls, int):
-            results = [cls.dispatch_message(self._message, self._token, data=self.kwargs)]
+            results = [
+                cls.dispatch_message(self._message, self._token, data=self.kwargs)
+            ]
         else:
             raise ImproperlyConfigured("")
         self.store_result(task, "OK", dict(results=results))
@@ -587,6 +640,7 @@ class SendMessage(Node):
         task = super().execute(task)
         return self.send_handler(task)
 
+
 #
 # Automation class
 #
@@ -595,9 +649,11 @@ class SendMessage(Node):
 
 def on_signal(signal, start=None, **kwargs):
     """decorator for automations to connect to Django signals"""
+
     def decorator(cls):
         cls.on(signal, start, **kwargs)
         return cls
+
     return decorator
 
 
@@ -615,31 +671,45 @@ class Automation:
                 self._iter[prev] = attr
                 attr.ready(self, name)
                 prev = attr
-            if isinstance(attr, type) and issubclass(attr, Model):  # Attach to Model instance
+            if isinstance(attr, type) and issubclass(
+                attr, Model
+            ):  # Attach to Model instance
                 at_c = copy(attr)  # Create copies of name and Model (attr)
                 nm_c = copy(name)
-                setattr(self.__class__, name,  # Replace property by get_model_instance
-                        property(lambda slf: slf.get_model_instance(at_c, nm_c), self))
-                if name in kwargs and not isinstance(kwargs[name], int):  # Convert instance to id
+                setattr(
+                    self.__class__,
+                    name,  # Replace property by get_model_instance
+                    property(lambda slf: slf.get_model_instance(at_c, nm_c), self),
+                )
+                if name in kwargs and not isinstance(
+                    kwargs[name], int
+                ):  # Convert instance to id
                     kwargs[name] = kwargs[name].id
         self._iter[prev] = None  # Last item
         autorun = kwargs.pop("autorun", True)
-        if 'automation' in kwargs:
+        if "automation" in kwargs:
             if isinstance(kwargs.get("automation"), models.AutomationModel):
-                self._db = kwargs.pop('automation')
+                self._db = kwargs.pop("automation")
             else:
                 self._db = self.model_class.objects.get(
-                    key=kwargs.pop('automation'),
+                    key=kwargs.pop("automation"),
                 )
-            assert self._db.automation_class == self.get_automation_class_name(), \
-                f"Wrong automation class: expected {self.get_automation_class_name()} " \
+            assert self._db.automation_class == self.get_automation_class_name(), (
+                f"Wrong automation class: expected {self.get_automation_class_name()} "
                 f"got {self._db.automation_class}"
-            assert not kwargs, "Too many arguments for automation %s. " \
-                               "If 'automation' is given, no parameters allowed" % self.__class__.__name__
-        elif 'automation_id' in kwargs:  # Attach to automation in DB
-            self._db = self.model_class.objects.get(id=kwargs.pop('automation_id'))
-            assert not kwargs, "Too many arguments for automation %s. " \
-                               "If 'automation_id' is given, no parameters allowed" % self.__class__.__name__
+            )
+            assert not kwargs, (
+                "Too many arguments for automation %s. "
+                "If 'automation' is given, no parameters allowed"
+                % self.__class__.__name__
+            )
+        elif "automation_id" in kwargs:  # Attach to automation in DB
+            self._db = self.model_class.objects.get(id=kwargs.pop("automation_id"))
+            assert not kwargs, (
+                "Too many arguments for automation %s. "
+                "If 'automation_id' is given, no parameters allowed"
+                % self.__class__.__name__
+            )
         elif self.unique is True:  # Create or get singleton in DB
             self._db, created = self.model_class.objects.get_or_create(
                 automation_class=self.get_automation_class_name(),
@@ -649,20 +719,36 @@ class Automation:
                 self._db.finished = False
                 self._db.save()
             else:
-                assert not kwargs, "Too many arguments for automation %s. " \
-                                   "If 'automation' is given, no parameters allowed" % self.__class__.__name__
+                assert not kwargs, (
+                    "Too many arguments for automation %s. "
+                    "If 'automation' is given, no parameters allowed"
+                    % self.__class__.__name__
+                )
         elif self.unique:
-            assert isinstance(self.unique, (list, tuple)), ".unique can be bool, list, tuple or None"
+            assert isinstance(
+                self.unique, (list, tuple)
+            ), ".unique can be bool, list, tuple or None"
             for key in self.unique:
-                assert key not in ("automation", "automation_id", "autorun"), \
-                    f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
-                assert key in kwargs, "to ensure unique property, " \
-                                      "create automation with '%s=...' parameter" % key
+                assert key not in (
+                    "automation",
+                    "automation_id",
+                    "autorun",
+                ), f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
+                assert key in kwargs, (
+                    "to ensure unique property, "
+                    "create automation with '%s=...' parameter" % key
+                )
             qs = self.model_class.objects.filter(finished=False)
             self._create_model_properties(kwargs)
             for instance in qs:
-                identical = sum((0 if key not in instance.data or instance.data[key] != kwargs[key] else 1
-                                 for key in self.unique))
+                identical = sum(
+                    (
+                        0
+                        if key not in instance.data or instance.data[key] != kwargs[key]
+                        else 1
+                        for key in self.unique
+                    )
+                )
                 if identical == len(self.unique):
                     self._db = instance
                     break
@@ -688,17 +774,20 @@ class Automation:
             if isinstance(value, Model):
                 model_class = value.__class__
                 cname = copy(name)  # name might reference something else later
-                setattr(self.__class__, name,  # Replace property by get_model_instance
-                        property(lambda slf: slf.get_model_instance(model_class, cname)))
+                setattr(
+                    self.__class__,
+                    name,  # Replace property by get_model_instance
+                    property(lambda slf: slf.get_model_instance(model_class, cname)),
+                )
                 kwargs[name] = kwargs[name].id
 
     def get_model_instance(self, model, name):
-        if not hasattr(self, '_' + name):
-            setattr(self, '_' + name, model.objects.get(id=self._db.data[name]))
-        return getattr(self, '_' + name)
+        if not hasattr(self, "_" + name):
+            setattr(self, "_" + name, model.objects.get(id=self._db.data[name]))
+        return getattr(self, "_" + name)
 
     def get_automation_class_name(self):
-        return self.__module__ + '.' + self.__class__.__name__
+        return self.__module__ + "." + self.__class__.__name__
 
     @property
     def id(self):
@@ -715,13 +804,15 @@ class Automation:
     def nice(self, task=None, next_task=None):
         """Run automation steps in a background thread to, e.g., do not block
         the request response cycle"""
-        threading.Thread(target=self.run,
-                         kwargs=dict(task=task, next_task=next_task)
-                         ).start()
+        threading.Thread(
+            target=self.run, kwargs=dict(task=task, next_task=next_task)
+        ).start()
 
     def run(self, task=None, next_node=None):
         """Execute automation until external responses are necessary"""
-        assert not self.finished(), ValueError("Trying to run an already finished or killed automation")
+        assert not self.finished(), ValueError(
+            "Trying to run an already finished or killed automation"
+        )
 
         if next_node is None:
             last_tasks = self._db.automationtaskmodel_set.filter(finished=None)
@@ -741,15 +832,15 @@ class Automation:
 
     @classmethod
     def get_verbose_name(cls):
-        if hasattr(cls, 'Meta'):
-            if hasattr(cls.Meta, 'verbose_name'):
+        if hasattr(cls, "Meta"):
+            if hasattr(cls.Meta, "verbose_name"):
                 return cls.Meta.verbose_name
         return f"Automation {cls.__name__}"
 
     @classmethod
     def get_verbose_name_plural(cls):
-        if hasattr(cls, 'Meta'):
-            if hasattr(cls.Meta, 'verbose_name_plural'):
+        if hasattr(cls, "Meta"):
+            if hasattr(cls.Meta, "verbose_name_plural"):
                 return cls.Meta.verbose_name_plural
         return f"Automations {cls.__name__}"
 
@@ -765,7 +856,7 @@ class Automation:
         is `automation.send_message(...)"""
         if self.__class__.satisfies_data_requirements(message, data):
             if not self.finished():
-                method = getattr(self, "receive_"+message)
+                method = getattr(self, "receive_" + message)
                 return method(token, data)
         return None
 
@@ -775,7 +866,7 @@ class Automation:
             method = getattr(cls, "receive_" + message)
             if not hasattr(method, "data_requirements"):
                 return True
-            accessor = get.GET if hasattr(get, 'GET') else get
+            accessor = get.GET if hasattr(get, "GET") else get
             for param, type_class in method.data_requirements.items():
                 if param not in accessor:
                     return False
@@ -806,9 +897,11 @@ class Automation:
                     automation = cls(automation=automation)
             except (ObjectDoesNotExist, MultipleObjectsReturned):
                 return None
-            assert isinstance(automation, cls), f"Wrong class to dispatch message: " \
-                                                f"{automation.__class__.__name__} found, " \
-                                                f"{cls.__name__} expected"
+            assert isinstance(automation, cls), (
+                f"Wrong class to dispatch message: "
+                f"{automation.__class__.__name__} found, "
+                f"{cls.__name__} expected"
+            )
             return automation.send_message(message, token, data)
 
     @classmethod
@@ -816,8 +909,8 @@ class Automation:
         results = []
         if cls.satisfies_data_requirements(message, data):
             for automation in models.AutomationModel.objects.filter(
-                    finished=False,
-                    automation_class=cls.__module__+"."+cls.__name__,
+                finished=False,
+                automation_class=cls.__module__ + "." + cls.__name__,
             ):
                 automation = cls(automation=automation)
                 result = automation.send_message(message, token, data)
@@ -830,15 +923,17 @@ class Automation:
     def create_on_message(cls, message, token, data):
         if cls.satisfies_data_requirements(message, data):
             kwargs = dict()
-            accessor = data.GET if hasattr(data, 'GET') else data
+            accessor = data.GET if hasattr(data, "GET") else data
             if isinstance(cls.unique, (list, tuple)):
                 for param in cls.unique:
                     if param in accessor:
                         kwargs[param] = accessor.get(param)
-            instance = cls(autorun=False, **kwargs)      # Create
-            instance.send_message(message, token, data)  # Allow message to be processes before ..
+            instance = cls(autorun=False, **kwargs)  # Create
+            instance.send_message(
+                message, token, data
+            )  # Allow message to be processes before ..
             if not instance.finished():
-                instance.run()                           # ... automation is run
+                instance.run()  # ... automation is run
             return None if instance.killed() else instance
         return None
 
@@ -846,13 +941,18 @@ class Automation:
     def on(cls, signal, start=None, **kwargs):
         def creator(sender, **sargs):
             cls.on_signal(start, sender, **sargs)
+
         signal.connect(creator, weak=False, **kwargs)
 
     @classmethod
     def on_signal(cls, start, sender, **kwargs):
         instance = cls()  # Instantiate class
-        if hasattr(instance, 'started_by_signal') and callable(instance.started_by_signal):
-            instance.started_by_signal(sender, kwargs)  # initialize based on sender data
+        if hasattr(instance, "started_by_signal") and callable(
+            instance.started_by_signal
+        ):
+            instance.started_by_signal(
+                sender, kwargs
+            )  # initialize based on sender data
         instance.run(None, None if start is None else getattr(instance, start))  # run
 
     def __str__(self):
@@ -864,7 +964,9 @@ def get_automations(app=None):
         for item in dir(mod):
             attr = getattr(mod, item)
             if isinstance(attr, type) and issubclass(attr, Automation):
-                automation_list.append((attr.__module__+'.'+ attr.__name__, attr.get_verbose_name()))
+                automation_list.append(
+                    (attr.__module__ + "." + attr.__name__, attr.get_verbose_name())
+                )
 
     automation_list = []
     if app is None:
@@ -879,8 +981,8 @@ def get_automations(app=None):
             mod = getattr(mod, next)
 
         check_module(mod)
-        if hasattr(mod, 'automations'):
-            mod = getattr(mod, 'automations')
+        if hasattr(mod, "automations"):
+            mod = getattr(mod, "automations")
             check_module(mod)
 
     return automation_list
@@ -889,7 +991,9 @@ def get_automations(app=None):
 def require_data_parameters(**kwargs):
     """decorates Automation class receiver methods to set the data_requirement attribute
     It is checked by cls.satisfies_data_requirements"""
+
     def decorator(method):
         method.data_requirements = kwargs
         return method
+
     return decorator

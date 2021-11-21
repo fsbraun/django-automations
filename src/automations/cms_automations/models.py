@@ -1,8 +1,8 @@
 from cms.models import CMSPlugin
+from django.db import models
 from django.utils.translation import gettext as _
 
 from .. import settings
-from django.db import models
 
 
 class AutomationTasksPlugin(CMSPlugin):
@@ -13,14 +13,16 @@ class AutomationTasksPlugin(CMSPlugin):
         blank=False,
         verbose_name=_("Template"),
     )
-    always_inform=models.BooleanField(
+    always_inform = models.BooleanField(
         default=True,
         verbose_name=_("Always inform"),
-        help_text=_("If deactivated plugin will out output anything if no task is available.")
+        help_text=_(
+            "If deactivated plugin will out output anything if no task is available."
+        ),
     )
 
 
-class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
+class AutomationHookPlugin(CMSPlugin):  # pragma: no cover
     class OperationChoices(models.IntegerChoices):
         start = 0, _("Start automaton")
         message = 1, _("Send message to automation")
@@ -29,7 +31,7 @@ class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
     operation = models.IntegerField(
         default=OperationChoices.message,
         choices=OperationChoices.choices,
-        verbose_name=_("Operation")
+        verbose_name=_("Operation"),
     )
 
     automation = models.CharField(
@@ -45,10 +47,10 @@ class AutomationHookPlugin(CMSPlugin):          # pragma: no cover
     )
 
     def __str__(self):
-        return self.automation.split('.')[-1]
+        return self.automation.split(".")[-1]
 
 
-class AutomationStatusPlugin(CMSPlugin):            # pragma: no cover
+class AutomationStatusPlugin(CMSPlugin):  # pragma: no cover
     template = models.CharField(
         blank=False,
         max_length=settings.MAX_FIELD_LENGTH,

@@ -1,15 +1,15 @@
 # coding=utf-8
+import datetime
 import hashlib
 import sys
-import datetime
 from logging import getLogger
 
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models import Q
 from django.utils.module_loading import import_string
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
-from django.db import models
 
 from . import settings
 
@@ -21,7 +21,7 @@ User = get_user_model()
 
 
 def get_automation_class(dotted_name):
-    components = dotted_name.rsplit('.',1)
+    components = dotted_name.rsplit(".", 1)
     cls = __import__(components[0], fromlist=[components[-1]])
     cls = getattr(cls, components[-1])
     return cls
@@ -29,32 +29,32 @@ def get_automation_class(dotted_name):
 
 class AutomationModel(models.Model):
     automation_class = models.CharField(
-            max_length=256,
-            blank=False,
-            verbose_name=_("Process class"),
+        max_length=256,
+        blank=False,
+        verbose_name=_("Process class"),
     )
     finished = models.BooleanField(
-            default=False,
-            verbose_name=_("Finished"),
+        default=False,
+        verbose_name=_("Finished"),
     )
     data = models.JSONField(
-            verbose_name=_("Data"),
-            default=dict,
+        verbose_name=_("Data"),
+        default=dict,
     )
     key = models.CharField(
-            verbose_name=_("Unique hash"),
-            default="",
-            max_length=64,
+        verbose_name=_("Unique hash"),
+        default="",
+        max_length=64,
     )
     paused_until = models.DateTimeField(
-            null=True,
-            verbose_name=_("Paused until"),
+        null=True,
+        verbose_name=_("Paused until"),
     )
     created = models.DateTimeField(
-            auto_now_add=True,
+        auto_now_add=True,
     )
     updated = models.DateTimeField(
-            auto_now=True,
+        auto_now=True,
     )
 
     _automation_class = None
@@ -77,7 +77,7 @@ class AutomationModel(models.Model):
         if timestamp is None:
             timestamp = now()
         automations = cls.objects.filter(
-                finished=False,
+            finished=False,
         ).filter(Q(paused_until__lte=timestamp) | Q(paused_until=None))
 
         for automation in automations:
@@ -86,17 +86,21 @@ class AutomationModel(models.Model):
             logger.info(f"Running automation {automation.automation_class}")
             try:
                 instance.run()
-            except Exception as e:          # pragma: no cover
+            except Exception as e:  # pragma: no cover
                 automation.finished = True
                 automation.save()
-                logger.error(f'Error: {repr(e)}', exc_info=sys.exc_info())
+                logger.error(f"Error: {repr(e)}", exc_info=sys.exc_info())
 
     def get_key(self):
-        return hashlib.sha1(f"{self.automation_class}-{self.id}".encode("utf-8")).hexdigest()
+        return hashlib.sha1(
+            f"{self.automation_class}-{self.id}".encode("utf-8")
+        ).hexdigest()
 
     @classmethod
     def delete_history(cls, days=30):
-        automations = cls.objects.filter(finished=True, updated__lt=now()-datetime.timedelta(days=days))
+        automations = cls.objects.filter(
+            finished=True, updated__lt=now() - datetime.timedelta(days=days)
+        )
         return automations.delete()
 
     def __str__(self):
@@ -105,39 +109,38 @@ class AutomationModel(models.Model):
 
 class AutomationTaskModel(models.Model):
     automation = models.ForeignKey(
-            AutomationModel,
-            on_delete=models.CASCADE,
+        AutomationModel,
+        on_delete=models.CASCADE,
     )
     previous = models.ForeignKey(
-            'automations.AutomationTaskModel',
-            on_delete=models.SET_NULL,
-            null=True,
-            verbose_name=_("Previous task"),
+        "automations.AutomationTaskModel",
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name=_("Previous task"),
     )
     status = models.CharField(
-            max_length=256,
-            blank=True,
-            verbose_name=_("Status"),
+        max_length=256,
+        blank=True,
+        verbose_name=_("Status"),
     )
     locked = models.IntegerField(
-            default=0,
-            verbose_name=_("Locked"),
+        default=0,
+        verbose_name=_("Locked"),
     )
     requires_interaction = models.BooleanField(
-        default=False,
-        verbose_name=_("Requires interaction")
+        default=False, verbose_name=_("Requires interaction")
     )
     interaction_user = models.ForeignKey(
-            settings.AUTH_USER_MODEL,
-            null=True,
-            on_delete=models.PROTECT,
-            verbose_name=_("Assigned user"),
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.PROTECT,
+        verbose_name=_("Assigned user"),
     )
     interaction_group = models.ForeignKey(
-            'auth.Group',
-            null=True,
-            on_delete=models.PROTECT,
-            verbose_name=_("Assigned group"),
+        "auth.Group",
+        null=True,
+        on_delete=models.PROTECT,
+        verbose_name=_("Assigned group"),
     )
     interaction_permissions = models.JSONField(
         default=list,
@@ -145,21 +148,21 @@ class AutomationTaskModel(models.Model):
         help_text=_("List of permissions of the form app_label.codename"),
     )
     created = models.DateTimeField(
-            auto_now_add=True,
+        auto_now_add=True,
     )
     finished = models.DateTimeField(
-            null=True,
+        null=True,
     )
     message = models.CharField(
-            max_length=settings.MAX_FIELD_LENGTH,
-            verbose_name=_("Message"),
-            blank=True,
+        max_length=settings.MAX_FIELD_LENGTH,
+        verbose_name=_("Message"),
+        blank=True,
     )
     result = models.JSONField(
-            verbose_name=_("Result"),
-            null=True,
-            blank=True,
-            default=dict,
+        verbose_name=_("Result"),
+        null=True,
+        blank=True,
+        default=dict,
     )
 
     @property
@@ -170,14 +173,19 @@ class AutomationTaskModel(models.Model):
         """returns the number of hours since creation of node, 0 if finished"""
         if self.finished:
             return 0
-        return (now()-self.created).total_seconds()/3600
+        return (now() - self.created).total_seconds() / 3600
 
-    def get_users_with_permission(self, include_superusers=True,
-                                  backend="django.contrib.auth.backends.ModelBackend"):
+    def get_users_with_permission(
+        self,
+        include_superusers=True,
+        backend="django.contrib.auth.backends.ModelBackend",
+    ):
 
         users = User.objects.all()
         for permission in self.interaction_permissions:
-            users &= User.objects.with_perm(permission, include_superusers=False, backend=backend)
+            users &= User.objects.with_perm(
+                permission, include_superusers=False, backend=backend
+            )
         if self.interaction_user is not None:
             users = users.filter(id=self.interaction_user_id)
         if self.interaction_group is not None:
@@ -193,5 +201,8 @@ class AutomationTaskModel(models.Model):
     @classmethod
     def get_open_tasks(cls, user):
         candidates = cls.objects.filter(finished=None)
-        return tuple(task for task in candidates
-                     if task.requires_interaction and user in task.get_users_with_permission())
+        return tuple(
+            task
+            for task in candidates
+            if task.requires_interaction and user in task.get_users_with_permission()
+        )
