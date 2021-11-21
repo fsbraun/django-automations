@@ -1,9 +1,9 @@
 {% load i18n %}{% spaceless %}
-<div class="card h-100">
-  <h5 class="card-header">{{ automation.verbose_name }}</h5>
-  <ul class="list-group list-group-flush">
-    <li class="list-group-item">{% trans "Running" %}: {{ automation.running.count }}</li>
-    <li class="list-group-item">{% trans "Finished" %}: {{ automation.finished.count }}</li>
-  </ul>
-</div>
+    <div class="card h-100">
+        <h5 class="card-header">{{ automation.verbose_name }}</h5>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">{% trans "Running" %}: {{ automation.running.count }}</li>
+            <li class="list-group-item">{% trans "Finished" %}: {{ automation.finished.count }}</li>
+        </ul>
+    </div>
 {% endspaceless %}
