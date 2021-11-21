@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('automations', '0004_auto_20210511_1042'),
+        ("automations", "0004_auto_20210511_1042"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='automationmodel',
-            name='key',
-            field=models.CharField(default='', max_length=64, verbose_name='_Unique hash'),
+            model_name="automationmodel",
+            name="key",
+            field=models.CharField(
+                default="", max_length=64, verbose_name="_Unique hash"
+            ),
         ),
     ]
