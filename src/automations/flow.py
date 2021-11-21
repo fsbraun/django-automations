@@ -88,7 +88,8 @@ class Node:
         return sth(task) if callable(sth) else sth
 
     def ready(self, automation_instance, name):
-        """is called by the newly initialized Automation instance to bind the nodes to the instance."""
+        """is called by the newly initialized Automation instance to bind the nodes to
+        the instance."""
         self._automation = automation_instance
         self._name = name
         self._conditions = [self.resolve(condition) for condition in self._conditions]
@@ -248,7 +249,8 @@ class Node:
     def __repr__(self):
         return (
             f"<{f'{self._name}: ' if self._automation else ''}"
-            f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
+            f"{self._automation if self._automation else 'unbound'} "
+            f"{self.__class__.__name__} node>"
         )
 
 
@@ -530,7 +532,8 @@ class Form(Node):
         if task is not None:
             if self._user is None and self._group and not self._permissions:
                 raise ImproperlyConfigured(
-                    "From: at least one .User, .Group, .Permission has to be specified"
+                    "From: at least one .User, .Group, .Permission "
+                    "has to be specified"
                 )
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
@@ -989,8 +992,8 @@ def get_automations(app=None):
 
 
 def require_data_parameters(**kwargs):
-    """decorates Automation class receiver methods to set the data_requirement attribute
-    It is checked by cls.satisfies_data_requirements"""
+    """decorates Automation class receiver methods to set the data_requirement
+    attribute. It is checked by cls.satisfies_data_requirements"""
 
     def decorator(method):
         method.data_requirements = kwargs

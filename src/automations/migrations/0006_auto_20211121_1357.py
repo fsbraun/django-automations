@@ -29,7 +29,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="automationmodel",
             name="key",
-            field=models.CharField(default="", max_length=64, verbose_name="Unique hash"),
+            field=models.CharField(
+                default="", max_length=64, verbose_name="Unique hash"
+            ),
         ),
         migrations.AlterField(
             model_name="automationmodel",
@@ -59,6 +61,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="automationtaskmodel",
             name="result",
-            field=models.JSONField(blank=True, default=dict, null=True, verbose_name="Result"),
+            field=models.JSONField(
+                blank=True, default=dict, null=True, verbose_name="Result"
+            ),
         ),
     ]
