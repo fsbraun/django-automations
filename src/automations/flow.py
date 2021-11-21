@@ -8,7 +8,6 @@ import traceback
 from copy import copy
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import (
     ImproperlyConfigured,
     MultipleObjectsReturned,
@@ -21,6 +20,7 @@ from django.utils.timezone import now
 from . import models, settings
 
 User = get_user_model()
+Group = settings.get_group_model()
 
 """To allow forward references in Automation object "this" is defined"""
 
@@ -88,8 +88,7 @@ class Node:
         return sth(task) if callable(sth) else sth
 
     def ready(self, automation_instance, name):
-        """is called by the newly initialized Automation instance to bind the nodes to
-        the instance."""
+        """is called by the newly initialized Automation instance to bind the nodes to the instance."""
         self._automation = automation_instance
         self._name = name
         self._conditions = [self.resolve(condition) for condition in self._conditions]
@@ -163,7 +162,7 @@ class Node:
             else:
                 next_node = self._next
             if next_node is None:
-                raise ImproperlyConfigured("No End() node after %s" % self._name)
+                raise ImproperlyConfigured(f"No End() node after {self._name}")
             return next_node
 
     @on_execution_path
@@ -249,8 +248,7 @@ class Node:
     def __repr__(self):
         return (
             f"<{f'{self._name}: ' if self._automation else ''}"
-            f"{self._automation if self._automation else 'unbound'} "
-            f"{self.__class__.__name__} node>"
+            f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
         )
 
 
@@ -511,6 +509,40 @@ class If(Execute):
         return self.if_handler(task)
 
 
+def default_get_users_with_permission_form_method(self):
+    """
+    Given a flow.Form instance, which has access to a list of permission codenames
+    (self._permissions), the assigned user(self._user), and assigned group
+    (self._group), returns a QuerySet of users with applicable permissions that meet
+    the requirements for access.
+    """
+    from django.contrib.auth.models import Permission
+
+    perm = Permission.objects.filter(codename__in=self._permissions)
+    filter_args = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
+    if self._user is not None:
+        filter_args = filter_args & Q(**self._user)
+    if self._group is not None:
+        filter_args = filter_args & Q(group_set__contains=self._group)
+    users = User.objects.filter(filter_args).distinct()
+    return users
+
+
+def get_users_with_permission_method(users_with_permission_method):
+    """
+    Function to decide which get_users_with_permission method to use within the Form Node.
+    Defaults to ``default_get_users_with_permission_form_method``.
+    """
+    from django.utils.module_loading import import_string
+
+    if users_with_permission_method is not None:
+        if callable(users_with_permission_method):
+            return users_with_permission_method
+        else:
+            return import_string(users_with_permission_method)
+    return default_get_users_with_permission_form_method
+
+
 class Form(Node):
     def __init__(
         self, form, template_name=None, context=None, repeated_form=False, **kwargs
@@ -525,6 +557,9 @@ class Form(Node):
         self._permissions = []
         self._form_kwargs = {}
         self._run = True
+        self.get_users_with_permission = get_users_with_permission_method(
+            settings.USERS_WITH_PERMISSIONS_FORM_METHOD
+        )
 
     def execute(self, task: models.AutomationTaskModel):
         task = super().execute(task)
@@ -532,8 +567,7 @@ class Form(Node):
         if task is not None:
             if self._user is None and self._group and not self._permissions:
                 raise ImproperlyConfigured(
-                    "From: at least one .User, .Group, .Permission "
-                    "has to be specified"
+                    "From: at least one .User, .Group, .Permission has to be specified"
                 )
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
@@ -578,16 +612,6 @@ class Form(Node):
     def Permission(self, permission):
         self._permissions.append(permission)
         return self
-
-    def get_users_with_permission(self):
-        perm = Permission.objects.filter(codename__in=self._permissions)
-        filter = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
-        if self._user is not None:
-            filter = filter & Q(**self._user)
-        if self._group is not None:
-            filter = filter & Q(group_set__contains=self._group)
-        users = User.objects.filter(filter).distinct()
-        return users
 
 
 class ModelForm(Form):
@@ -702,16 +726,14 @@ class Automation:
                 f"got {self._db.automation_class}"
             )
             assert not kwargs, (
-                "Too many arguments for automation %s. "
+                f"Too many arguments for automation {self.__class__.__name__}. "
                 "If 'automation' is given, no parameters allowed"
-                % self.__class__.__name__
             )
         elif "automation_id" in kwargs:  # Attach to automation in DB
             self._db = self.model_class.objects.get(id=kwargs.pop("automation_id"))
             assert not kwargs, (
-                "Too many arguments for automation %s. "
+                f"Too many arguments for automation {self.__class__.__name__}. "
                 "If 'automation_id' is given, no parameters allowed"
-                % self.__class__.__name__
             )
         elif self.unique is True:  # Create or get singleton in DB
             self._db, created = self.model_class.objects.get_or_create(
@@ -723,9 +745,8 @@ class Automation:
                 self._db.save()
             else:
                 assert not kwargs, (
-                    "Too many arguments for automation %s. "
+                    f"Too many arguments for automation {self.__class__.__name__}. "
                     "If 'automation' is given, no parameters allowed"
-                    % self.__class__.__name__
                 )
         elif self.unique:
             assert isinstance(
@@ -992,8 +1013,8 @@ def get_automations(app=None):
 
 
 def require_data_parameters(**kwargs):
-    """decorates Automation class receiver methods to set the data_requirement
-    attribute. It is checked by cls.satisfies_data_requirements"""
+    """decorates Automation class receiver methods to set the data_requirement attribute.
+    It is checked by cls.satisfies_data_requirements"""
 
     def decorator(method):
         method.data_requirements = kwargs

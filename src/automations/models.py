@@ -18,6 +18,7 @@ from . import settings
 logger = getLogger(__name__)
 
 User = get_user_model()
+Group = settings.get_group_model()
 
 
 def get_automation_class(dotted_name):
@@ -107,6 +108,46 @@ class AutomationModel(models.Model):
         return f"<AutomationModel for {self.automation_class}>"
 
 
+def default_get_users_with_permission_model_method(
+    self,
+    include_superusers=True,
+    backend="django.contrib.auth.backends.ModelBackend",
+):
+    """
+    Given an AutomationTaskModel instance, which has access to a list of permission
+    codenames (self.interaction_permissions), the assigned user (self.interaction_user),
+    and assigned group (self.interaction_group), returns a QuerySet of users with
+    applicable permissions that meet the requirements for access.
+    """
+    users = User.objects.all()
+    for permission in self.interaction_permissions:
+        users &= User.objects.with_perm(
+            permission, include_superusers=False, backend=backend
+        )
+    if self.interaction_user is not None:
+        users = users.filter(id=self.interaction_user_id)
+    if self.interaction_group is not None:
+        users = users.filter(groups=self.interaction_group)
+    if include_superusers:
+        users |= User.objects.filter(is_superuser=True)
+    return users
+
+
+def get_users_with_permission_method(users_with_permission_method):
+    """
+    Function to decide which get_users_with_permission method to use within the model.
+    Defaults to ``default_get_users_with_permission_model_method``.
+    """
+    from django.utils.module_loading import import_string
+
+    if users_with_permission_method is not None:
+        if callable(users_with_permission_method):
+            return users_with_permission_method
+        else:
+            return import_string(users_with_permission_method)
+    return default_get_users_with_permission_model_method
+
+
 class AutomationTaskModel(models.Model):
     automation = models.ForeignKey(
         AutomationModel,
@@ -137,7 +178,7 @@ class AutomationTaskModel(models.Model):
         verbose_name=_("Assigned user"),
     )
     interaction_group = models.ForeignKey(
-        "auth.Group",
+        Group,
         null=True,
         on_delete=models.PROTECT,
         verbose_name=_("Assigned group"),
@@ -165,6 +206,12 @@ class AutomationTaskModel(models.Model):
         default=dict,
     )
 
+    def __init__(self, *args, **kwargs):
+        self.get_users_with_permission = get_users_with_permission_method(
+            settings.USERS_WITH_PERMISSIONS_MODEL_METHOD
+        )
+        super().__init__(*args, **kwargs)
+
     @property
     def data(self):
         return self.automation.data
@@ -174,25 +221,6 @@ class AutomationTaskModel(models.Model):
         if self.finished:
             return 0
         return (now() - self.created).total_seconds() / 3600
-
-    def get_users_with_permission(
-        self,
-        include_superusers=True,
-        backend="django.contrib.auth.backends.ModelBackend",
-    ):
-
-        users = User.objects.all()
-        for permission in self.interaction_permissions:
-            users &= User.objects.with_perm(
-                permission, include_superusers=False, backend=backend
-            )
-        if self.interaction_user is not None:
-            users = users.filter(id=self.interaction_user_id)
-        if self.interaction_group is not None:
-            users = users.filter(groups=self.interaction_group)
-        if include_superusers:
-            users |= User.objects.filter(is_superuser=True)
-        return users
 
     def get_node(self):
         instance = self.automation.instance

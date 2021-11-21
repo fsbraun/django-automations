@@ -1,6 +1,8 @@
 # coding=utf-8
 
+from django.apps import apps as django_apps
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext_lazy as _
 
 MAX_FIELD_LENGTH = 128
@@ -21,3 +23,34 @@ TASK_LIST_TEMPLATES = getattr(
 )
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
+
+GROUP_MODEL = getattr(settings, "ATM_GROUP_MODEL", "auth.Group")
+
+
+def get_group_model():
+    """
+    Return the Group or alternate grouping model that is active in this project.
+    """
+    try:
+        return django_apps.get_model(GROUP_MODEL, require_ready=False)
+    except ValueError:
+        raise ImproperlyConfigured(
+            "ATM_GROUP_MODEL must be of the form 'app_label.model_name'"
+        )
+    except LookupError:
+        raise ImproperlyConfigured(
+            f"ATM_GROUP_MODEL refers to model '{GROUP_MODEL}' that has not been installed"
+        )
+
+
+USERS_WITH_PERMISSIONS_FORM_METHOD = getattr(
+    settings,
+    "ATM_USER_WITH_PERMISSIONS_FORM_METHOD",
+    "automations.flow.default_get_users_with_permission_form_method",
+)
+
+USERS_WITH_PERMISSIONS_MODEL_METHOD = getattr(
+    settings,
+    "ATM_USER_WITH_PERMISSIONS_MODEL_METHOD",
+    "automations.models.default_get_users_with_permission_model_method",
+)
