@@ -1,6 +1,6 @@
 # coding=utf-8
 
-"""Soft dependecy on django-automations_cms: Define plugins for open tasks"""
+"""Soft dependency on django-automations_cms: Define plugins for open tasks"""
 import logging
 import threading
 
@@ -51,14 +51,14 @@ class AutomationDashboard(CMSPluginBase):
 plugin_pool.register_plugin(AutomationDashboard)
 
 
-def get_task_choices(pattern, convert, subcls=None):
+def get_task_choices(pattern, convert, subclass=None):
     status_choices = []
     for cls_name, verbose_name in flow.get_automations():
         cls = models.get_automation_class(cls_name)
         if getattr(cls, "publish_receivers", False):
             choices = []
-            if subcls is not None and hasattr(cls, subcls):
-                cls = getattr(cls, subcls)
+            if subclass is not None and hasattr(cls, subclass):
+                cls = getattr(cls, subclass)
             for item in dir(cls):
                 if pattern(item):
                     attr = getattr(cls, item)
@@ -79,7 +79,7 @@ def get_task_status_choices():
     return get_task_choices(
         lambda x: x.endswith("_template") and x != "dashboard_template",
         convert=convert,
-        subcls="Meta",
+        subclass="Meta",
     )
 
 

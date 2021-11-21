@@ -1,13 +1,13 @@
 {% extends "automations/base.html" %}{% load i18n %}
 {% block content_automations %}{% spaceless %}
     <h1>{% trans "Open tasks for" %} {{ request.user.get_full_name }}</h1>
-  {% if count == 0 %}
-    <div class="alert alert-success">
-      {% trans "Currently no tasks for you" %}
-    </div>
-  {% else %}
-    {% include "automations/includes/task_list.html" %}
-  {% endif %}
+    {% if count == 0 %}
+        <div class="alert alert-success">
+            {% trans "Currently no tasks for you" %}
+        </div>
+    {% else %}
+        {% include "automations/includes/task_list.html" %}
+    {% endif %}
     {% if request.user.is_staff %}
         <a href="{% url 'dashboard' %}" class="btn btn-primary">{% trans "Automations dashboard" %}</a>
     {% endif %}
