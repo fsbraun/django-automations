@@ -1,9 +1,9 @@
 {% load i18n %}{% spaceless %}
-<div class="card h-100">
-    <h5 class="card-header">{{ task.automation.get_automation_class.get_verbose_name }}</h5>
-    <div class="card-body">
-        <p class="card-text">{{ task.get_node.description }}</p>
-        <a href="{% url "task" task.id %}?back={{ request.get_full_path }}" class="btn btn-primary">{% trans "View" %}</a>
+    <div class="card h-100">
+        <h5 class="card-header">{{ task.automation.get_automation_class.get_verbose_name }}</h5>
+        <div class="card-body">
+            <p class="card-text">{{ task.get_node.description }}</p>
+            <a href="{% url "task" task.id %}?back={{ request.get_full_path }}" class="btn btn-primary">{% trans "View" %}</a>
+        </div>
     </div>
-</div>
 {% endspaceless %}
