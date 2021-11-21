@@ -48,8 +48,6 @@ Finally, run
 
 .. code-block:: bash
 
-    python manage.py makemigrations automations
-    python manage.py makemigrations cms_automations
     python manage.py migrate automations
     python manage.py migrate cms_automations
 
