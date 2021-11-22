@@ -587,12 +587,12 @@ class Form(Node):
         from django.contrib.auth.models import Permission
 
         perm = Permission.objects.filter(codename__in=self._permissions)
-        filter_args = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
+        filter = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
         if self._user is not None:
-            filter_args = filter_args & Q(**self._user)
+            filter = filter & Q(**self._user)
         if self._group is not None:
-            filter_args = filter_args & Q(group_set__contains=self._group)
-        users = User.objects.filter(filter_args).distinct()
+            filter = filter & Q(group_set__contains=self._group)
+        users = User.objects.filter(filter).distinct()
         return users
 
 

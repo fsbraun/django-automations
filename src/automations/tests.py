@@ -522,3 +522,24 @@ class SkipTest(TestCase):
         self.assertEqual(len(output), 2)
         self.assertEqual(output[0], "start NOT SKIPPED")
         self.assertEqual(output[-1], "third Clearly printed")
+
+
+def temp_get_users_with_permission_form(self):
+    """Used to test that swapping the Form method works"""
+    return User.objects.none()
+
+
+def temp_get_users_with_permission_model(
+    self,
+    include_superusers=True,
+    backend="django.contrib.auth.backends.ModelBackend",
+):
+    """Used to test that swapping the model method works"""
+    return User.objects.none()
+
+
+class SettingsTestCase(TestCase):
+    def test_get_group_model(self):
+        """The current group model can be retrieved"""
+        self.assertEqual(get_group_model(), Group)
+
