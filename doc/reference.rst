@@ -814,11 +814,11 @@ Getting users with access to Form Node instances
 
 ``flow.Form`` contains a method for retrieving the users who have access to a given Form node. This method, which has access to a list of permission codenames (self._permissions), the assigned user(self._user), and assigned group (self._group), returns a QuerySet of users with applicable permissions that meet the requirements for access. The default method can be overridden in ``settings.ATM_USER_WITH_PERMISSIONS_FORM_METHOD``.
 
-The default method used:
+The default method used within ``form.Flow``:
 
 .. code-block:: python
 
-    def default_get_users_with_permission_form_method(self):
+    def get_users_with_permission(self):
         from django.contrib.auth.models import Permission
 
         perm = Permission.objects.filter(codename__in=self._permissions)
@@ -837,11 +837,11 @@ Getting users with access to ``AutomationTaskModel`` instances
 
 ``AutomationTaskModel`` contains a model method for retrieving the users who have access to a given task. This method, which has access to a list of permission codenames (self.interaction_permissions), the assigned user (self.interaction_user), and assigned group (self.interaction_group), returns a QuerySet of users with applicable permissions that meet the requirements for access. The default method can be overridden in ``settings.ATM_USER_WITH_PERMISSIONS_MODEL_METHOD``.
 
-The default method used:
+The default method used within ``AutomationTaskModel``:
 
 .. code-block:: python
 
-    def default_get_users_with_permission_model_method(
+    def get_users_with_permission(
         self,
         include_superusers=True,
         backend="django.contrib.auth.backends.ModelBackend",
