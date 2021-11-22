@@ -6,13 +6,15 @@ from unittest.mock import patch
 import django.dispatch
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management import execute_from_command_line
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 
 from . import flow, models, views
 from .flow import this
+from .settings import get_group_model
 
 # Create your tests here.
 
@@ -542,4 +544,14 @@ class SettingsTestCase(TestCase):
     def test_get_group_model(self):
         """The current group model can be retrieved"""
         self.assertEqual(get_group_model(), Group)
+
+    @override_settings(
+        ATM_GROUP_MODEL="auth.Group",
+        ATM_USER_WITH_PERMISSIONS_FORM_METHOD="automations.tests.temp_get_users_with_permission_form",
+        ATM_USER_WITH_PERMISSIONS_MODEL_METHOD="automations.tests.temp_get_users_with_permission_model",
+    )
+    def test_swappable_get_group_model(self):
+        """The current group model can be retrieved when overridden"""
+        self.assertEqual(get_group_model(), Group)
+
 
