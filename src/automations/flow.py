@@ -6,6 +6,7 @@ import sys
 import threading
 import traceback
 from copy import copy
+from types import MethodType
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import (
@@ -509,40 +510,6 @@ class If(Execute):
         return self.if_handler(task)
 
 
-def default_get_users_with_permission_form_method(self):
-    """
-    Given a flow.Form instance, which has access to a list of permission codenames
-    (self._permissions), the assigned user(self._user), and assigned group
-    (self._group), returns a QuerySet of users with applicable permissions that meet
-    the requirements for access.
-    """
-    from django.contrib.auth.models import Permission
-
-    perm = Permission.objects.filter(codename__in=self._permissions)
-    filter_args = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
-    if self._user is not None:
-        filter_args = filter_args & Q(**self._user)
-    if self._group is not None:
-        filter_args = filter_args & Q(group_set__contains=self._group)
-    users = User.objects.filter(filter_args).distinct()
-    return users
-
-
-def get_users_with_permission_method(users_with_permission_method):
-    """
-    Function to decide which get_users_with_permission method to use within the Form Node.
-    Defaults to ``default_get_users_with_permission_form_method``.
-    """
-    from django.utils.module_loading import import_string
-
-    if users_with_permission_method is not None:
-        if callable(users_with_permission_method):
-            return users_with_permission_method
-        else:
-            return import_string(users_with_permission_method)
-    return default_get_users_with_permission_form_method
-
-
 class Form(Node):
     def __init__(
         self, form, template_name=None, context=None, repeated_form=False, **kwargs
@@ -557,9 +524,6 @@ class Form(Node):
         self._permissions = []
         self._form_kwargs = {}
         self._run = True
-        self.get_users_with_permission = get_users_with_permission_method(
-            settings.USERS_WITH_PERMISSIONS_FORM_METHOD
-        )
 
     def execute(self, task: models.AutomationTaskModel):
         task = super().execute(task)
@@ -612,6 +576,49 @@ class Form(Node):
     def Permission(self, permission):
         self._permissions.append(permission)
         return self
+
+    def get_users_with_permission(self):
+        """
+        Given a flow.Form instance, which has access to a list of permission codenames
+        (self._permissions), the assigned user(self._user), and assigned group
+        (self._group), returns a QuerySet of users with applicable permissions that meet
+        the requirements for access.
+        """
+        from django.contrib.auth.models import Permission
+
+        perm = Permission.objects.filter(codename__in=self._permissions)
+        filter_args = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
+        if self._user is not None:
+            filter_args = filter_args & Q(**self._user)
+        if self._group is not None:
+            filter_args = filter_args & Q(group_set__contains=self._group)
+        users = User.objects.filter(filter_args).distinct()
+        return users
+
+
+def get_users_with_permission_form_method():
+    """
+    Function to swap `get_users_with_permission` method within Form if needed.
+    """
+    from django.utils.module_loading import import_string
+
+    users_with_permission_method = settings.USERS_WITH_PERMISSIONS_FORM_METHOD
+
+    if users_with_permission_method is not None:
+        if callable(users_with_permission_method):
+            Form.get_users_with_permission = MethodType(
+                users_with_permission_method,
+                Form,
+            )
+        else:
+            Form.get_users_with_permission = MethodType(
+                import_string(users_with_permission_method),
+                Form,
+            )
+
+
+# Swap Form.users_with_permission_method method if needed
+get_users_with_permission_form_method()
 
 
 class ModelForm(Form):
@@ -1013,7 +1020,7 @@ def get_automations(app=None):
 
 
 def require_data_parameters(**kwargs):
-    """decorates Automation class receiver methods to set the data_requirement attribute.
+    """decorates Automation class receiver methods to set the data_requirement attribute
     It is checked by cls.satisfies_data_requirements"""
 
     def decorator(method):

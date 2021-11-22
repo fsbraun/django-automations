@@ -46,11 +46,11 @@ def get_group_model():
 USERS_WITH_PERMISSIONS_FORM_METHOD = getattr(
     settings,
     "ATM_USER_WITH_PERMISSIONS_FORM_METHOD",
-    "automations.flow.default_get_users_with_permission_form_method",
+    None,
 )
 
 USERS_WITH_PERMISSIONS_MODEL_METHOD = getattr(
     settings,
     "ATM_USER_WITH_PERMISSIONS_MODEL_METHOD",
-    "automations.models.default_get_users_with_permission_model_method",
+    None,
 )
