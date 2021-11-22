@@ -46,7 +46,7 @@ Example:
         evaluate      = flow.Execute(this.evaluate)
         end           = flow.End()
 
-        def publish_anncouncement(self, task):
+        def publish_announcement(self, task):
             ...
 
         def no_new_mails(self, task):
@@ -60,7 +60,7 @@ Note that each node has a name (start, parallel, ...). Execution of the automati
 
 It is customary to bracket nodes that continue over line breaks.
 
-The ``.End()`` node deontes the end of the automation. Once it is reached the automation's instances' finished flag is set.
+The ``.End()`` node denotes the end of the automation. Once it is reached the automation's instances' finished flag is set.
 
 Short programs to execute are realized as methods which take one argument besides ``self``: ``task`` is an instance of ``models.AutomationTaskModel`` and has access to the automations json data field through ``task.data``. This is a convenience solution since it allows lambda expressions, e.g., as parameters for the ``If()`` node:
 
@@ -131,7 +131,7 @@ Automations are started when instantiated, e.g., by ``instance = IssueDiscussion
 
 There are three special parameters when creating an instance:
 
-* ``automation`` denotes the ``models.AutomationModel`` instance to bind this automation to. Hence, not a new automation will be created but an exisiting automation instance will be created from the database data.
+* ``automation`` denotes the ``models.AutomationModel`` instance to bind this automation to. Hence, not a new automation will be created but an existing automation instance will be created from the database data.
 
 * ``automation_id`` is an integer, denoting the id of an ``models.AutomationModel`` instance. The effect is the same as binding directly to the automation.
 
@@ -240,7 +240,7 @@ Currently the following attributes are used.
 Messages
 ========
 
-Automations can receive messages. Messages are used to update an automation instance once it has started, e.g., when a user visits a certain page fo your Django project.
+Automations can receive messages. Messages are used to update an automation instance once it has started, e.g., when a user visits a certain page of your Django project.
 
 Also, messages can be used create an instance of an automation and start it.
 
@@ -270,11 +270,11 @@ Example:
             ...
 
 
-This receiver can be sent the message ``"update_subscriber"`` and will require a token to specify the exected action.
+This receiver can be sent the message ``"update_subscriber"`` and will require a token to specify the expected action.
 
 .. py:method:: Automation.publish_receivers
 
-    If this attribute is set to ``True`` the receivers of an automation are supposed to be visible to the outside. For now this implies that CMS plugins offer the receivers in their forms. Messages can be sent despite the setting von ``.publish_receivers``.
+    If this attribute is set to ``True`` the receivers of an automation are supposed to be visible to the outside. For now this implies that CMS plugins offer the receivers in their forms. Messages can be sent despite the setting on ``.publish_receivers``.
 
     It is common practice not to define this attribute in base classes other classes inherit from to avoid receivers to be offered to users that are present only in base classes.
 
@@ -284,7 +284,7 @@ Sending messages
 
 .. py:method:: instance.send_message(message, token, data)
 
-    ``automation.send_message()`` sends the message ``message`` to the automation instance ``autoamtion``. Its class needs to have declared a receiver by providing a method named ``receive_<<message>>`` where ``<<message>>`` is to be replaced by the string ``message``.
+    ``automation.send_message()`` sends the message ``message`` to the automation instance ``automation``. Its class needs to have declared a receiver by providing a method named ``receive_<<message>>`` where ``<<message>>`` is to be replaced by the string ``message``.
 
     ``token`` is a string parameter which may be used to give the receiver additional information on, e.g., the sender or the specific content of the message. Sender and receiver are free to agree on its meaning. ``data`` typically is a dict of additional data passed to the receiver. The receiving part is supposed not to alter it and to make a copy of it if it is to be stored.
 
@@ -409,7 +409,7 @@ The ``flow.Node`` class defines the following **modifiers** common to all subcla
 
 .. note::
 
-    ``.SkipIf()`` and ``.SkipAfter()`` have precedence over waiting/pausing modifiers. If a node is skipped, e.g., it is not guaranteed that the ``contiditon`` of ``.AsSoonAs()`` is fulfilled. If the condition has to be fulfilled separate the modifiers and add them to different nodes.
+    ``.SkipIf()`` and ``.SkipAfter()`` have precedence over waiting/pausing modifiers. If a node is skipped, e.g., it is not guaranteed that the ``condition`` of ``.AsSoonAs()`` is fulfilled. If the condition has to be fulfilled separate the modifiers and add them to different nodes.
 
 
 
@@ -456,7 +456,7 @@ flow.Repeat
 
 .. py:class:: flow.Repeat(start=None)
 
-    allows for repetitive automations (which do not need an ``flow.End()`` node. The automation will resume at node given by the ``start`` argument, or - if ommitted - from the first node.
+    allows for repetitive automations (which do not need an ``flow.End()`` node. The automation will resume at node given by the ``start`` argument, or - if omitted - from the first node.
 
 The repetition patter is described by **modifiers**:
 
@@ -533,7 +533,7 @@ flow.SendMessage
 
     Sends a message to other (unfinished) automation instances. ``target`` can either be an ``int`` giving the automation id of the automation instance the message is sent to. It can be an Automation instance that receives the message, or it can be an Automation calls. Then the message is sent to all running instances of that class. The class can be replaced by a string with the dotted path to the class definition.
 
-   A message is nothing but a method of the receiving class called ``receive_<<message>>``. This method will be called for the target instance giving the optional parameters ``token`` and ``data``. Token typically is a string to define more specifically what the message is supposed to mean. ``data`` can be any pyhton object.
+   A message is nothing but a method of the receiving class called ``receive_<<message>>``. This method will be called for the target instance giving the optional parameters ``token`` and ``data``. Token typically is a string to define more specifically what the message is supposed to mean. ``data`` can be any python object.
 
 .. note::
 
@@ -567,7 +567,7 @@ The ``flow.Form`` has two extra modifiers to assign the task to a user or a grou
 
 .. py:method:: From.Permission(str)
 
-    assigns the form to all users who have the permission given by a string dot-formatted: ``app_name.codename``. ``app_name`` ist the name of the Django app which provides the permission and ``codename`` is the permission's name. An example could be ``my_app.add_mymodel``. This permission allows an user to add an instance of My_App's ``MyModel`` model. For details on permissions see `Django's Permission documentation <https://docs.djangoproject.com/en/dev/topics/auth/default/#permissions-and-authorization>`_. Multiple ``.Permission(str)`` modifiers can be added implying the a user woulde require **all** permissions requested.
+    assigns the form to all users who have the permission given by a string dot-formatted: ``app_name.codename``. ``app_name`` is the name of the Django app which provides the permission and ``codename`` is the permission's name. An example could be ``my_app.add_mymodel``. This permission allows an user to add an instance of My_App's ``MyModel`` model. For details on permissions see `Django's Permission documentation <https://docs.djangoproject.com/en/dev/topics/auth/default/#permissions-and-authorization>`_. Multiple ``.Permission(str)`` modifiers can be added implying the a user would require **all** permissions requested.
 
 If more than one modifier is given, ``.User``, ``.Group``, and ``.Permission`` have all to be satisfied. If a user loses a required group membership he cannot process the form any more. The same is true for permissions. Superusers  can always process the form.
 
@@ -589,7 +589,7 @@ flow.get_automations
 
     returns either all automations in the current project (including those in dependencies if they are loaded). All modules or submodules named ``automations.py`` are searched. If the ``app`` parameter is given only ``app.automations`` is searched. Other submodules of ``app`` are ignored.
 
-The result is a list of tuples, the first one being the automations dotted path, the second one its human readably name. It differs only from the path if ``verbose_name`` is set in the automations ``Meta`` subclass.
+The result is a list of tuples, the first one being the automations dotted path, the second one its human readable name. It differs only from the path if ``verbose_name`` is set in the automations ``Meta`` subclass.
 
 
 Models
@@ -836,9 +836,9 @@ Send Message Plugin
 .. py:class:: AutomationHook
 
 
-The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewd. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
+The automation hook does not display or render anything. Its purpose is to send a message to the automation, if a page is viewed. If on this page this plugin should be included. It offers all receiving automations and its receiver ports.
 
-An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_prarticipant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces) if the ``Automation.publish_receivers`` is set to ``True``.
+An automation declares an receiving slot by defining a method with a name starting with ``receive_``, e.g., ``receive_add_participant_to_webinar``. All such slots are open for the Send Message Plugin and the example will appear as "Add participant to webinar" (capitalized, and underscores replaced by spaces) if the ``Automation.publish_receivers`` is set to ``True``.
 
 The receiver will be passed an optional token and a data object which in this case is the request object.
 

@@ -80,7 +80,7 @@ carried out.
     from . import forms
 
     class ProcessInput(Automation):
-        """The process steps are defiend by sequentially adding the corresponding nodes"""
+        """The process steps are defined by sequentially adding the corresponding nodes"""
         start =     flow.Execute(this.get_user_input)                  # Collect input a user has supplied
         check =     flow.If(
                         this.does_not_need_approval                    # Need approval?
