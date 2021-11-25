@@ -566,9 +566,11 @@ class Form(Node):
         return self
 
     def get_user(self):
+        User = get_user_model()
         return User.objects.get(**self._user) if self._user is not None else None
 
     def get_group(self):
+        Group = settings.get_group_model()
         return Group.objects.get(**self._group) if self._group is not None else None
 
     def Permission(self, permission):
@@ -583,6 +585,8 @@ class Form(Node):
         the requirements for access.
         """
         from django.contrib.auth.models import Permission
+
+        User = get_user_model()
 
         perm = Permission.objects.filter(codename__in=self._permissions)
         filter = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
