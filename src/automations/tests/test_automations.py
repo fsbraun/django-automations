@@ -163,7 +163,7 @@ class ModelTestCase(TestCase):
         x = TestAutomation(autorun=False)
         qs = AutomationModel.objects.all()
         self.assertEqual(len(qs), 1)
-        self.assertEqual(qs[0].automation_class, "automations.tests.TestAutomation")
+        self.assertEqual(qs[0].automation_class, "automations.tests.test_automations.TestAutomation")
 
         self.assertEqual(get_automation_class(x._db.automation_class), TestAutomation)
 
@@ -279,7 +279,7 @@ class SignalAutomation(flow.Automation):
 class SendMessageAutomation(flow.Automation):
     start = flow.SendMessage(SignalAutomation, "new_user", "12345678")
     to_nowhere = flow.SendMessage(
-        "automations.tests.FormTest", "this_receiver_does_not_exist"
+        "automations.tests.test_automations.FormTest", "this_receiver_does_not_exist"
     )
     end = flow.End()
 
@@ -290,7 +290,7 @@ class SignalTestCase(TestCase):
             0,
             len(
                 AutomationModel.objects.filter(
-                    automation_class="automations.tests.SignalAutomation",
+                    automation_class="automations.tests.test_automations.SignalAutomation",
                 )
             ),
         )
@@ -298,13 +298,13 @@ class SignalTestCase(TestCase):
         test_signal.send(self.__class__)
 
         inst = AutomationModel.objects.filter(
-            automation_class="automations.tests.SignalAutomation",
+            automation_class="automations.tests.test_automations.SignalAutomation",
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("started", ""), "yeah!")
         SendMessageAutomation()
         inst = AutomationModel.objects.filter(
-            automation_class="automations.tests.SignalAutomation",
+            automation_class="automations.tests.test_automations.SignalAutomation",
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("token", ""), "12345678")
@@ -333,7 +333,7 @@ class RepeatTest(TestCase):
     def test_get_automations(self):
         self.assertEqual(len(flow.get_automations()), 0)
         self.assertEqual(len(flow.get_automations("automations.flow")), 1)
-        tpl = flow.get_automations("automations.tests")
+        tpl = flow.get_automations("automations.tests.test_automations")
         self.assertIn("Allow to split and join", (name for _, name in tpl))
 
 
@@ -377,7 +377,7 @@ class SingletonTest(TestCase):
         self.assertEqual(
             len(
                 AutomationModel.objects.filter(
-                    automation_class="automations.tests.SingletonAutomation"
+                    automation_class="automations.tests.test_automations.SingletonAutomation"
                 )
             ),
             1,
@@ -386,7 +386,7 @@ class SingletonTest(TestCase):
         self.assertEqual(
             len(
                 AutomationModel.objects.filter(
-                    automation_class="automations.tests.SingletonAutomation"
+                    automation_class="automations.tests.test_automations.SingletonAutomation"
                 )
             ),
             1,
@@ -444,7 +444,7 @@ class SingletonTest(TestCase):
         self.assertEqual(
             len(
                 AutomationModel.objects.filter(
-                    automation_class="automations.tests.ByEmailSingletonAutomation"
+                    automation_class="automations.tests.test_automations.ByEmailSingletonAutomation"
                 )
             ),
             3,
@@ -456,7 +456,7 @@ class SingletonTest(TestCase):
         self.assertEqual(
             len(
                 AutomationModel.objects.filter(
-                    automation_class="automations.tests.ByEmailSingletonAutomation"
+                    automation_class="automations.tests.test_automations.ByEmailSingletonAutomation"
                 )
             ),
             3,
