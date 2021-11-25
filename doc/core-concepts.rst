@@ -18,7 +18,7 @@ Events can start an automation or can change its course once it is running. Djan
 Tasks
 =====
 
-Taks describe work that has to be done, either by the Django application or by an user: Send an email or update a model instance are respective examples.
+Tasks describe work that has to be done, either by the Django application or by an user: Send an email or update a model instance are respective examples.
 
 Tasks are the single units of work that is not or cannot be broken down to a further level. It is referred to as an atomic activity. A task is the lowest level activity illustrated on a process diagram. A set of tasks may represent a high-level procedure. Tasks are are atomic transactions from a Django viewpoint.
 
@@ -93,7 +93,7 @@ Practically all automations pause or wait for other processes to finish most of 
 
 From time to time, the automations have to be checked if they can advance. This is the task of a scheduler outside this package. The scheduler may, e.g., call the class method ``models.AutomationModel.run``. Additionally, Django Automations offers a :ref:`new management command<Management command>` ``python manage.py automation_step`` that can be invoked by an external scheduler.
 
-Also, an automation may advance, e.g., after an processing form has been filled and validated. Then the automation may advance within the request-response cycle of the POST request of the form. To keep the web app responsive, all automation steps need to be fast. Optionally, Django Automations allows to spawn threads for the background processes, or if serious calculations have to be done, outsorced to a worker task.
+Also, an automation may advance, e.g., after an processing form has been filled and validated. Then the automation may advance within the request-response cycle of the POST request of the form. To keep the web app responsive, all automation steps need to be fast. Optionally, Django Automations allows to spawn threads for the background processes, or if serious calculations have to be done, outsourced to a worker task.
 
 .. note::
 

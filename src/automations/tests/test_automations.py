@@ -1,18 +1,21 @@
 # coding=utf-8
 import datetime
+import inspect
 from io import StringIO
 from unittest.mock import patch
 
 import django.dispatch
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management import execute_from_command_line
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 
-from . import flow, models, views
-from .flow import this
+from .. import flow, models, views
+from ..flow import this
+from ..models import AutomationModel, AutomationTaskModel, get_automation_class
 
 # Create your tests here.
 
@@ -96,7 +99,7 @@ class TestSplitJoin(flow.Automation):
 
 class AtmTaskForm(forms.ModelForm):
     class Meta:
-        model = models.AutomationTaskModel
+        model = AutomationTaskModel
         exclude = []
 
 
@@ -158,13 +161,11 @@ class ByEmailSingletonAutomation(flow.Automation):
 class ModelTestCase(TestCase):
     def test_modelsetup(self):
         x = TestAutomation(autorun=False)
-        qs = models.AutomationModel.objects.all()
+        qs = AutomationModel.objects.all()
         self.assertEqual(len(qs), 1)
-        self.assertEqual(qs[0].automation_class, "automations.tests.TestAutomation")
+        self.assertEqual(qs[0].automation_class, "automations.tests.test_automations.TestAutomation")
 
-        self.assertEqual(
-            models.get_automation_class(x._db.automation_class), TestAutomation
-        )
+        self.assertEqual(get_automation_class(x._db.automation_class), TestAutomation)
 
         x.run()
         self.assertIn("more_participants", x.data)
@@ -173,6 +174,12 @@ class ModelTestCase(TestCase):
 
         self.assertEqual(x.get_verbose_name(), "Automation TestAutomation")
         self.assertEqual(x.get_verbose_name_plural(), "Automations TestAutomation")
+
+    def test_get_group_model(self):
+        """With no settings overridden, the default group model "auth.Group" can be retrieved"""
+        from ..settings import get_group_model
+
+        self.assertEqual(get_group_model(), Group)
 
 
 class AutomationTestCase(TestCase):
@@ -272,7 +279,7 @@ class SignalAutomation(flow.Automation):
 class SendMessageAutomation(flow.Automation):
     start = flow.SendMessage(SignalAutomation, "new_user", "12345678")
     to_nowhere = flow.SendMessage(
-        "automations.tests.FormTest", "this_receiver_does_not_exist"
+        "automations.tests.test_automations.FormTest", "this_receiver_does_not_exist"
     )
     end = flow.End()
 
@@ -282,22 +289,22 @@ class SignalTestCase(TestCase):
         self.assertEqual(
             0,
             len(
-                models.AutomationModel.objects.filter(
-                    automation_class="automations.tests.SignalAutomation",
+                AutomationModel.objects.filter(
+                    automation_class="automations.tests.test_automations.SignalAutomation",
                 )
             ),
         )
 
         test_signal.send(self.__class__)
 
-        inst = models.AutomationModel.objects.filter(
-            automation_class="automations.tests.SignalAutomation",
+        inst = AutomationModel.objects.filter(
+            automation_class="automations.tests.test_automations.SignalAutomation",
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("started", ""), "yeah!")
         SendMessageAutomation()
-        inst = models.AutomationModel.objects.filter(
-            automation_class="automations.tests.SignalAutomation",
+        inst = AutomationModel.objects.filter(
+            automation_class="automations.tests.test_automations.SignalAutomation",
         )
         self.assertEqual(1, len(inst))
         self.assertEqual(inst[0].data.get("token", ""), "12345678")
@@ -326,7 +333,7 @@ class RepeatTest(TestCase):
     def test_get_automations(self):
         self.assertEqual(len(flow.get_automations()), 0)
         self.assertEqual(len(flow.get_automations("automations.flow")), 1)
-        tpl = flow.get_automations("automations.tests")
+        tpl = flow.get_automations("automations.tests.test_automations")
         self.assertIn("Allow to split and join", (name for _, name in tpl))
 
 
@@ -345,11 +352,11 @@ class ManagementCommandTest(TestCase):
 
         db_id = atm._db.id
         self.assertGreater(
-            len(models.AutomationTaskModel.objects.filter(automation_id=db_id)), 0
+            len(AutomationTaskModel.objects.filter(automation_id=db_id)), 0
         )
         atm.kill()
         self.assertEqual(
-            len(models.AutomationTaskModel.objects.filter(automation_id=db_id)), 0
+            len(AutomationTaskModel.objects.filter(automation_id=db_id)), 0
         )
 
 
@@ -369,8 +376,8 @@ class SingletonTest(TestCase):
         inst1 = SingletonAutomation(autorun=False)
         self.assertEqual(
             len(
-                models.AutomationModel.objects.filter(
-                    automation_class="automations.tests.SingletonAutomation"
+                AutomationModel.objects.filter(
+                    automation_class="automations.tests.test_automations.SingletonAutomation"
                 )
             ),
             1,
@@ -378,8 +385,8 @@ class SingletonTest(TestCase):
         inst2 = SingletonAutomation(autorun=False)
         self.assertEqual(
             len(
-                models.AutomationModel.objects.filter(
-                    automation_class="automations.tests.SingletonAutomation"
+                AutomationModel.objects.filter(
+                    automation_class="automations.tests.test_automations.SingletonAutomation"
                 )
             ),
             1,
@@ -392,16 +399,16 @@ class SingletonTest(TestCase):
         atm_name = inst1.get_automation_class_name()
         self.assertEqual(atm_name.rsplit(".", 1)[-1], inst1.end.get_automation_name())
         self.assertEqual(
-            len(models.AutomationModel.objects.filter(automation_class=atm_name)), 1
+            len(AutomationModel.objects.filter(automation_class=atm_name)), 1
         )
         inst2 = ByEmailSingletonAutomation(email="nowhere@none.com", autorun=False)
         self.assertEqual(
-            len(models.AutomationModel.objects.filter(automation_class=atm_name)), 2
+            len(AutomationModel.objects.filter(automation_class=atm_name)), 2
         )
         self.assertNotEqual(inst1._db, inst2._db)
         inst3 = ByEmailSingletonAutomation(email="nowhere@none.com", autorun=False)
         self.assertEqual(
-            len(models.AutomationModel.objects.filter(automation_class=atm_name)), 2
+            len(AutomationModel.objects.filter(automation_class=atm_name)), 2
         )
         self.assertEqual(inst2._db, inst3._db)
 
@@ -436,8 +443,8 @@ class SingletonTest(TestCase):
         )
         self.assertEqual(
             len(
-                models.AutomationModel.objects.filter(
-                    automation_class="automations.tests.ByEmailSingletonAutomation"
+                AutomationModel.objects.filter(
+                    automation_class="automations.tests.test_automations.ByEmailSingletonAutomation"
                 )
             ),
             3,
@@ -448,14 +455,14 @@ class SingletonTest(TestCase):
         )
         self.assertEqual(
             len(
-                models.AutomationModel.objects.filter(
-                    automation_class="automations.tests.ByEmailSingletonAutomation"
+                AutomationModel.objects.filter(
+                    automation_class="automations.tests.test_automations.ByEmailSingletonAutomation"
                 )
             ),
             3,
         )
 
-        models.AutomationModel.run()
+        AutomationModel.run()
 
 
 class BogusAutomation1(flow.Automation):
@@ -522,3 +529,78 @@ class SkipTest(TestCase):
         self.assertEqual(len(output), 2)
         self.assertEqual(output[0], "start NOT SKIPPED")
         self.assertEqual(output[-1], "third Clearly printed")
+
+
+@override_settings(
+    AUTH_USER_MODEL="automations_tests.TestUser",
+    ATM_GROUP_MODEL="automations_tests.TestGroup",
+    ATM_USER_WITH_PERMISSIONS_FORM_METHOD="automations.tests.methods.temp_get_users_with_permission_form",
+    ATM_USER_WITH_PERMISSIONS_MODEL_METHOD="automations.tests.methods.temp_get_users_with_permission_model",
+)
+class ModelSwapTestCase(TestCase):
+    def setUp(self):
+        from ..tests.models import TestGroup, TestPermission, TestUser
+
+        # Every test needs access to the request factory.
+        self.factory = RequestFactory()
+
+        self.group = TestGroup.objects.create(name="Main Group")
+        self.user = TestUser.objects.create(
+            username="jacob", email="jacob@...", group=self.group, password="top_secret"
+        )
+        self.admin = TestUser.objects.create(
+            username="admin",
+            email="admin@...",
+            password="Even More Secr3t",
+            is_staff=True,
+        )
+
+        self.permission = TestPermission.objects.create(slug="some-critical-permission")
+        self.permission.groups.add(self.group)
+        self.permissions = [
+            self.permission.slug,
+        ]
+
+    def test_swappable_models(self):
+        """The current group model can be retrieved when overridden"""
+        from django.conf import settings
+
+        from ..settings import get_group_model
+
+        # Get models again based on overridden settings
+        # noinspection PyPep8Naming
+        UserModel = get_user_model()
+        # noinspection PyPep8Naming
+        GroupModel = get_group_model(settings=settings)
+
+        self.assertEqual(self.permission.groups.count(), 1)
+        self.assertEqual(self.group.test_permissions.count(), 1)
+
+        group = GroupModel.objects.first()
+        self.assertEqual(group.name, "Main Group")
+        self.assertEqual(GroupModel.__name__, "TestGroup")
+
+        user = UserModel.objects.get(username="admin")
+        self.assertEqual(user.is_staff, True)
+        self.assertEqual(user.email, "admin@...")
+        self.assertEqual(UserModel.__name__, "TestUser")
+
+    def test_method_swaps(self):
+        from django.conf import settings
+
+        from .. import flow
+
+        # Manually call these here because they are not automatically re-run during tests after we override settings
+        flow.swap_users_with_permission_form_method(settings_conf=settings)
+        models.swap_users_with_permission_model_method(
+            AutomationTaskModel, settings_conf=settings
+        )
+
+        atm = FormTest(autorun=False)
+        atm.form._user = dict(id=self.user.id)  # Fake User
+
+        form_method = inspect.getsource(atm.form.get_users_with_permission)
+        self.assertIn("ABC", form_method)
+
+        model_method = inspect.getsource(AutomationTaskModel.get_users_with_permission)
+        self.assertIn("XYZ", model_method)
