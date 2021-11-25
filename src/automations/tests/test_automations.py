@@ -362,7 +362,7 @@ class ManagementCommandTest(TestCase):
     def test_managment_delete_command(self):
         with patch("sys.stdout", new=StringIO()) as fake_out:
             atm = TestSplitJoin()
-            execute_from_command_line(["manage.py", "automation_delete_history 0"])
+            execute_from_command_line(["manage.py", "automation_delete_history", "0"])
         output = fake_out.getvalue().splitlines()
         self.assertEqual(
             output[0],
