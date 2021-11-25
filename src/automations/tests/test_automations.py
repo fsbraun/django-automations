@@ -367,7 +367,7 @@ class ManagementCommandDeleteTest(TestCase):
             execute_from_command_line(["manage.py", "automation_delete_history", "0"])
         output = fake_out.getvalue().splitlines()
         self.assertIn(
-            "4 total objects deleted, including 1 AutomationModel instances, and 3 "
+            "12 total objects deleted, including 1 AutomationModel instances, and 11 "
             "AutomationTaskModel instances",
             output
         )
