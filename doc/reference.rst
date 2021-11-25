@@ -771,6 +771,13 @@ Management command
 This wrapper calls the class method ``models.AutomationModel.run()`` which in turn lets all automations run which are not waiting for a response (filled form, other condition) or a certain point in time.
 
 
+.. code-block:: bash
+
+    python manage.py automation_delete_history 14
+
+This wrapper calls the class method ``models.AutomationModel.delete_history()`` which in turn deletes all automations older than the specified number of days. Defaults to 30 days if no argument is provided.
+
+
 Settings in ``settings.py``
 ***************************
 

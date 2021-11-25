@@ -337,8 +337,8 @@ class RepeatTest(TestCase):
         self.assertIn("Allow to split and join", (name for _, name in tpl))
 
 
-class ManagementCommandTest(TestCase):
-    def test_managment_command(self):
+class ManagementCommandStepTest(TestCase):
+    def test_managment_step_command(self):
         with patch("sys.stdout", new=StringIO()) as fake_out:
             atm = TestSplitJoin()
             execute_from_command_line(["manage.py", "automation_step"])
@@ -358,6 +358,22 @@ class ManagementCommandTest(TestCase):
         self.assertEqual(
             len(AutomationTaskModel.objects.filter(automation_id=db_id)), 0
         )
+
+
+class ManagementCommandDeleteTest(TestCase):
+    def test_managment_delete_command(self):
+        with patch("sys.stdout", new=StringIO()) as fake_out:
+            atm = TestSplitJoin()
+            execute_from_command_line(["manage.py", "automation_delete_history", "0"])
+        output = fake_out.getvalue().splitlines()
+        self.assertIn(
+            "12 total objects deleted, including 1 AutomationModel instances, and 11 "
+            "AutomationTaskModel instances",
+            output
+        )
+        self.assertEqual(AutomationModel.objects.count(), 0)
+        self.assertEqual(AutomationTaskModel.objects.count(), 0)
+        atm.kill()
 
 
 class ExecutionErrorTest(TestCase):
