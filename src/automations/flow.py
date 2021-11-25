@@ -8,6 +8,7 @@ import traceback
 from copy import copy
 from types import MethodType
 
+from django.conf import settings as project_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import (
     ImproperlyConfigured,
@@ -19,9 +20,6 @@ from django.db.transaction import atomic
 from django.utils.timezone import now
 
 from . import models, settings
-
-User = get_user_model()
-Group = settings.get_group_model()
 
 """To allow forward references in Automation object "this" is defined"""
 
@@ -596,15 +594,18 @@ class Form(Node):
         return users
 
 
-def get_users_with_permission_form_method():
+def swap_users_with_permission_form_method(settings_conf):
     """
     Function to swap `get_users_with_permission` method within Form if needed.
     """
     from django.utils.module_loading import import_string
 
-    users_with_permission_method = settings.USERS_WITH_PERMISSIONS_FORM_METHOD
+    users_with_permission_method = settings.get_users_with_permission_form_method(
+        settings=settings_conf
+    )
 
     if users_with_permission_method is not None:
+
         if callable(users_with_permission_method):
             Form.get_users_with_permission = MethodType(
                 users_with_permission_method,
@@ -618,7 +619,7 @@ def get_users_with_permission_form_method():
 
 
 # Swap Form.users_with_permission_method method if needed
-get_users_with_permission_form_method()
+swap_users_with_permission_form_method(settings_conf=project_settings)
 
 
 class ModelForm(Form):

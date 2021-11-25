@@ -5,6 +5,7 @@ import sys
 from logging import getLogger
 from types import MethodType
 
+from django.conf import settings as project_settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Q
@@ -213,3 +214,33 @@ class AutomationTaskModel(models.Model):
         if include_superusers:
             users |= User.objects.filter(is_superuser=True)
         return users
+
+
+def swap_users_with_permission_model_method(model, settings_conf):
+    """
+    Function to swap `get_users_with_permission` method within model if needed.
+    """
+    from django.utils.module_loading import import_string
+
+    users_with_permission_method = settings.get_users_with_permission_model_method(
+        settings=settings_conf
+    )
+
+    if users_with_permission_method is not None:
+
+        if callable(users_with_permission_method):
+            model.get_users_with_permission = MethodType(
+                users_with_permission_method,
+                model,
+            )
+        else:
+            model.get_users_with_permission = MethodType(
+                import_string(users_with_permission_method),
+                model,
+            )
+
+
+# Swap AutomationTaskModel.get_users_with_permission method if needed
+swap_users_with_permission_model_method(
+    AutomationTaskModel, settings_conf=project_settings
+)
