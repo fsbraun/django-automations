@@ -780,6 +780,85 @@ Settings in ``settings.py``
 
     The ``Form()`` nodes and its subclasses present the forms to the user using a Django ``FormView``. This attribute is an dictionary which will be added to the template's context when rendering. The dictionary items may be overwritten by an automation classes' ``context`` attribute or by a node's ``context`` parameter. Hence, this setting in practice is used to set default context elements.
 
+.. _ATM_GROUP_MODEL:
+
+.. py:attribute:: settings.ATM_GROUP_MODEL
+
+    If your project uses a different model than the built-in ``auth.Group`` model for grouping users (e.g. using a package like django-organizations or other custom groupings of users), use this setting to specify the model that will be used in place of ``auth.Group``. The setting should be specified as ``app_label.Model``, and defaults to ``auth.Group`` if not set in the project-level settings. See :ref:`Non-standard Group and Permissions<Non-standard Group and Permissions>` for additional details.
+
+.. _ATM_USER_WITH_PERMISSIONS_FORM_METHOD:
+
+.. py:attribute:: settings.ATM_USER_WITH_PERMISSIONS_FORM_METHOD
+
+    If your project uses non-standard permissions, specify a method for the Form Node that will return a QuerySet of Users based on a the list of Permission codename strings, the User, and Group within the Form Node itself. This setting should be a string of the dotted-path to the location of the replacement method. See :ref:`Non-standard Group and Permissions<Non-standard Group and Permissions>` for additional details.
+
+.. _ATM_USER_WITH_PERMISSIONS_MODEL_METHOD:
+
+.. py:attribute:: settings.ATM_USER_WITH_PERMISSIONS_MODEL_METHOD
+
+    If your project uses non-standard permissions, specify a method for the AutomationTaskModel that will return a QuerySet of Users based on a the list of Permission codename strings, the User, and Group within the model instance itself. This setting should be a string of the dotted-path to the location of the replacement method. See :ref:`Non-standard Group and Permissions<Non-standard Group and Permissions>` for additional details.
+
+.. note::
+    Either all or none of the following must be present in your project's settings: ATM_GROUP_MODEL, ATM_USER_WITH_PERMISSIONS_FORM_METHOD, ATM_USER_WITH_PERMISSIONS_MODEL_METHOD. Setting only one or two will raise ``ImproperlyConfigured``
+
+
+Non-standard Group and Permissions
+**********************************
+
+By default, Django Automations assumes your project uses Django's default Group and Permission models, with their default associations to the User model (either ``auth.User`` or the model specified in ``settings.AUTH_USER_MODEL`` if you use a custom User model).
+
+To provide flexibility for projects that group users in a non-standard way, Django Automations allows you to swap out the ``Group`` model and the two methods within the package that retrieve a QuerySet of users that should be allowed access based on the user, group, and permissions specified.
+
+Getting users with access to Form Node instances
+================================================
+
+``flow.Form`` contains a method for retrieving the users who have access to a given Form node. This method, which has access to a list of permission codenames (self._permissions), the assigned user(self._user), and assigned group (self._group), returns a QuerySet of users with applicable permissions that meet the requirements for access. The default method can be overridden in ``settings.ATM_USER_WITH_PERMISSIONS_FORM_METHOD``.
+
+The default method used within ``form.Flow``:
+
+.. code-block:: python
+
+    def get_users_with_permission(self):
+        from django.contrib.auth.models import Permission
+
+        perm = Permission.objects.filter(codename__in=self._permissions)
+        filter_args = Q(groups__permissions__in=perm) | Q(user_permissions__in=perm)
+        if self._user is not None:
+            filter_args = filter_args & Q(**self._user)
+        if self._group is not None:
+            filter_args = filter_args & Q(group_set__contains=self._group)
+        users = User.objects.filter(filter_args).distinct()
+        return users
+
+Be sure to include the ``self`` argument in your replacement method definition and return a Queryset of users.
+
+Getting users with access to ``AutomationTaskModel`` instances
+==============================================================
+
+``AutomationTaskModel`` contains a model method for retrieving the users who have access to a given task. This method, which has access to a list of permission codenames (self.interaction_permissions), the assigned user (self.interaction_user), and assigned group (self.interaction_group), returns a QuerySet of users with applicable permissions that meet the requirements for access. The default method can be overridden in ``settings.ATM_USER_WITH_PERMISSIONS_MODEL_METHOD``.
+
+The default method used within ``AutomationTaskModel``:
+
+.. code-block:: python
+
+    def get_users_with_permission(
+        self,
+        include_superusers=True,
+        backend="django.contrib.auth.backends.ModelBackend",
+    ):
+        users = User.objects.all()
+        for permission in self.interaction_permissions:
+            users &= User.objects.with_perm(permission, include_superusers=False, backend=backend)
+        if self.interaction_user is not None:
+            users = users.filter(id=self.interaction_user_id)
+        if self.interaction_group is not None:
+            users = users.filter(groups=self.interaction_group)
+        if include_superusers:
+            users |= User.objects.filter(is_superuser=True)
+        return users
+
+Be sure to include the ``self``, ``include_superusers``, and ``backend`` arguments in your replacement method definition and return a Queryset of users. The value of ``backend`` can be modified to match the backend your project uses for authentication.
+
 
 Django-CMS integration
 **********************

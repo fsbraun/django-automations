@@ -3,7 +3,9 @@ import datetime
 import hashlib
 import sys
 from logging import getLogger
+from types import MethodType
 
+from django.conf import settings as project_settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Q
@@ -18,6 +20,7 @@ from . import settings
 logger = getLogger(__name__)
 
 User = get_user_model()
+Group = settings.get_group_model()
 
 
 def get_automation_class(dotted_name):
@@ -137,7 +140,7 @@ class AutomationTaskModel(models.Model):
         verbose_name=_("Assigned user"),
     )
     interaction_group = models.ForeignKey(
-        "auth.Group",
+        Group,
         null=True,
         on_delete=models.PROTECT,
         verbose_name=_("Assigned group"),
@@ -175,12 +178,30 @@ class AutomationTaskModel(models.Model):
             return 0
         return (now() - self.created).total_seconds() / 3600
 
+    def get_node(self):
+        instance = self.automation.instance
+        return getattr(instance, self.status)
+
+    @classmethod
+    def get_open_tasks(cls, user):
+        candidates = cls.objects.filter(finished=None)
+        return tuple(
+            task
+            for task in candidates
+            if task.requires_interaction and user in task.get_users_with_permission()
+        )
+
     def get_users_with_permission(
         self,
         include_superusers=True,
         backend="django.contrib.auth.backends.ModelBackend",
     ):
-
+        """
+        Given an AutomationTaskModel instance, which has access to a list of permission
+        codenames (self.interaction_permissions), the assigned user (self.interaction_user),
+        and assigned group (self.interaction_group), returns a QuerySet of users with
+        applicable permissions that meet the requirements for access.
+        """
         users = User.objects.all()
         for permission in self.interaction_permissions:
             users &= User.objects.with_perm(
@@ -194,15 +215,32 @@ class AutomationTaskModel(models.Model):
             users |= User.objects.filter(is_superuser=True)
         return users
 
-    def get_node(self):
-        instance = self.automation.instance
-        return getattr(instance, self.status)
 
-    @classmethod
-    def get_open_tasks(cls, user):
-        candidates = cls.objects.filter(finished=None)
-        return tuple(
-            task
-            for task in candidates
-            if task.requires_interaction and user in task.get_users_with_permission()
-        )
+def swap_users_with_permission_model_method(model, settings_conf):
+    """
+    Function to swap `get_users_with_permission` method within model if needed.
+    """
+    from django.utils.module_loading import import_string
+
+    users_with_permission_method = settings.get_users_with_permission_model_method(
+        settings=settings_conf
+    )
+
+    if users_with_permission_method is not None:
+
+        if callable(users_with_permission_method):
+            model.get_users_with_permission = MethodType(
+                users_with_permission_method,
+                model,
+            )
+        else:
+            model.get_users_with_permission = MethodType(
+                import_string(users_with_permission_method),
+                model,
+            )
+
+
+# Swap AutomationTaskModel.get_users_with_permission method if needed
+swap_users_with_permission_model_method(
+    AutomationTaskModel, settings_conf=project_settings
+)

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.management import call_command
 
 
-def runtests(test_path='automations'):
+def runtests(test_path='automations.tests'):
     if not settings.configured:
         # Choose database for settings
         DATABASES = {
