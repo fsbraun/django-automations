@@ -60,7 +60,7 @@ After installation add the `automations` to your installed apps in `settings.py`
 
 Only include the "sub app" `automations.cms_automations` if you are using Django CMS. 
 
-The last step is to create and run the necessary migrations using the `manage.py` command:
+The last step is to run the necessary migrations using the `manage.py` command:
 
     python manage.py migrate automations
 
