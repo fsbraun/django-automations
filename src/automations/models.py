@@ -3,7 +3,9 @@ import datetime
 import hashlib
 import sys
 from logging import getLogger
+from types import MethodType
 
+from django.conf import settings as project_settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Q
@@ -108,46 +110,6 @@ class AutomationModel(models.Model):
         return f"<AutomationModel for {self.automation_class}>"
 
 
-def default_get_users_with_permission_model_method(
-    self,
-    include_superusers=True,
-    backend="django.contrib.auth.backends.ModelBackend",
-):
-    """
-    Given an AutomationTaskModel instance, which has access to a list of permission
-    codenames (self.interaction_permissions), the assigned user (self.interaction_user),
-    and assigned group (self.interaction_group), returns a QuerySet of users with
-    applicable permissions that meet the requirements for access.
-    """
-    users = User.objects.all()
-    for permission in self.interaction_permissions:
-        users &= User.objects.with_perm(
-            permission, include_superusers=False, backend=backend
-        )
-    if self.interaction_user is not None:
-        users = users.filter(id=self.interaction_user_id)
-    if self.interaction_group is not None:
-        users = users.filter(groups=self.interaction_group)
-    if include_superusers:
-        users |= User.objects.filter(is_superuser=True)
-    return users
-
-
-def get_users_with_permission_method(users_with_permission_method):
-    """
-    Function to decide which get_users_with_permission method to use within the model.
-    Defaults to ``default_get_users_with_permission_model_method``.
-    """
-    from django.utils.module_loading import import_string
-
-    if users_with_permission_method is not None:
-        if callable(users_with_permission_method):
-            return users_with_permission_method
-        else:
-            return import_string(users_with_permission_method)
-    return default_get_users_with_permission_model_method
-
-
 class AutomationTaskModel(models.Model):
     automation = models.ForeignKey(
         AutomationModel,
@@ -206,12 +168,6 @@ class AutomationTaskModel(models.Model):
         default=dict,
     )
 
-    def __init__(self, *args, **kwargs):
-        self.get_users_with_permission = get_users_with_permission_method(
-            settings.USERS_WITH_PERMISSIONS_MODEL_METHOD
-        )
-        super().__init__(*args, **kwargs)
-
     @property
     def data(self):
         return self.automation.data
@@ -234,3 +190,57 @@ class AutomationTaskModel(models.Model):
             for task in candidates
             if task.requires_interaction and user in task.get_users_with_permission()
         )
+
+    def get_users_with_permission(
+        self,
+        include_superusers=True,
+        backend="django.contrib.auth.backends.ModelBackend",
+    ):
+        """
+        Given an AutomationTaskModel instance, which has access to a list of permission
+        codenames (self.interaction_permissions), the assigned user (self.interaction_user),
+        and assigned group (self.interaction_group), returns a QuerySet of users with
+        applicable permissions that meet the requirements for access.
+        """
+        users = User.objects.all()
+        for permission in self.interaction_permissions:
+            users &= User.objects.with_perm(
+                permission, include_superusers=False, backend=backend
+            )
+        if self.interaction_user is not None:
+            users = users.filter(id=self.interaction_user_id)
+        if self.interaction_group is not None:
+            users = users.filter(groups=self.interaction_group)
+        if include_superusers:
+            users |= User.objects.filter(is_superuser=True)
+        return users
+
+
+def swap_users_with_permission_model_method(model, settings_conf):
+    """
+    Function to swap `get_users_with_permission` method within model if needed.
+    """
+    from django.utils.module_loading import import_string
+
+    users_with_permission_method = settings.get_users_with_permission_model_method(
+        settings=settings_conf
+    )
+
+    if users_with_permission_method is not None:
+
+        if callable(users_with_permission_method):
+            model.get_users_with_permission = MethodType(
+                users_with_permission_method,
+                model,
+            )
+        else:
+            model.get_users_with_permission = MethodType(
+                import_string(users_with_permission_method),
+                model,
+            )
+
+
+# Swap AutomationTaskModel.get_users_with_permission method if needed
+swap_users_with_permission_model_method(
+    AutomationTaskModel, settings_conf=project_settings
+)

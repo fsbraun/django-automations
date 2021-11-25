@@ -24,13 +24,13 @@ TASK_LIST_TEMPLATES = getattr(
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
-GROUP_MODEL = getattr(settings, "ATM_GROUP_MODEL", "auth.Group")
 
-
-def get_group_model():
+def get_group_model(settings=settings):
     """
     Return the Group or alternate grouping model that is active in this project.
     """
+    GROUP_MODEL = getattr(settings, "ATM_GROUP_MODEL", "auth.Group")
+
     try:
         return django_apps.get_model(GROUP_MODEL, require_ready=False)
     except ValueError:
@@ -43,14 +43,17 @@ def get_group_model():
         )
 
 
-USERS_WITH_PERMISSIONS_FORM_METHOD = getattr(
-    settings,
-    "ATM_USER_WITH_PERMISSIONS_FORM_METHOD",
-    "automations.flow.default_get_users_with_permission_form_method",
-)
+def get_users_with_permission_form_method(settings=settings):
+    return getattr(
+        settings,
+        "ATM_USER_WITH_PERMISSIONS_FORM_METHOD",
+        None,
+    )
 
-USERS_WITH_PERMISSIONS_MODEL_METHOD = getattr(
-    settings,
-    "ATM_USER_WITH_PERMISSIONS_MODEL_METHOD",
-    "automations.models.default_get_users_with_permission_model_method",
-)
+
+def get_users_with_permission_model_method(settings=settings):
+    return getattr(
+        settings,
+        "ATM_USER_WITH_PERMISSIONS_MODEL_METHOD",
+        None,
+    )
