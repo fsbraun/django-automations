@@ -366,10 +366,10 @@ class ManagementCommandDeleteTest(TestCase):
             atm = TestSplitJoin()
             execute_from_command_line(["manage.py", "automation_delete_history", "0"])
         output = fake_out.getvalue().splitlines()
-        self.assertEqual(
-            output[0],
+        self.assertIn(
             "4 total objects deleted, including 1 AutomationModel instances, and 3 "
-            "AutomationTaskModel instances"
+            "AutomationTaskModel instances",
+            output
         )
         self.assertEqual(AutomationModel.objects.count(), 0)
         self.assertEqual(AutomationTaskModel.objects.count(), 0)
