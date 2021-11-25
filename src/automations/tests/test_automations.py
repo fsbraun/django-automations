@@ -338,7 +338,7 @@ class RepeatTest(TestCase):
 
 
 class ManagementCommandTest(TestCase):
-    def test_managment_command(self):
+    def test_managment_step_command(self):
         with patch("sys.stdout", new=StringIO()) as fake_out:
             atm = TestSplitJoin()
             execute_from_command_line(["manage.py", "automation_step"])
@@ -358,6 +358,19 @@ class ManagementCommandTest(TestCase):
         self.assertEqual(
             len(AutomationTaskModel.objects.filter(automation_id=db_id)), 0
         )
+
+    def test_managment_delete_command(self):
+        with patch("sys.stdout", new=StringIO()) as fake_out:
+            atm = TestSplitJoin()
+            execute_from_command_line(["manage.py", "automation_delete_history 0"])
+        output = fake_out.getvalue().splitlines()
+        self.assertEqual(
+            output[0],
+            "4 total objects deleted, including 1 AutomationModel instances, and 3 "
+            "AutomationTaskModel instances"
+        )
+        self.assertEqual(AutomationModel.objects.count(), 0)
+        self.assertEqual(AutomationTaskModel.objects.count(), 0)
 
 
 class ExecutionErrorTest(TestCase):
