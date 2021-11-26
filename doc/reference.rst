@@ -334,7 +334,7 @@ work in progress
 flow.This and flow.this
 ***********************
 
-Nodes for an automation are specified as class attributes. To refer to other notds in the definition of a node, Django automations offers two options:
+Nodes for an automation are specified as class attributes. To refer to other nodes in the definition of a node, Django automations offers two options:
 
 1. Reference by string literal: ``.Next("next_node")`` will continue the automation with the node named ``next_node``
 2. Reference using the global ``This`` object instance ``this``: ``.Next(this.next_node)`` refers to the Automation objects ``next_node`` attribute. Since the classes' attributes are not accessible at definition time the this object buffers the reference. It is resolved when an instance is created and executed.
