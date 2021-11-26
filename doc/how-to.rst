@@ -22,4 +22,4 @@ Hence, to remove a node from an automation with existing instances follow this p
 
 2. Run ``./manage.py automation_step``. This causes all automation instances with an open task at the node you want to delete to process the no-op and move to the next task.
 
-3. Remove the node. Removing is save now since an automation instance coming to the node immediately will execute to no-op and move to the next task.
+3. Remove the node. Removing is safe now since an automation instance coming to the node immediately will execute to no-op and move to the next task.

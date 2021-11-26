@@ -20,7 +20,7 @@ Just like models live in ``models.py``, views in ``views.py``, forms in
 The basics:
 
 #. Automations are Python subclasses of ``flow.Automation``
-#. Each`attribute represents a task node, quite similar to Django models
+#. Each attribute represents a task node, quite similar to Django models
 #. All instances of automations are executed. Their states are kept in two models used by all Automations, quite in contrast to Django models where there is a one-to-one correspondence between model and table.
 
 Preparing your Django project
@@ -73,7 +73,7 @@ This automation executes four consecutive tasks before terminating. These tasks 
         send_reminder =     (flow.Execute(webinar.send_reminder_mail)
                                 .AfterWaitingUntil(webinar.reminder_time))
         send_replay_offer = (flow.Execute(webinar.send_replay_mail)
-                                .AfterPausingFor(datetime.timedelta(minutes=150)))
+                                .AfterWaitingFor(datetime.timedelta(minutes=150)))
         end =               flow.End()
 
         def init(self, task):
@@ -100,7 +100,7 @@ take parameters, like ``flow.Execute``, some do not, like ``flow.End()``.
 Node types
 ==========
 
-Django Automation has some built-in node types (see [reference](reference)).
+Django Automations has some built-in node types (see [reference](reference)).
 
 * ``flow.Execute()`` executes a Python callable, typically a method of the automation class to perform the task.
 * ``flow.End()`` terminates the execution of the current automation object.
@@ -134,7 +134,7 @@ Modifiers for all nodes (with the exception for ``flow.Form`` and
 * ``.Next(node)`` sets the node to continue with after finishing this node. If omitted the automation continues with the chronologically next node of the class. ``.Next`` resembles a goto statement. ``.Next`` takes a string or a ``This`` object as a parameter. A string denotes the name of the next node. The this object allows for a different syntax. ``.Next("next_node")`` and ``.Next(this.next_node)`` are equivalent.
 * ``.AsSoonAs(condition)`` waits for condition before continuing the automation. If condition is ``False`` the automation is interrupted and ``condition`` is checked the next time the automation instance is run.
 * ``.AfterWaitingUntil(datetime)`` stops the automation until the specific datetime has passed. Note that depending on how the scheduler runs the automation there might be a significant time slip between ``datetime`` and the real execution time. It is only guaranteed that the node is not executed before. ``datetime`` may be a callable.
-* ``.AfterPausingFor(timedelta)`` stops the automation for a specific amount of time. This is equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``.
+* ``.AfterWaitingFor(timedelta)`` stops the automation for a specific amount of time. This is equivalent to ``.AfterWaitingUntil(lambda x: now()+timedelta)``.
 * ``.SkipIf`` leaves a node unprocessed if a condition is fulfilled.
 
 Other nodes implement additional modifiers, e.g., ``.Then()`` and
@@ -151,7 +151,7 @@ node ``SendMail``:
 .. code-block:: python
 
     class SendMail(flow.Execute):
-        def method(self, task, mail_id):
+        def method(self, task_instance, mail_id):
             """here goes the code to be executed"""
 
 

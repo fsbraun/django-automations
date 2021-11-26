@@ -9,7 +9,7 @@ Automations are nothing but well-defined processes designed to reach a goal. Whi
 * documentation of the automations is not complete or out of sync
 * multiple users or user groups are involved in one process and need to share information.
 
-Commonly, business processes are described using events, activities and gateways.
+Commonly, business processes are described using events, tasks, and gateways.
 
 Events
 ======
@@ -29,7 +29,7 @@ Work to be done by a user are represented by Django forms where the user has to 
 Gateways
 ========
 
-Gateways change the flow of an automation, e.g., depending on a condition. Django automation offers ``If()``, ``.Then()``, ``.Else()`` constructs. The ``Split()``/``Join()`` gateway allows to parallelize the automation.
+Gateways change the flow of an automation, e.g., depending on a condition. Django automations offers ``If()``, ``.Then()``, ``.Else()`` constructs. The ``Split()``/``Join()`` gateway allows to parallelize the automation.
 
 Example issue discussion cycle
 ******************************
@@ -40,7 +40,7 @@ issue list for discussion.
 .. image:: https://upload.wikimedia.org/wikipedia/commons/c/c0/BPMN-DiscussionCycle.jpg
     :alt: Business process Issue discussion cycle
 
-Django Automation allows to describe and document the process in one place, a python class (what else?).
+Django Automations allows to describe and document the process in one place, a python class (what else?).
 
 This process can be translated into an automation like this
 
@@ -57,10 +57,10 @@ This process can be translated into an automation like this
         repeat =        (flow.If(this.moderation_deadline_reached)
                             .Then(this.join)
                             .Else(this.moderation)
-                        ).AfterPausingFor(datetime.timedelta(hours=1))
+                        ).AfterWaitingFor(datetime.timedelta(hours=1))
 
         warning =       (flow.Execute(this.send_deadline_warning)
-                            .AfterPausingFor(datetime.timedelta(days=6))
+                            .AfterWaitingFor(datetime.timedelta(days=6))
                             .Next(this.join))
 
         conf_call =     flow.If(this.conf_call_this_week).Then(this.moderate_call).Else(this.join)
@@ -79,7 +79,7 @@ Automations have a state, i.e. they execute at one or more tasks. All execution 
 Let's say you wanted to automate the signup process for a webinar. Then a single session of a webinar with date and time might be the model instance you wanted to attach to the automation. This means each session of the webinar  would also have an independent automation instance managing the signup process including sending out the webinar link, reminding people when the webinar starts or offering a recording after the webinar. While during the process the session does not change the list of people who have signed up changes but still always refers to the same
 webinar session.
 
-Django automation has two optional ways of storing state data. The first one is **binding model instances to an automation instance** allowing for all form of data Django models can handle. Additionally each automation instance has **a json-serializable dictionary attached** called ``data``. Since it is stored in a Django ``JSONField`` it only may contain combination of basic types (like ``int``, ``real``, ``list``, ``dict``, ``None``). This data dictionary is also used to store results of form interactions or for automation methods to keep intermediate states to communicate with each other.
+Django automations has two optional ways of storing state data. The first one is **binding model instances to an automation instance** allowing for all form of data Django models can handle. Additionally each automation instance has **a json-serializable dictionary attached** called ``data``. Since it is stored in a Django ``JSONField`` it only may contain combination of basic types (like ``int``, ``real``, ``list``, ``dict``, ``None``). This data dictionary is also used to store results of form interactions or for automation methods to keep intermediate states to communicate with each other.
 
 Modifiers
 *********
