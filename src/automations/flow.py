@@ -245,10 +245,10 @@ class Node:
         return self
 
     def __repr__(self):
-        return (
-            f"<{f'{self._name}: ' if self._automation else ''}"
-            f"{self._automation if self._automation else 'unbound'} {self.__class__.__name__} node>"
-        )
+        if getattr(self, "_automation", False) and self._automation:
+            return f"<{self._name}: {self._automation} {self.__class__.__name__} node>"
+        else:
+            return f"<unbound {self.__class__.__name__} node>"
 
 
 class End(Node):
