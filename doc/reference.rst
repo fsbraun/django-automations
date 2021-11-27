@@ -46,10 +46,10 @@ Example:
         evaluate      = flow.Execute(this.evaluate)
         end           = flow.End()
 
-        def publish_announcement(self, task):
+        def publish_announcement(self, task_instance):
             ...
 
-        def no_new_mails(self, task):
+        def no_new_mails(self, task_instance):
             # Do something to check mails
             return not new_mail_found
 
@@ -248,7 +248,7 @@ Also, messages can be used create an instance of an automation and start it.
 Declaring receivers
 -------------------
 
-To receive messages automations have to declare receivers. Receivers are spacial methods of an automation class. Messages are always received by instances (and not the class itself).
+To receive messages automations have to declare receivers. Receivers are special methods of an automation class. Messages are always received by instances (and not the class itself).
 
 Receivers have names that begin with ``receive_`` followed by the message name. They take three parameters: ``self``, ``token``, and ``data``.
 
@@ -334,7 +334,7 @@ work in progress
 flow.This and flow.this
 ***********************
 
-Nodes for an automation are specified as class attributes. To refer to other notes in the definition of a node Django-automations offers two options:
+Nodes for an automation are specified as class attributes. To refer to other nodes in the definition of a node, Django automations offers two options:
 
 1. Reference by string literal: ``.Next("next_node")`` will continue the automation with the node named ``next_node``
 2. Reference using the global ``This`` object instance ``this``: ``.Next(this.next_node)`` refers to the Automation objects ``next_node`` attribute. Since the classes' attributes are not accessible at definition time the this object buffers the reference. It is resolved when an instance is created and executed.
@@ -420,7 +420,7 @@ Attributes
 
     References a JsonField of the node's automation instance. Each instance of an automation can carry additional data in form of a JsonField. This data is shared by all nodes of the automation instance. The node's attribute returns the common JsonField. Any changes in the field need to be saved using ``.data.save()`` or they might be lost.
 
-    Attached model objects will be referenced by their id in the ``.data`` attribute. Beyond this the automation may use the data field to safe its   state in any way it prefers **as long as the dict is json serializable**. This excludes ``datetime`` objects or ``timedelta`` objects.
+    Attached model objects will be referenced by their id in the ``.data`` attribute. Beyond this the automation may use the data field to save its   state in any way it prefers **as long as the dict is json serializable**. This excludes ``datetime`` objects or ``timedelta`` objects.
 
 Additional methods
 ------------------
@@ -458,7 +458,7 @@ flow.Repeat
 
     allows for repetitive automations (which do not need an ``flow.End()`` node. The automation will resume at node given by the ``start`` argument, or - if omitted - from the first node.
 
-The repetition patter is described by **modifiers**:
+The repetition pattern is described by **modifiers**:
 
 .. py:method:: Repeat.EveryDayAt(hour, minute)
 
@@ -537,7 +537,7 @@ flow.SendMessage
 
 .. note::
 
-    The message is the same mechanism used by the template tags or CMS plugins to send a message when a specific page is rendered. If the message comes from the template tag or plugin ``date`` is the request object.
+    The message is the same mechanism used by the template tags or CMS plugins to send a message when a specific page is rendered. If the message comes from the template tag or plugin ``data`` is the request object.
 
 
 flow.Form
@@ -587,9 +587,13 @@ flow.get_automations
 
 .. py:function:: flow.get_automations(app=None)
 
-    returns either all automations in the current project (including those in dependencies if they are loaded). All modules or submodules named ``automations.py`` are searched. If the ``app`` parameter is given only ``app.automations`` is searched. Other submodules of ``app`` are ignored.
+    Returns all automations in the current project (including those in dependencies if they are loaded). All modules or submodules named ``automations.py`` are searched. If the ``app`` parameter is given only ``app.automations`` is searched. Other submodules of ``app`` are ignored.
 
 The result is a list of tuples, the first one being the automations dotted path, the second one its human readable name. It differs only from the path if ``verbose_name`` is set in the automations ``Meta`` subclass.
+
+    .. note::
+
+        Because of the way Python's ``sys`` checks for module modules names, automations (either the automation class or the automations.py file) must be imported somewhere within your project in order to be discoverable. Typically if you are using automations from within the project, it will already require imports, but if you are using an automation solely from the commandline, you can import its class in the ``AppConfig.ready()`` method within one of your project's apps.
 
 
 Models
@@ -613,11 +617,12 @@ All automation instances share a Django model class called ``models.AutomationMo
     ``models.AutomationModel.delete_history`` returns a tuple with two entries: The first is the number of deleted objects, the second
     a dictionary specifying how many automations and how many automation task objects have been deleted from the database.
 
+    This class method can be called through the management command ``./manage.py automation_delete_history``
+
     .. note::
 
         Regular deletion of the history keeps the database size from growing endlessly. It also might be required for
-        privacy reasons. Alternatives
-        include removing all person-related data from the automation.
+        privacy reasons. Alternatives include removing all person-related data from the automation.
 
     .. warning::
 
@@ -710,7 +715,7 @@ DashboardView
 Templates
 *********
 
-Django Automation comes with simplistic templates. They are largely thought to be a reference for implementing your project-specific set of templates which probably include some more markup to adapt to your project's look and feel.
+Django Automations comes with simplistic templates. They are largely thought to be a reference for implementing your project-specific set of templates which probably include some more markup to adapt to your project's look and feel.
 
 All template can be replaced simply by offering alternatives in your project's template folder. This is the structure:
 
@@ -760,7 +765,7 @@ This is the template used by the ``TaskListView``.
 Template tags
 *************
 
-Management command
+Management commands
 *******************
 
 
@@ -805,7 +810,7 @@ Settings in ``settings.py``
 
     If your project uses non-standard permissions, specify a method for the AutomationTaskModel that will return a QuerySet of Users based on a the list of Permission codename strings, the User, and Group within the model instance itself. This setting should be a string of the dotted-path to the location of the replacement method. See :ref:`Non-standard Group and Permissions<Non-standard Group and Permissions>` for additional details.
 
-.. note::
+.. warning::
     Either all or none of the following must be present in your project's settings: ATM_GROUP_MODEL, ATM_USER_WITH_PERMISSIONS_FORM_METHOD, ATM_USER_WITH_PERMISSIONS_MODEL_METHOD. Setting only one or two will raise ``ImproperlyConfigured``
 
 

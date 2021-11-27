@@ -16,7 +16,7 @@ This setup leads to business logic being scattered around in a project: Bits
 and pieces of the same process appear in different views which in turn access
 several models and their logic.
 
-Django-automations aims to add another layer where business logic can be
+Django automations aims to add another layer where business logic can be
 maintained centrally. Just like models live in ``models.py``, views in ``views.py``
 automations are made to live in an app's ``automations.py``.
 
@@ -33,8 +33,8 @@ Implementation
 
 The implementation is done with a few objectives in mind:
 
-* **Lightweight:** Django-automations builds on proven Django elements: Models to keep the state of the processes and forms to manage user interaction. Ability to bind to other Django models, however, no need for migrations if bindings are changed or state information is added.
-* **Python syntax:** Just like models or forms are Python classes, automations are Python classes built in a similar way (from Nodes in stead of ModelFields or FormFields)
+* **Lightweight:** Django automations builds on proven Django elements: Models to keep the state of the processes and forms to manage user interaction. Ability to bind to other Django models, however, no need for migrations if bindings are changed or state information is added.
+* **Python syntax:** Just like models or forms are Python classes, automations are Python classes built in a similar way (from Nodes instead of ModelFields or FormFields)
 * **Easy extensibility:** To keep the core light, it is designed to allow for easy customization in a project.
 
 Benefits
