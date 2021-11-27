@@ -620,24 +620,3 @@ class ModelSwapTestCase(TestCase):
 
         model_method = inspect.getsource(AutomationTaskModel.get_users_with_permission)
         self.assertIn("XYZ", model_method)
-
-
-class AutomationReprTest(TestCase):
-
-    def test_automation_repr(self):
-
-        class TinyAutomation(flow.Automation):
-            start = flow.Execute(this.init)
-            intermediate = flow.Execute(this.end)
-            end = flow.End()
-
-            def init(self, task, *args, **kwargs):
-                print("Hello world!")
-
-        automation_dict = str(TinyAutomation.__dict__)
-
-        self.assertIn("'__module__': 'automations.tests.test_automations'", automation_dict)
-        self.assertIn("'start': <unbound Execute node>", automation_dict)
-        self.assertIn("'intermediate': <unbound Execute node>", automation_dict)
-        self.assertIn("'end': <unbound End node>", automation_dict)
-        self.assertIn("'init': <function AutomationReprTest.test_automation_repr.", automation_dict)
