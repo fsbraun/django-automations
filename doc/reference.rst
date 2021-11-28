@@ -5,7 +5,7 @@ Reference
 Automation class
 ****************
 
-``flow.Automation`` is a class that provides the core functionality of Django Automations. To create an automation ``flow.Automation`` is subclassed with a list of properties of type ``flow.Note`` which are to executed one after the other.
+``flow.Automation`` is a class that provides the core functionality of Django Automations. To create an automation ``flow.Automation`` is subclassed with a list of properties of type ``flow.Node`` which are to executed one after the other.
 
 
 flow.Automation
@@ -368,7 +368,7 @@ flow.Node
 
 .. py:class:: flow.Node(*args, **kwargs)
 
-    Base class for all nodes. Nodes are only functional if bound to ``flow.Automation`` subclass as attributes.  ``*args`` and ``**kwargs`` are ignored. It inherits from ``object``.
+    Base class for all nodes. Nodes are only functional if bound to a ``flow.Automation`` subclass as attributes. Other than the ``description`` ``kwarg``, ``*args`` and ``**kwargs`` are ignored. Node inherits from ``object``.
 
 Nodes use the concept of modifiers to come to a somewhat human readable syntax. Modifiers are methods that return ``self``, the node's instance. This implies that modifier be chained just as in Javascript. ``SomeNode().AsSoonAs(this.ready).Next(this.end)`` is a valid node with two modifiers.
 
@@ -422,6 +422,10 @@ Attributes
 
     Attached model objects will be referenced by their id in the ``.data`` attribute. Beyond this the automation may use the data field to save its   state in any way it prefers **as long as the dict is json serializable**. This excludes ``datetime`` objects or ``timedelta`` objects.
 
+.. py:attribute:: Node.description
+
+    Can be used to provide information about the purpose of a Node. Set the description when defining properties within the automation, e.g.: ``start = flow.Execute(this.init, description="This is the first node in my automation")``
+
 Additional methods
 ------------------
 
@@ -456,23 +460,29 @@ flow.Repeat
 
 .. py:class:: flow.Repeat(start=None)
 
-    allows for repetitive automations (which do not need an ``flow.End()`` node. The automation will resume at node given by the ``start`` argument, or - if omitted - from the first node.
+    allows for repetitive automations (which do not need an ``flow.End()`` node). The automation will resume at node given by the ``start`` argument, or - if omitted - from the first node.
 
 The repetition pattern is described by **modifiers**:
 
-.. py:method:: Repeat.EveryDayAt(hour, minute)
+.. py:method:: Repeat.At(hour, minute)
 
-    for daily automations which need to run at a certain hour and minute.
+    for daily automations which need to run at a certain hour and minute each day.
 
-.. py:method:: Repeat.EveryHour(no_of_hours=1)
+.. py:method:: Repeat.EveryHour(hours=1)
 
-    for hourly automations or automations that need to run every ``no_of_hours`` hour.
+    for hourly automations or automations that need to run at an interval of ``hours`` hours, repeating based on the time the node initially executes.
 
 .. py:method:: Repeat.EveryNMinutes(minutes)
 
-    for regular automations that need to run every ``minutes`` minutes.
+    for periodic automations that need to run at an interval of ``minutes`` minutes, repeating based on the time the node initially executes.
 
+.. py:method:: Repeat.EveryNDays(days)
 
+    for periodic automations that need to run at an interval of ``days`` days, repeating based on the time the node initially executes.
+
+.. py:method:: Repeat.EveryDay()
+
+    for daily automations that need to run once each day, repeating based on the time the node initially executes.
 
 
 flow.Execute
