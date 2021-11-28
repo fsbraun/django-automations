@@ -2,9 +2,9 @@
 import datetime
 import functools
 import json
+import logging
 import sys
 import threading
-import traceback
 from copy import copy
 from types import MethodType
 
@@ -18,10 +18,20 @@ from django.core.exceptions import (
 from django.db.models import Model, Q
 from django.db.transaction import atomic
 from django.utils.timezone import now
+from django.views.debug import ExceptionReporter
 
 from . import models, settings
 
 """To allow forward references in Automation object "this" is defined"""
+
+
+"""Log exceptions"""
+logger = logging.getLogger(__name__)
+
+
+def get_error_report(exc_type, exc_value, exc_traceback):
+    er = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
+    return dict(error=er.get_traceback_text(), html=er.get_traceback_html())
 
 
 class ThisAttribute:
@@ -60,11 +70,11 @@ def on_execution_path(m):
             if isinstance(err, ImproperlyConfigured):
                 raise err
             if task is not None:
-                self.store_result(task, repr(err), dict(error=traceback.format_exc()))
+                self.store_result(task, repr(err), get_error_report(*sys.exc_info()))
                 self.release_lock(task)
                 self._automation._db.finished = True
                 self._automation._db.save()
-
+                logger.error("Automation failed with error and was aborted", exc_info=True)
             return None
 
     return wrapper
@@ -428,7 +438,7 @@ class Execute(Node):
                 if isinstance(err, ImproperlyConfigured):
                     raise err
                 self._err = err
-                self.store_result(task, repr(err), dict(error=traceback.format_exc()))
+                self.store_result(task, repr(err), get_error_report(*sys.exc_info()))
 
         if self.args is not None and len(self.args) > 0:  # Empty arguments: No-op
             args = (self.resolve(value) for value in self.args)

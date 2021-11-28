@@ -513,8 +513,16 @@ class ErrorTest(TestCase):
         self.assertEqual(
             atm._db.automationtaskmodel_set.all()[1].message,
             "SyntaxError('Darn, this is not good')",
-        )
 
+        )
+        self.assertIn(
+            "error",
+            atm._db.automationtaskmodel_set.all()[1].result,
+        )
+        self.assertIn(
+            "html",
+            atm._db.automationtaskmodel_set.all()[1].result,
+        )
         atm = BogusAutomation2()
         self.assertTrue(atm.finished())
         self.assertEqual(len(atm._db.automationtaskmodel_set.all()), 2)
