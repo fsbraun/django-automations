@@ -5,7 +5,7 @@
   </h1>
   {% for task in tasks %}
     <h4>{{ task.status }} = flow.{{ task.get_node.node_name }} <small>{{ task.finished }}</small></h4>
-    {% if "Error" in task.message %}<a href="{% url "automation:traceback" automation.id task.id %}">{% endif %}
+    {% if "Error" in task.message %}<a href="{% url "traceback" automation.id task.id %}">{% endif %}
     {{ task.message }}{% if "Error" in task.message %}</a>{% endif %}
     <pre>{{ task.result }}</pre>
   {% endfor %}
