@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-12 08:43+0000\n"
+"POT-Creation-Date: 2021-12-01 12:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,145 +17,109 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: apps.py:8 cms_automations/cms_plugins.py:26
-#: cms_automations/cms_plugins.py:43 cms_automations/cms_plugins.py:134
-#: cms_automations/cms_plugins.py:170
+#: apps.py:29
+msgid ""
+"Either all or none of the following settings must be present: "
+"ATM_GROUP_MODEL, ATM_USER_WITH_PERMISSIONS_FORM_METHOD, "
+"ATM_USER_WITH_PERMISSIONS_MODEL_METHOD"
+msgstr ""
+
+#: apps.py:41
 msgid "Automations"
 msgstr "Automatisierung"
 
-#: cms_automations/apps.py:8
-#, fuzzy
-#| msgid "Automations"
-msgid "CMS Automations"
-msgstr "Automatisierung"
-
-#: cms_automations/cms_plugins.py:25
-msgid "Task list"
-msgstr "Aufgaben-Liste"
-
-#: cms_automations/cms_plugins.py:42
-msgid "Dashboard"
-msgstr ""
-
-#: cms_automations/cms_plugins.py:133 models.py:109
-msgid "Status"
-msgstr ""
-
-#: cms_automations/cms_plugins.py:169
-#, fuzzy
-#| msgid "Message"
-msgid "Send message"
-msgstr "Nachricht"
-
-#: cms_automations/models.py:14
-msgid "Template"
-msgstr "Vorlage"
-
-#: cms_automations/models.py:18
-msgid "Always inform"
-msgstr ""
-
-#: cms_automations/models.py:19
-msgid "If deactivated plugin will out output anything if no task is available."
-msgstr ""
-
-#: cms_automations/models.py:25
-msgid "Start automaton"
-msgstr "Automatisierung starten"
-
-#: cms_automations/models.py:26
-msgid "Send message to automation"
-msgstr "Nachricht an Automatisierung"
-
-#: cms_automations/models.py:27
-#, fuzzy
-#| msgid "Send message to automation"
-msgid "Broadcast message to all automations"
-msgstr "Nachricht an Automatisierung"
-
-#: cms_automations/models.py:32
-msgid "Operation"
-msgstr ""
-
-#: cms_automations/models.py:38
-msgid "Automation"
-msgstr "Automatisierung"
-
-#: cms_automations/models.py:44
-msgid "Optional token"
-msgstr "Optionales Token"
-
-#: cms_automations/models.py:55
-msgid "Task data"
-msgstr "Daten der Aufgabe"
-
-#: models.py:32
+#: models.py:37
 msgid "Process class"
 msgstr "Prezess-Klasse"
 
-#: models.py:36 templates/automations/includes/dashboard_item.html:6
+#: models.py:41 templates/automations/includes/dashboard_item.html:6
 msgid "Finished"
 msgstr "Beendet"
 
-#: models.py:39
+#: models.py:44 templates/automations/history.html:20
 msgid "Data"
 msgstr "Daten"
 
-#: models.py:43
+#: models.py:48
 msgid "Unique hash"
 msgstr "Eindeutiger Hash-Wert"
 
-#: models.py:49
+#: models.py:54
 msgid "Paused until"
 msgstr "Pausiert bis"
 
-#: models.py:104
+#: models.py:122
 msgid "Previous task"
 msgstr "Vorherige Aufgabe"
 
-#: models.py:113
+#: models.py:127
+msgid "Status"
+msgstr ""
+
+#: models.py:131
 msgid "Locked"
 msgstr "Gesperrt"
 
-#: models.py:117
+#: models.py:134
 msgid "Requires interaction"
 msgstr "Verlangt Interaktion"
 
-#: models.py:123
+#: models.py:140
 msgid "Assigned user"
 msgstr "Zugewiesener Nutzer"
 
-#: models.py:129
+#: models.py:146
 msgid "Assigned group"
 msgstr "Zugewiesene Gruppe"
 
-#: models.py:133
+#: models.py:150
 msgid "Required permissions"
 msgstr "Benötigte Permissions"
 
-#: models.py:134
+#: models.py:151
 msgid "List of permissions of the form app_label.codename"
 msgstr "Liste von Permissions in der Form <code>app_label.codename</code>"
 
-#: models.py:144
+#: models.py:161
 msgid "Message"
 msgstr "Nachricht"
 
-#: models.py:148
+#: models.py:165
 msgid "Result"
 msgstr "Ergebnis"
 
-#: settings.py:16
+#: settings.py:22
 msgid "Default template"
 msgstr "Standardvorlage"
 
 #: templates/automations/dashboard.html:3
+#: templates/automations/task_list.html:12
 #, fuzzy
 #| msgid "Automation callback"
 msgid "Automations dashboard"
 msgstr "Automatisierungs-Rückruf"
 
-#: templates/automations/includes/dashboard_item.html:7
+#: templates/automations/history.html:13
+#, fuzzy
+#| msgid "Automation"
+msgid "Automation info"
+msgstr "Automatisierung"
+
+#: templates/automations/history.html:15
+msgid "Updated:"
+msgstr ""
+
+#: templates/automations/history.html:16
+#, fuzzy
+#| msgid "Paused until"
+msgid "Paused until:"
+msgstr "Pausiert bis"
+
+#: templates/automations/history.html:17
+msgid "Created:"
+msgstr ""
+
+#: templates/automations/includes/dashboard_item.html:5
 msgid "Running"
 msgstr "Laufend"
 
@@ -167,9 +131,23 @@ msgstr "Zurück"
 msgid "OK"
 msgstr "OK"
 
+#: templates/automations/includes/history_item.html:4
+#, fuzzy
+#| msgid "Running"
+msgid "running"
+msgstr "Laufend"
+
 #: templates/automations/includes/task_item.html:6
 msgid "View"
 msgstr "Ansehen"
+
+#: templates/automations/preformatted_traceback.html:4
+msgid "Traceback"
+msgstr ""
+
+#: templates/automations/preformatted_traceback.html:7
+msgid "No traceback available"
+msgstr ""
 
 #: templates/automations/task_list.html:3
 msgid "Open tasks for"
@@ -179,23 +157,80 @@ msgstr "Offene Aufgaben für"
 msgid "Currently no tasks for you"
 msgstr "Derzeit keine offenen Aufgaben"
 
-#: tests.py:62
+#: tests/models.py:7
+msgid "Test Group Name"
+msgstr ""
+
+#: tests/models.py:10
+msgid "test group"
+msgstr ""
+
+#: tests/models.py:11
+msgid "test groups"
+msgstr ""
+
+#: tests/models.py:15
+msgid "Test User Username"
+msgstr ""
+
+#: tests/models.py:16
+#, fuzzy
+#| msgid "Your e-mail address"
+msgid "email address"
+msgstr "Deine E-Mail-Adresse"
+
+#: tests/models.py:25 tests/models.py:29
+msgid "superuser status"
+msgstr ""
+
+#: tests/models.py:46
+msgid "test user"
+msgstr ""
+
+#: tests/models.py:47
+msgid "test users"
+msgstr ""
+
+#: tests/models.py:51
+msgid "Test Permission Slug"
+msgstr ""
+
+#: tests/models.py:58
+#, fuzzy
+#| msgid "Required permissions"
+msgid "test permission"
+msgstr "Benötigte Permissions"
+
+#: tests/models.py:59
+#, fuzzy
+#| msgid "Required permissions"
+msgid "test permissions"
+msgstr "Benötigte Permissions"
+
+#: tests/test_automations.py:69
 msgid "First name"
 msgstr "Vorname"
 
-#: tests.py:66
+#: tests/test_automations.py:73
 msgid "Your e-mail address"
 msgstr "Deine E-Mail-Adresse"
 
-#: tests.py:70
+#: tests/test_automations.py:77
 msgid "Chose session"
-msgstr "Sitzung ählen"
+msgstr "Sitzung wählen"
 
-#~ msgid "Callback hook"
-#~ msgstr "Rückrüf Hook"
+#: views.py:133
+#, fuzzy, python-format
+#| msgid "Automations"
+msgid "Obsolete automation %s"
+msgstr "Automatisierung"
 
-#~ msgid "Callback message"
-#~ msgstr "Rückruf-Nachricht"
+#: views.py:137
+#, python-format
+msgid "Obsolete automations %s"
+msgstr ""
 
-#~ msgid "Automation creation kwargs"
-#~ msgstr "kwargs zur Erstellung der Automatisierung"
+#: views.py:154
+#, python-format
+msgid "Last %d days"
+msgstr "Vergangene %d Tage"
