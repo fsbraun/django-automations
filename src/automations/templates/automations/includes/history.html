@@ -1,0 +1,10 @@
+<div class="row">
+    {% for block in blocks %}
+        <div class="col">
+            {%  if block.children %}
+                {% include "automations/includes/history.html" with blocks=block.children %}
+            {% endif %}
+            {% include "automations/includes/history_item.html" with task=block.task %}
+        </div>
+    {% endfor %}
+</div>

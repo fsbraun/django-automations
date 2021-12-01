@@ -88,9 +88,14 @@ class TaskListView(LoginRequiredMixin, TemplateView):
         return dict(error="", tasks=qs, count=len(qs))
 
 
-class UserIsStaff(UserPassesTestMixin):
+class UserIsStaff(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_staff
+
+
+class SuperUserMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_superuser
 
 
 class TaskDashboardView(UserIsStaff, TemplateView):
@@ -153,12 +158,27 @@ class AutomationHistoryView(UserIsStaff, TemplateView):
     template_name = "automations/history.html"
 
     def get_context_data(self, **kwargs):
+        def get_child_tasks(task):
+            tasks = task.automationtaskmodel_set.all()
+            if tasks:
+                return [
+                    {"task": task, "children": get_child_tasks(task)} for task in tasks
+                ]
+            else:
+                return
+
         assert "automation_id" in kwargs
         automation = get_object_or_404(
             models.AutomationModel, id=kwargs.get("automation_id")
         )
-        tasks = automation.automationtaskmodel_set.all().order_by("-created")
-        return dict(automation=automation, tasks=tasks)
+        tasks = automation.automationtaskmodel_set.filter(previous__isnull=True)
+        print(tasks)
+        blocks = [{"task": task, "children": get_child_tasks(task)} for task in tasks]
+        print(blocks)
+        return dict(
+            automation=automation,
+            blocks=blocks,
+        )
 
 
 class AutomationTracebackView(UserIsStaff, TemplateView):
