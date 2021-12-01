@@ -407,10 +407,15 @@ class Join(Node):
 
     def get_split(self, task):
         split_task = task.previous
+        joins = 1
         while split_task is not None:
             node = getattr(self._automation, split_task.status)
-            if isinstance(node, Split):
-                return split_task
+            if isinstance(node, Join):
+                joins += 1
+            elif isinstance(node, Split):
+                joins -= 1
+                if joins == 0:
+                    return split_task
             split_task = split_task.previous  # Go back the history
         return None
 
