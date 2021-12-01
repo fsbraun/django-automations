@@ -106,6 +106,10 @@ class Node:
         """returns the name of the Automation instance class the node is bound to"""
         return self._automation.__class__.__name__
 
+    @property
+    def node_name(self):
+        return self.__class__.__name__
+
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
         if isinstance(value, ThisAttribute) or (
@@ -256,9 +260,9 @@ class Node:
 
     def __repr__(self):
         if getattr(self, "_automation", False) and self._automation:
-            return f"<{self._name}: {self._automation} {self.__class__.__name__} node>"
+            return f"<{self._name}: {self._automation} {self.node_name} node>"
         else:
-            return f"<unbound {self.__class__.__name__} node>"
+            return f"<unbound {self.node_name} node>"
 
 
 class End(Node):

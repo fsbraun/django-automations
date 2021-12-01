@@ -147,3 +147,34 @@ class TaskDashboardView(UserIsStaff, TemplateView):
                     )
                 )
         return dict(automations=automations, timespan=_("Last %d days") % days)
+
+
+class AutomationHistoryView(UserIsStaff, TemplateView):
+    template_name = "automations/history.html"
+
+    def get_context_data(self, **kwargs):
+        assert "automation_id" in kwargs
+        automation = get_object_or_404(
+            models.AutomationModel, id=kwargs.get("automation_id")
+        )
+        tasks = automation.automationtaskmodel_set.all().order_by("-created")
+        return dict(automation=automation, tasks=tasks)
+
+
+class AutomationTracebackView(UserIsStaff, TemplateView):
+    template_name = "automations/traceback.html"
+
+    def get_context_data(self, **kwargs):
+        assert "automation_id" in kwargs
+        assert "task_id" in kwargs
+        automation = get_object_or_404(
+            models.AutomationModel, id=kwargs.get("automation_id")
+        )
+        task = get_object_or_404(models.AutomationTaskModel, id=kwargs.get("task_id"))
+        if task.automation != automation:
+            raise Http404()
+        if isinstance(task.result, dict):
+            return dict(
+                error=task.result.get("error", None), html=task.result.get("html", None)
+            )
+        return dict()

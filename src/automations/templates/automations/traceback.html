@@ -1,0 +1,5 @@
+{% if html %}
+    {{ html|safe }}
+{% else %}
+    {% include "automations/preformatted_traceback.html" with error=error %}
+{% endif %}

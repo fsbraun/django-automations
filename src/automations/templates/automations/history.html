@@ -1,0 +1,11 @@
+{% extends "automations/base.html" %}{% load i18n %}
+{% block content_automations %}
+  <h1>
+  {{ automation.get_automation_class.get_verbose_name }}
+  </h1>
+  {% for task in tasks %}
+    <h4>{{ task.status }} = flow.{{ task.get_node.node_name }} <small>{{ task.finished }}</small></h4>
+    {{ task.message }}
+    <pre>{{ task.result }}</pre>
+  {% endfor %}
+{% endblock %}

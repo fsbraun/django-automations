@@ -1,0 +1,9 @@
+{% extends "automations/base.html" %}{% load i18n %}
+{% block content_automations %}
+    {% if error %}
+        <h1>{% trans "Traceback" %}</h1>
+        <pre>{{ error }}</pre>
+    {% else %}
+        <h1>{% trans "No traceback available" %}</h1>
+    {% endif %}
+{% endblock %}
