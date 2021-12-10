@@ -6,7 +6,7 @@ from . import views
 urlpatterns = [
     path("", views.TaskListView.as_view(), name="task_list"),
     path("<int:task_id>", views.TaskView.as_view(), name="task"),
-    path("error-report", views.AutomationErrorView.as_view(), name="error_report"),
+    path("errors", views.AutomationErrorView.as_view(), name="error_report"),
     path("dashboard", views.TaskDashboardView.as_view(), name="dashboard"),
     path(
         "dashboard/<int:automation_id>",

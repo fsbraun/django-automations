@@ -3,6 +3,8 @@
         <h4 class="card-header{% if "Error" in task.message %} bg-danger{% elif "OK" in task.message %} bg-success{% else %} bg-warning{% endif %}">{{ task.status }} = flow.{{ task.get_node.node_name }}()
             <small>{% if task.finished %}{{ task.finished }}{% else %}{% trans "running" %}{% endif %}</small></h4>
         {% if task.message == "OK" and task.result %}<pre class="card-body mb-0">{{ task.result }}</pre>{% endif %}
-        {% if "Error" in task.message %}<div class="card-footer"><a href="{% url "traceback" automation.id task.id %}"></a></div>{% endif %}
+        {% if "Error" in task.message %}<div class="card-footer"><a href="{% url "traceback" automation.id task.id %}">
+            <pre>{{ task.message }}</pre>
+        </a></div>{% endif %}
     </div>
 {% endspaceless %}
