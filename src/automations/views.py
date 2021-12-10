@@ -206,6 +206,22 @@ class AutomationTracebackView(UserIsStaff, TemplateView):
             raise Http404()
         if isinstance(task.result, dict):
             return dict(
-                error=task.result.get("error", None), html=task.result.get("html", None)
+                automation=automation,
+                error=task.result.get("error", None),
+                html=task.result.get("html", None),
             )
         return dict()
+
+
+class AutomationErrorView(UserIsStaff, TemplateView):
+    template_name = "automations/error_report.html"
+
+    def get_context_data(self, **kwargs):
+        tasks = models.AutomationTaskModel.objects.filter(message__contains="Error")
+        automations = []
+        for task in tasks:
+            if task.automation not in automations:
+                automations.append(
+                    (task.automation, tasks.filter(automation=task.automation))
+                )
+        return dict(automations=automations)

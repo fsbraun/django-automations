@@ -1,0 +1,23 @@
+{% load i18n %}{% spaceless %}
+    <div class="row row-cols-1 row-cols-lg-3">
+        {% for automation, errors in automations.items %}
+            <div class="col mb-3">
+
+                <div class="card border-danger h-100">
+                    <h5 class="card-header bg-danger">{{ automation.verbose_name }}</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for error in errors  %}
+                            <li class="list-group-item">
+                                <a href="{% url "traceback" automation.id error.id %}">({{ error.id }}):
+                                    <code>{{ error.data|truncatechars:30 }}</code></a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+        {% endif %}
+    </div>
+{% endif %}
+{% endfor %}
+</div>
+{% endspaceless %}
