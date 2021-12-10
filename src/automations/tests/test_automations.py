@@ -292,6 +292,22 @@ class HistoryTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("split_again = flow.Split()", response.content.decode("utf8"))
 
+    def test_no_traceback_test(self):
+        atm = TestSplitJoin()
+        response = self.client.get(
+            f"/dashboard/{atm._db.id}/traceback/{atm._db.automationtaskmodel_set.first().id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("No traceback available", response.content.decode("utf8"))
+
+    def test_traceback_test(self):
+        atm = BogusAutomation1()
+        response = self.client.get(
+            f"/dashboard/{atm._db.id}/traceback/{atm._db.automationtaskmodel_set.first().id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Darn, this is not good", response.content.decode("utf8"))
+
 
 test_signal = django.dispatch.Signal()
 
