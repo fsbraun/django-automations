@@ -157,25 +157,38 @@ class TaskDashboardView(UserIsStaff, TemplateView):
 class AutomationHistoryView(UserIsStaff, TemplateView):
     template_name = "automations/history.html"
 
-    def get_context_data(self, **kwargs):
-        def get_child_tasks(task):
-            tasks = task.automationtaskmodel_set.all()
-            if tasks:
-                return [
-                    {"task": task, "children": get_child_tasks(task)} for task in tasks
-                ]
+    def build_tree(self, task):
+        result = []
+        tasks = [task]
+        while tasks:
+            if len(tasks) > 1:  # Split
+                lst = []
+                for tsk in tasks:
+                    sub_tree, next_task = self.build_tree(tsk)
+                    lst.append(sub_tree)
+                result.append(lst)
+                if next_task:
+                    result.append(next_task)
+                tasks = next_task.get_next_tasks() if next_task else []
             else:
-                return
+                task = tasks[0]
+                if task.message == "Joined":  # Closed Join
+                    return result, task
+                result.append(task)
+                tasks = task.get_next_tasks()
+        return result, None
+
+    def get_context_data(self, **kwargs):
 
         assert "automation_id" in kwargs
         automation = get_object_or_404(
             models.AutomationModel, id=kwargs.get("automation_id")
         )
-        tasks = automation.automationtaskmodel_set.filter(previous__isnull=True)
-        blocks = [{"task": task, "children": get_child_tasks(task)} for task in tasks]
+        task = automation.automationtaskmodel_set.get(previous=None)
+        tasks, _ = self.build_tree(task)
         return dict(
             automation=automation,
-            blocks=blocks,
+            tasks=tasks,
         )
 
 

@@ -404,12 +404,17 @@ class Join(Node):
             if (
                 len(all_splits) > 1
             ):  # more than one split at the moment: close this split
-                if task.message == "Join":
-                    self.store_result(task, "Join", task.result + [task.id])
-                else:
-                    self.store_result(task, "Join", [task.id])
                 self.leave(task)
+                self.store_result(task, "Open Join", [])  # Flag as open
                 return None
+            else:
+                all_path_ends = self._automation._db.automationtaskmodel_set.filter(
+                    message="Open Join", status=task.status  # Find open
+                )
+                self.store_result(
+                    task, "Joined", [tsk.id for tsk in all_path_ends] + [task.id]
+                )
+                all_path_ends.update(message="Joined")  # Join closed: clear flag
         return task
 
     def get_split(self, task):
