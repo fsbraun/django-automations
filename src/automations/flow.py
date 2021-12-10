@@ -74,7 +74,9 @@ def on_execution_path(m):
                 self.release_lock(task)
                 self._automation._db.finished = True
                 self._automation._db.save()
-                logger.error("Automation failed with error and was aborted", exc_info=True)
+                logger.error(
+                    "Automation failed with error and was aborted", exc_info=True
+                )
             return None
 
     return wrapper
@@ -369,6 +371,7 @@ class Split(Node):
                 )
                 for split in self._splits
             )
+            self.store_result(task, "Split", [task.id for task in tasks])
             self.leave(task)
             for task in tasks:
                 self._automation.run(
@@ -401,6 +404,10 @@ class Join(Node):
             if (
                 len(all_splits) > 1
             ):  # more than one split at the moment: close this split
+                if task.message == "Join":
+                    self.store_result(task, "Join", task.result + [task.id])
+                else:
+                    self.store_result(task, "Join", [task.id])
                 self.leave(task)
                 return None
         return task
