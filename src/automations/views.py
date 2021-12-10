@@ -172,9 +172,7 @@ class AutomationHistoryView(UserIsStaff, TemplateView):
             models.AutomationModel, id=kwargs.get("automation_id")
         )
         tasks = automation.automationtaskmodel_set.filter(previous__isnull=True)
-        print(tasks)
         blocks = [{"task": task, "children": get_child_tasks(task)} for task in tasks]
-        print(blocks)
         return dict(
             automation=automation,
             blocks=blocks,
