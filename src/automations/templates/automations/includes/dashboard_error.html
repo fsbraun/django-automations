@@ -1,4 +1,4 @@
-{% load i18n %}{% spaceless %}
+{% load i18n l10n %}{% spaceless %}
     <div class="row row-cols-1 row-cols-lg-3">
         {% for automation, errors in automations %}
             <div class="col mb-3">
@@ -11,9 +11,11 @@
                         {% for error in errors  %}
                             <li class="list-group-item">
                                 <a href="{% url "traceback" automation.id error.id %}">{{ error.status }} =
-                                    &hellip; ({{ error.id }})
-                                    <small><code>{{ error.data|truncatechars:30 }}</code></small></a>
-                            </li>
+                                    &hellip; <span class="float-right">({{ error.id|unlocalize }})</span>
+                                    {% if error.data %}
+                                        <br /><small><code>{{ error.data|truncatechars:40 }}</code></small></a>
+                                    {% endif %}
+                                </li>
                         {% endfor %}
                     </ul>
                 </div>
