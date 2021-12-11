@@ -10,12 +10,13 @@
                     <ul class="list-group list-group-flush text-danger">
                         {% for error in errors  %}
                             <li class="list-group-item">
-                                <a href="{% url "traceback" automation.id error.id %}">{{ error.status }} =
+                                <a href="{% url "history" automation.id %}">{{ error.status }} =
                                     &hellip; <span class="float-right">({{ error.id|unlocalize }})</span>
                                     {% if error.data %}
-                                        <br /><small><code>{{ error.data|truncatechars:40 }}</code></small></a>
+                                        <br /><small><code>{{ error.data|truncatechars:40 }}</code></small>
                                     {% endif %}
-                                </li>
+                                </a>
+                            </li>
                         {% endfor %}
                     </ul>
                 </div>

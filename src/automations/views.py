@@ -3,7 +3,11 @@
 # Create your views here.
 import datetime
 
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    UserPassesTestMixin,
+)
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.forms import BaseForm
@@ -93,12 +97,11 @@ class UserIsStaff(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.user.is_staff
 
 
-class SuperUserMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_superuser
-
-
-class TaskDashboardView(UserIsStaff, TemplateView):
+class TaskDashboardView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.view_automationmodel",
+        "automations.view_automationtaskmodel",
+    )
     template_name = "automations/dashboard.html"
 
     def get_context_data(self, **kwargs):
@@ -154,7 +157,11 @@ class TaskDashboardView(UserIsStaff, TemplateView):
         return dict(automations=automations, timespan=_("Last %d days") % days)
 
 
-class AutomationHistoryView(UserIsStaff, TemplateView):
+class AutomationHistoryView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.change_automationmodel",
+        "automations.change_automationtaskmodel",
+    )
     template_name = "automations/history.html"
 
     def build_tree(self, task):
@@ -192,7 +199,11 @@ class AutomationHistoryView(UserIsStaff, TemplateView):
         )
 
 
-class AutomationTracebackView(UserIsStaff, TemplateView):
+class AutomationTracebackView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.change_automationmodel",
+        "automations.change_automationtaskmodel",
+    )
     template_name = "automations/traceback.html"
 
     def get_context_data(self, **kwargs):
@@ -213,7 +224,11 @@ class AutomationTracebackView(UserIsStaff, TemplateView):
         return dict()
 
 
-class AutomationErrorView(UserIsStaff, TemplateView):
+class AutomationErrorView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.change_automationmodel",
+        "automations.change_automationtaskmodel",
+    )
     template_name = "automations/error_report.html"
 
     def get_context_data(self, **kwargs):
