@@ -218,9 +218,12 @@ class AutomationErrorView(UserIsStaff, TemplateView):
 
     def get_context_data(self, **kwargs):
         tasks = models.AutomationTaskModel.objects.filter(message__contains="Error")
+        print(tasks)
         automations = []
+        done = []
         for task in tasks:
-            if task.automation not in automations:
+            if task.automation.id not in done:
+                done.append(task.automation.id)
                 automations.append(
                     (task.automation, tasks.filter(automation=task.automation))
                 )

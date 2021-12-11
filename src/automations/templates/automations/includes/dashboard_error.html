@@ -1,19 +1,22 @@
 {% load i18n %}{% spaceless %}
     <div class="row row-cols-1 row-cols-lg-3">
-        {% for automation, errors in automations.items %}
+        {% for automation, errors in automations %}
             <div class="col mb-3">
                 <div class="card border-danger h-100">
-                    <h5 class="card-header bg-danger">{{ automation.verbose_name }}</h5>
-                    <ul class="list-group list-group-flush">
+                    <h5 class="card-header bg-danger">
+                        {{ automation.get_automation_class.get_verbose_name }}
+                        <span class="badge badge-pill badge-light float-right"> {{ errors|length }} </span>
+                    </h5>
+                    <ul class="list-group list-group-flush text-danger">
                         {% for error in errors  %}
                             <li class="list-group-item">
-                                <a href="{% url "traceback" automation.id error.id %}">({{ error.id }}):
-                                    <code>{{ error.data|truncatechars:30 }}</code></a>
+                                <a href="{% url "traceback" automation.id error.id %}">{{ error.status }} =
+                                    &hellip; ({{ error.id }})
+                                    <small><code>{{ error.data|truncatechars:30 }}</code></small></a>
                             </li>
                         {% endfor %}
                     </ul>
                 </div>
-
             </div>
         {% endfor %}
     </div>
