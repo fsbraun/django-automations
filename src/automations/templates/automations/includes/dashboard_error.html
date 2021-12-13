@@ -12,10 +12,11 @@
                             <li class="list-group-item">
                                 <a href="{% url "history" automation.id %}">{{ error.status }} =
                                     &hellip; <span class="float-right">({{ error.id|unlocalize }})</span>
-                                    {% if error.data %}
-                                        <br /><small><code>{{ error.data|truncatechars:40 }}</code></small>
-                                    {% endif %}
                                 </a>
+                                {% if error.data %}
+                                    <br /><small><code>{{ error.data|truncatechars:40 }}</code></small>
+                                {% endif %}
+                                <br /><small>{{ error.created }}</small>
                             </li>
                         {% endfor %}
                     </ul>

@@ -519,6 +519,7 @@ class If(Execute):
         if self._then is None:
             raise ImproperlyConfigured("Missing .Then statement")
         this_path = self.eval(self._condition, task)
+        task.message = str(bool(this_path))
         clause = self._then if this_path else self._else
         if clause is not None:
             opt_args, opt_kwargs = clause
