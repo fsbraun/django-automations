@@ -221,7 +221,7 @@ class FormTestCase(TestCase):
             username="admin",
             email="admin@...",
             password="Even More Secr3t",
-            is_staff=True,
+            is_superuser=True,
         )
 
     def test_form(self):
