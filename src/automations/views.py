@@ -224,7 +224,7 @@ class AutomationTracebackView(PermissionRequiredMixin, TemplateView):
         return dict()
 
 
-class AutomationErrorView(PermissionRequiredMixin, TemplateView):
+class AutomationErrorsView(PermissionRequiredMixin, TemplateView):
     permission_required = (
         "automations.change_automationmodel",
         "automations.change_automationtaskmodel",
@@ -233,7 +233,6 @@ class AutomationErrorView(PermissionRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         tasks = models.AutomationTaskModel.objects.filter(message__contains="Error")
-        print(tasks)
         automations = []
         done = []
         for task in tasks:

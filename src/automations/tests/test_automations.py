@@ -284,7 +284,7 @@ class HistoryTestCase(TestCase):
         self.admin.save()
         self.assertEqual(self.admin.is_superuser, True)
         login = self.client.login(username="admin", password="Even More Secr3t")
-        self.failUnless(login, "Could not login")
+        self.assertTrue(login, "Could not login")
 
     def test_history_test(self):
         atm = TestSplitJoin()
@@ -307,6 +307,12 @@ class HistoryTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("Darn, this is not good", response.content.decode("utf8"))
+
+    def test_error_view(self):
+        BogusAutomation1()
+        response = self.client.get("/errors")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("BogusAutomation1", response.content.decode("utf8"))
 
 
 test_signal = django.dispatch.Signal()
