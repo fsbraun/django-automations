@@ -81,7 +81,7 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("task_list")
+        return reverse("automations:task_list")
 
 
 class TaskListView(LoginRequiredMixin, TemplateView):

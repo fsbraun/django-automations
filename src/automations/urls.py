@@ -1,9 +1,10 @@
 # coding=utf-8
 from django.urls import path
 
-from . import views
+from . import apps, views
 
-app_name = "automations"
+app_name = apps.AutomationsConfig.name
+
 
 urlpatterns = [
     path("", views.TaskListView.as_view(), name="task_list"),

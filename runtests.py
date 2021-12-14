@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.management import call_command
 
 
-def runtests(test_path="automations.tests"):
+def runtests(test_path="automations"):
     if not settings.configured:
         # Choose database for settings
         DATABASES = {
@@ -42,7 +42,7 @@ def runtests(test_path="automations.tests"):
                 "django.contrib.sessions",
                 "automations",
             ),
-            ROOT_URLCONF="automations.urls",  # tests override urlconf, but it still needs to be defined
+            ROOT_URLCONF="automations.tests.urls",  # tests override urlconf, but it still needs to be defined
             LANGUAGES=(
                 ("en", "English"),
                 ("de", "Deutsch"),
