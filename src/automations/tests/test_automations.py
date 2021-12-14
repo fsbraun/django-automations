@@ -9,7 +9,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import execute_from_command_line
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 
@@ -88,13 +88,20 @@ class TestSplitJoin(flow.Automation):
     )
     l10 = Print("Line 10").AfterWaitingUntil(now() - datetime.timedelta(minutes=1))
     split = flow.Split().Next("self.t10").Next("self.t20").Next("self.t30")
+
     join = flow.Join()
     l20 = Print("All joined now")
     l30 = flow.End()
 
-    t10 = Print("Thread 10").Next(this.join)
+    t10 = Print("Thread 10").Next(this.split_again)
     t20 = Print("Thread 20").Next(this.join)
     t30 = Print("Thread 30").Next(this.join)
+
+    split_again = flow.Split().Next(this.t40).Next(this.t50)
+    t40 = Print("Thread 40").Next(this.join_again)
+    t50 = Print("Thread 50").Next(this.join_again)
+    join_again = flow.Join()
+    going_back = Print("Sub split joined").Next(this.join)
 
 
 class AtmTaskForm(forms.ModelForm):
@@ -132,7 +139,7 @@ class Looping(flow.Automation):
 
 
 class BoundToFail(flow.Automation):
-    start = Print("Will divide by zero.")
+    start = Print("Will divide by zero.").SkipAfter(datetime.timedelta(days=1))
     div = flow.Execute(lambda x: 5 / 0).OnError(this.error_node)
     never = Print("This should NOT be printed")
     not_caught = flow.Execute(lambda x: 5 / 0)
@@ -163,7 +170,9 @@ class ModelTestCase(TestCase):
         x = TestAutomation(autorun=False)
         qs = AutomationModel.objects.all()
         self.assertEqual(len(qs), 1)
-        self.assertEqual(qs[0].automation_class, "automations.tests.test_automations.TestAutomation")
+        self.assertEqual(
+            qs[0].automation_class, "automations.tests.test_automations.TestAutomation"
+        )
 
         self.assertEqual(get_automation_class(x._db.automation_class), TestAutomation)
 
@@ -193,6 +202,9 @@ class AutomationTestCase(TestCase):
         self.assertIn("t10 Thread 10", output)
         self.assertIn("t20 Thread 20", output)
         self.assertIn("t30 Thread 30", output)
+        self.assertIn("t40 Thread 40", output)
+        self.assertIn("t50 Thread 50", output)
+        self.assertIn("going_back Sub split joined", output)
 
         self.assertEqual(atm.get_verbose_name(), "Allow to split and join")
         self.assertEqual(atm.get_verbose_name_plural(), "Allow splitS and joinS")
@@ -209,7 +221,7 @@ class FormTestCase(TestCase):
             username="admin",
             email="admin@...",
             password="Even More Secr3t",
-            is_staff=True,
+            is_superuser=True,
         )
 
     def test_form(self):
@@ -256,6 +268,51 @@ class FormTestCase(TestCase):
 
         atm.run()
         self.assertEqual(len(atm.form2.get_users_with_permission()), 0)
+
+
+class HistoryTestCase(TestCase):
+    def setUp(self):
+        # Every test needs access to the request factory.
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="admin",
+            email="admin@...",
+            password="Even More Secr3t",
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.admin.save()
+        self.assertEqual(self.admin.is_superuser, True)
+        login = self.client.login(username="admin", password="Even More Secr3t")
+        self.assertTrue(login, "Could not login")
+
+    def test_history_test(self):
+        atm = TestSplitJoin()
+        response = self.client.get(f"/dashboard/{atm._db.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("split_again = flow.Split()", response.content.decode("utf8"))
+
+    def test_no_traceback_test(self):
+        atm = TestSplitJoin()
+        response = self.client.get(
+            f"/dashboard/{atm._db.id}/traceback/{atm._db.automationtaskmodel_set.first().id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("No traceback available", response.content.decode("utf8"))
+
+    def test_traceback_test(self):
+        atm = BogusAutomation1()
+        response = self.client.get(
+            f"/dashboard/{atm._db.id}/traceback/{atm._db.automationtaskmodel_set.first().id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Darn, this is not good", response.content.decode("utf8"))
+
+    def test_error_view(self):
+        BogusAutomation1()
+        response = self.client.get("/errors")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("BogusAutomation1", response.content.decode("utf8"))
 
 
 test_signal = django.dispatch.Signal()
@@ -367,9 +424,9 @@ class ManagementCommandDeleteTest(TestCase):
             execute_from_command_line(["manage.py", "automation_delete_history", "0"])
         output = fake_out.getvalue().splitlines()
         self.assertIn(
-            "12 total objects deleted, including 1 AutomationModel instances, and 11 "
+            "18 total objects deleted, including 1 AutomationModel instances, and 17 "
             "AutomationTaskModel instances",
-            output
+            output,
         )
         self.assertEqual(AutomationModel.objects.count(), 0)
         self.assertEqual(AutomationTaskModel.objects.count(), 0)
@@ -513,7 +570,6 @@ class ErrorTest(TestCase):
         self.assertEqual(
             atm._db.automationtaskmodel_set.all()[1].message,
             "SyntaxError('Darn, this is not good')",
-
         )
         self.assertIn(
             "error",
@@ -631,9 +687,7 @@ class ModelSwapTestCase(TestCase):
 
 
 class AutomationReprTest(TestCase):
-
     def test_automation_repr(self):
-
         class TinyAutomation(flow.Automation):
             start = flow.Execute(this.init)
             intermediate = flow.Execute(this.end)
@@ -644,8 +698,13 @@ class AutomationReprTest(TestCase):
 
         automation_dict = str(TinyAutomation.__dict__)
 
-        self.assertIn("'__module__': 'automations.tests.test_automations'", automation_dict)
+        self.assertIn(
+            "'__module__': 'automations.tests.test_automations'", automation_dict
+        )
         self.assertIn("'start': <unbound Execute node>", automation_dict)
         self.assertIn("'intermediate': <unbound Execute node>", automation_dict)
         self.assertIn("'end': <unbound End node>", automation_dict)
-        self.assertIn("'init': <function AutomationReprTest.test_automation_repr.", automation_dict)
+        self.assertIn(
+            "'init': <function AutomationReprTest.test_automation_repr.",
+            automation_dict,
+        )

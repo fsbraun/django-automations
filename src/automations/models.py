@@ -182,6 +182,14 @@ class AutomationTaskModel(models.Model):
         instance = self.automation.instance
         return getattr(instance, self.status)
 
+    def get_previous_tasks(self):
+        if self.message == "Joined" and self.result:
+            return self.__class__.objects.filter(id__in=self.result)
+        return [self.previous] if self.previous else []
+
+    def get_next_tasks(self):
+        return self.automationtaskmodel_set.all()
+
     @classmethod
     def get_open_tasks(cls, user):
         candidates = cls.objects.filter(finished=None)
@@ -214,6 +222,12 @@ class AutomationTaskModel(models.Model):
         if include_superusers:
             users |= User.objects.filter(is_superuser=True)
         return users
+
+    def __str__(self):
+        return f"<ATM {self.status} {self.message} ({self.id})>"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 def swap_users_with_permission_model_method(model, settings_conf):

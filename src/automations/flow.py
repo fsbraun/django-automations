@@ -74,7 +74,9 @@ def on_execution_path(m):
                 self.release_lock(task)
                 self._automation._db.finished = True
                 self._automation._db.save()
-                logger.error("Automation failed with error and was aborted", exc_info=True)
+                logger.error(
+                    "Automation failed with error and was aborted", exc_info=True
+                )
             return None
 
     return wrapper
@@ -105,6 +107,10 @@ class Node:
     def get_automation_name(self):
         """returns the name of the Automation instance class the node is bound to"""
         return self._automation.__class__.__name__
+
+    @property
+    def node_name(self):
+        return self.__class__.__name__
 
     def __getattribute__(self, item):
         value = super().__getattribute__(item)
@@ -256,9 +262,9 @@ class Node:
 
     def __repr__(self):
         if getattr(self, "_automation", False) and self._automation:
-            return f"<{self._name}: {self._automation} {self.__class__.__name__} node>"
+            return f"<{self._name}: {self._automation} {self.node_name} node>"
         else:
-            return f"<unbound {self.__class__.__name__} node>"
+            return f"<unbound {self.node_name} node>"
 
 
 class End(Node):
@@ -365,6 +371,7 @@ class Split(Node):
                 )
                 for split in self._splits
             )
+            self.store_result(task, "Split", [task.id for task in tasks])
             self.leave(task)
             for task in tasks:
                 self._automation.run(
@@ -398,15 +405,29 @@ class Join(Node):
                 len(all_splits) > 1
             ):  # more than one split at the moment: close this split
                 self.leave(task)
+                self.store_result(task, "Open Join", [])  # Flag as open
                 return None
+            else:
+                all_path_ends = self._automation._db.automationtaskmodel_set.filter(
+                    message="Open Join", status=task.status  # Find open
+                )
+                self.store_result(
+                    task, "Joined", [tsk.id for tsk in all_path_ends] + [task.id]
+                )
+                all_path_ends.update(message="Joined")  # Join closed: clear flag
         return task
 
     def get_split(self, task):
         split_task = task.previous
+        joins = 1
         while split_task is not None:
             node = getattr(self._automation, split_task.status)
-            if isinstance(node, Split):
-                return split_task
+            if isinstance(node, Join):
+                joins += 1
+            elif isinstance(node, Split):
+                joins -= 1
+                if joins == 0:
+                    return split_task
             split_task = split_task.previous  # Go back the history
         return None
 
@@ -498,6 +519,7 @@ class If(Execute):
         if self._then is None:
             raise ImproperlyConfigured("Missing .Then statement")
         this_path = self.eval(self._condition, task)
+        task.message = str(bool(this_path))
         clause = self._then if this_path else self._else
         if clause is not None:
             opt_args, opt_kwargs = clause

@@ -1,0 +1,9 @@
+{% extends "automations/base.html" %}{% load i18n %}
+{% block content_automations %}
+    <h1>{% trans "Automations error report" %}</h1>
+    {% if automations %}
+        {% include "automations/includes/dashboard_error.html" %}
+    {% else %}
+        {% trans "No automations stopped with an error." %}
+    {% endif %}
+{% endblock %}

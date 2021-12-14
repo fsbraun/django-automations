@@ -713,6 +713,8 @@ Execution errors are stored as task results. If not caught by ``.OnError`` an er
 Views
 *****
 
+For convenience django-automations includes a set of views that allow to manage required interactions with automations.
+
 TaskView
 ========
 
@@ -721,6 +723,43 @@ TaskListView
 
 DashboardView
 =============
+
+.. warning::
+    This view only is available to users with the permissions ``automations.view_automationmodel`` **and**
+    ``automations.view_automationtaskmodel`` set.
+
+AutomationErrorsView
+====================
+
+.. warning::
+    This view only is available to users with the permissions ``automations.change_automationmodel`` **and**
+    ``automations.change_automationtaskmodel`` set.
+
+This view gives an overview on automation instances which failed with an error. Instances are grouped by
+automation. Each instance contains a reference to the instance's ``AutomationHistoryView`` where each
+individual step from the automation instance's start to the step where the error occurred is listed.
+
+
+AutomationHistoryView
+=====================
+
+.. warning::
+    This view only is available to users with the permissions ``automations.change_automationmodel`` **and**
+    ``automations.change_automationtaskmodel`` set.
+
+This view lists all steps as they were processed for a given automation. This is meant to support automation debugging.
+Note that loops are unrolled (since each step within a loop is recorded). Splits are shown as they are processed
+in parallel. If an automation instance stopped due to an error a link to the ``AutomationTracebackView`` is added.
+
+AutomationTracebackView
+=======================
+
+.. warning::
+    This view only is available to users with the permissions ``automations.change_automationmodel`` **and**
+    ``automations.change_automationtaskmodel`` set.
+
+This view shows the Django-style traceback if an automation task fails with an error.
+
 
 Templates
 *********

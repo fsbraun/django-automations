@@ -1,0 +1,15 @@
+{% spaceless %}
+    {% for task in tasks reversed %}
+        {% if task|length > 1 %}
+            <div class="row align-items-center row-cols-{{ task|length }}">
+                {% for sub_tree in task %}
+                    <div class="col">
+                        {% include "automations/includes/history.html" with tasks=sub_tree %}
+                    </div>
+                {%  endfor %}
+            </div>
+        {% else %}
+            {% include "automations/includes/history_item.html" with task=task %}
+        {% endif %}
+    {% endfor %}
+{% endspaceless %}

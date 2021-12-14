@@ -100,3 +100,18 @@ Also, an automation may advance, e.g., after an processing form has been filled 
     Django Automations is not a task scheduler for background worker processes. It is a framework that defines what tasks have to be done at what time under what conditions. It works, however, well with background worker processes.
 
 Currently, there is no native integration with, say, Celery. However, this might be an extension which would be welcomed.
+
+Debugging automations
+*********************
+
+Django-automations offers some help in debugging automations. Since
+they run invisible to the user and developer errors caught and tracebacks
+stored for debugging purposes.
+
+To make them available, it is necessary to give the respective users the
+permissions ``automations.change_automationmodel`` **and** ``automations.change_automationtaskmodel``.
+
+.. note::
+
+    Automations are not debugged by actually changing instances of these models. Automations need to
+    be changed on the source code.

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-12 10:43+0000\n"
+"POT-Creation-Date: 2021-12-01 12:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,66 +17,87 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: apps.py:8
+#: cms_automations/apps.py:9
 msgid "CMS Automations"
 msgstr "CMS Automatisierung"
 
-#: cms_plugins.py:25
+#: cms_automations/cms_apps.py:8
+#, fuzzy
+#| msgid "Automations"
+msgid "Django Automations"
+msgstr "Automatisierung"
+
+#: cms_automations/cms_plugins.py:19
 msgid "Task list"
 msgstr "Aufgaben-Liste"
 
-#: cms_plugins.py:26 cms_plugins.py:43 cms_plugins.py:134 cms_plugins.py:170
+#: cms_automations/cms_plugins.py:20 cms_automations/cms_plugins.py:40
+#: cms_automations/cms_plugins.py:142 cms_automations/cms_plugins.py:182
+#: cms_automations/cms_plugins.py:229
 msgid "Automations"
 msgstr "Automatisierung"
 
-#: cms_plugins.py:42
+#: cms_automations/cms_plugins.py:39
 msgid "Dashboard"
 msgstr ""
 
-#: cms_plugins.py:133
+#: cms_automations/cms_plugins.py:141
 msgid "Status"
 msgstr ""
 
-#: cms_plugins.py:169
+#: cms_automations/cms_plugins.py:181
 msgid "Send message"
 msgstr "Nachricht senden"
 
-#: models.py:14
+#: cms_automations/cms_plugins.py:197
+#, python-format
+msgid "Automation class not present: %s"
+msgstr ""
+
+#: cms_automations/cms_plugins.py:230
+#, fuzzy
+#| msgid "Automations"
+msgid "Automations dashboard"
+msgstr "Automatisierung"
+
+#: cms_automations/models.py:14
 msgid "Template"
 msgstr "Vorlage"
 
-#: models.py:18
+#: cms_automations/models.py:18
 msgid "Always inform"
 msgstr "Immer informieren"
 
-#: models.py:19
+#: cms_automations/models.py:20
 msgid "If deactivated plugin will out output anything if no task is available."
-msgstr "Wenn deaktiviert wird das Plugin nichts anzeigen, wenn keine Aufgabe verfügbar ist."
+msgstr ""
+"Wenn deaktiviert wird das Plugin nichts anzeigen, wenn keine Aufgabe "
+"verfügbar ist."
 
-#: models.py:25
+#: cms_automations/models.py:27
 msgid "Start automaton"
 msgstr "Automatisierung starten"
 
-#: models.py:26
+#: cms_automations/models.py:28
 msgid "Send message to automation"
 msgstr "Nachricht an Automatisierung senden"
 
-#: models.py:27
+#: cms_automations/models.py:29
 msgid "Broadcast message to all automations"
 msgstr "Nachrichten-Broadcast an alle Automatisierungen"
 
-#: models.py:32
+#: cms_automations/models.py:34
 msgid "Operation"
 msgstr "Kommando"
 
-#: models.py:38
+#: cms_automations/models.py:40
 msgid "Automation"
 msgstr "Automation"
 
-#: models.py:44
+#: cms_automations/models.py:46
 msgid "Optional token"
 msgstr "Optionales Token"
 
-#: models.py:55
+#: cms_automations/models.py:57
 msgid "Task data"
 msgstr "Aufgaben-Datensatz"

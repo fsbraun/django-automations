@@ -1,0 +1,27 @@
+{% load i18n l10n %}{% spaceless %}
+    <div class="row row-cols-1 row-cols-lg-3">
+        {% for automation, errors in automations %}
+            <div class="col mb-3">
+                <div class="card border-danger h-100">
+                    <h5 class="card-header bg-danger">
+                        {{ automation.get_automation_class.get_verbose_name }}
+                        <span class="badge badge-pill badge-light float-right"> {{ errors|length }} </span>
+                    </h5>
+                    <ul class="list-group list-group-flush text-danger">
+                        {% for error in errors  %}
+                            <li class="list-group-item">
+                                <a href="{% url "automations:history" automation.id %}">{{ error.status }} =
+                                    &hellip; <span class="float-right">({{ error.id|unlocalize }})</span>
+                                </a>
+                                {% if error.data %}
+                                    <br /><small><code>{{ error.data|truncatechars:40 }}</code></small>
+                                {% endif %}
+                                <br /><small>{{ error.created }}</small>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endspaceless %}

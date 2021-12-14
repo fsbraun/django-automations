@@ -1,0 +1,17 @@
+{% load i18n %}{% spaceless %}
+    <div class="card mb-3">
+        <h4 class="card-header{% if "Error" in task.message %} bg-danger{% elif "OK" in task.message %} bg-success{% else %} bg-warning{% endif %}">{{ task.status }} = flow.{{ task.get_node.node_name }}()
+            <small>{% if task.finished %}{{ task.finished }}{% else %}{% trans "running" %}{% endif %}</small></h4>
+        {% if task.message == "OK" and task.result %}
+            <pre class="card-body mb-0">{{ task.result }}</pre>
+        {% elif "Error" in task.message %}
+            <div class="card-footer">
+                <a href="{% url "automations:traceback" automation.id task.id %}">
+                    <pre>{{ task.message }}</pre>
+                </a>
+            </div>
+        {% else %}
+            <pre class="card-body mb-0">{{ task.message }}</pre>
+        {% endif %}
+    </div>
+{% endspaceless %}

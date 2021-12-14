@@ -3,7 +3,11 @@
 # Create your views here.
 import datetime
 
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    UserPassesTestMixin,
+)
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.forms import BaseForm
@@ -77,7 +81,7 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("task_list")
+        return reverse("automations:task_list")
 
 
 class TaskListView(LoginRequiredMixin, TemplateView):
@@ -88,12 +92,16 @@ class TaskListView(LoginRequiredMixin, TemplateView):
         return dict(error="", tasks=qs, count=len(qs))
 
 
-class UserIsStaff(UserPassesTestMixin):
+class UserIsStaff(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_staff
 
 
-class TaskDashboardView(UserIsStaff, TemplateView):
+class TaskDashboardView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.view_automationmodel",
+        "automations.view_automationtaskmodel",
+    )
     template_name = "automations/dashboard.html"
 
     def get_context_data(self, **kwargs):
@@ -147,3 +155,90 @@ class TaskDashboardView(UserIsStaff, TemplateView):
                     )
                 )
         return dict(automations=automations, timespan=_("Last %d days") % days)
+
+
+class AutomationHistoryView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.change_automationmodel",
+        "automations.change_automationtaskmodel",
+    )
+    template_name = "automations/history.html"
+
+    def build_tree(self, task):
+        result = []
+        tasks = [task]
+        while tasks:
+            if len(tasks) > 1:  # Split
+                lst = []
+                for tsk in tasks:
+                    sub_tree, next_task = self.build_tree(tsk)
+                    lst.append(sub_tree)
+                result.append(lst)
+                if next_task:
+                    result.append(next_task)
+                tasks = next_task.get_next_tasks() if next_task else []
+            else:
+                task = tasks[0]
+                if task.message == "Joined":  # Closed Join
+                    return result, task
+                result.append(task)
+                tasks = task.get_next_tasks()
+        return result, None
+
+    def get_context_data(self, **kwargs):
+
+        assert "automation_id" in kwargs
+        automation = get_object_or_404(
+            models.AutomationModel, id=kwargs.get("automation_id")
+        )
+        task = automation.automationtaskmodel_set.get(previous=None)
+        tasks, _ = self.build_tree(task)
+        return dict(
+            automation=automation,
+            tasks=tasks,
+        )
+
+
+class AutomationTracebackView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.change_automationmodel",
+        "automations.change_automationtaskmodel",
+    )
+    template_name = "automations/traceback.html"
+
+    def get_context_data(self, **kwargs):
+        assert "automation_id" in kwargs
+        assert "task_id" in kwargs
+        automation = get_object_or_404(
+            models.AutomationModel, id=kwargs.get("automation_id")
+        )
+        task = get_object_or_404(models.AutomationTaskModel, id=kwargs.get("task_id"))
+        if task.automation != automation:
+            raise Http404()
+        if isinstance(task.result, dict):
+            return dict(
+                automation=automation,
+                error=task.result.get("error", None),
+                html=task.result.get("html", None),
+            )
+        return dict()
+
+
+class AutomationErrorsView(PermissionRequiredMixin, TemplateView):
+    permission_required = (
+        "automations.change_automationmodel",
+        "automations.change_automationtaskmodel",
+    )
+    template_name = "automations/error_report.html"
+
+    def get_context_data(self, **kwargs):
+        tasks = models.AutomationTaskModel.objects.filter(message__contains="Error")
+        automations = []
+        done = []
+        for task in tasks:
+            if task.automation.id not in done:
+                done.append(task.automation.id)
+                automations.append(
+                    (task.automation, tasks.filter(automation=task.automation))
+                )
+        return dict(automations=automations)

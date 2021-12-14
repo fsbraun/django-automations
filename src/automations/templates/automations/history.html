@@ -1,0 +1,24 @@
+{% extends "automations/base.html" %}{% load i18n %}
+{% block content_automations %}{% spaceless %}
+    <div class="card mb-4">
+        <h1 class="card-header">
+            {{ automation.get_automation_class.get_verbose_name }}
+            <small>{{ automation.automation_class }}</small>
+        </h1>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">{% trans "Automation id" %} {{ automation.id }}</li>
+            <li class="list-group-item">{% trans "Updated:" %} {{ automation.updated }}</li>
+            <li class="list-group-item">{% trans "Paused until:" %} {{ automation.paused_until }}</li>
+            <li class="list-group-item">{% trans "Created:" %} {{ automation.created }}</li>
+        </ul>
+        {% if automation.data %}
+            <div class="card-body">
+                <h3 class="h4">{% trans "Data" %}</h3>
+                <pre>{{ automation.data }}</pre>
+            </div>
+        {% endif %}
+    </div>
+    {% include "automations/includes/history.html" with tasks=tasks %}
+    </div>
+{% endspaceless %}
+{% endblock %}
