@@ -9,6 +9,6 @@
         {% include "automations/includes/task_list.html" %}
     {% endif %}
     {% if request.user.is_staff %}
-        <a href="{% url 'dashboard' %}" class="btn btn-primary">{% trans "Automations dashboard" %}</a>
+        <a href="{% url 'automations:dashboard' %}" class="btn btn-primary">{% trans "Automations dashboard" %}</a>
     {% endif %}
 {% endspaceless %}{% endblock %}

@@ -4,15 +4,14 @@
             <small>{% if task.finished %}{{ task.finished }}{% else %}{% trans "running" %}{% endif %}</small></h4>
         {% if task.message == "OK" and task.result %}
             <pre class="card-body mb-0">{{ task.result }}</pre>
-        {% else %}
-            <pre class="card-body mb-0">{{ task.message }}</pre>
-        {% endif %}
-        {% if "Error" in task.message %}
+        {% elif "Error" in task.message %}
             <div class="card-footer">
-                <a href="{% url "traceback" automation.id task.id %}">
+                <a href="{% url "automations:traceback" automation.id task.id %}">
                     <pre>{{ task.message }}</pre>
                 </a>
             </div>
+        {% else %}
+            <pre class="card-body mb-0">{{ task.message }}</pre>
         {% endif %}
     </div>
 {% endspaceless %}
