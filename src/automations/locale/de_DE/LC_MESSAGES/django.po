@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-12-01 12:21+0100\n"
+"POT-Creation-Date: 2021-12-14 17:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,13 +30,13 @@ msgstr "Automatisierung"
 
 #: models.py:37
 msgid "Process class"
-msgstr "Prezess-Klasse"
+msgstr "Prozess-Klasse"
 
 #: models.py:41 templates/automations/includes/dashboard_item.html:6
 msgid "Finished"
 msgstr "Beendet"
 
-#: models.py:44 templates/automations/history.html:20
+#: models.py:44 templates/automations/history.html:16
 msgid "Data"
 msgstr "Daten"
 
@@ -54,7 +54,7 @@ msgstr "Vorherige Aufgabe"
 
 #: models.py:127
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: models.py:131
 msgid "Locked"
@@ -94,30 +94,35 @@ msgstr "Standardvorlage"
 
 #: templates/automations/dashboard.html:3
 #: templates/automations/task_list.html:12
-#, fuzzy
-#| msgid "Automation callback"
 msgid "Automations dashboard"
-msgstr "Automatisierungs-Rückruf"
+msgstr "Automatisierungs-Dashboard"
 
-#: templates/automations/history.html:13
+#: templates/automations/error_report.html:3
 #, fuzzy
-#| msgid "Automation"
-msgid "Automation info"
+#| msgid "Automations"
+msgid "Automations error report"
 msgstr "Automatisierung"
 
-#: templates/automations/history.html:15
+#: templates/automations/error_report.html:7
+msgid "No automations stopped with an error."
+msgstr ""
+
+#: templates/automations/history.html:9
+
+msgid "Automation id"
+msgstr "Automatisierungs-ID"
+
+#: templates/automations/history.html:10
 msgid "Updated:"
-msgstr ""
+msgstr "Aktualisiert:"
 
-#: templates/automations/history.html:16
-#, fuzzy
-#| msgid "Paused until"
+#: templates/automations/history.html:11
 msgid "Paused until:"
-msgstr "Pausiert bis"
+msgstr "Pausiert bis:"
 
-#: templates/automations/history.html:17
+#: templates/automations/history.html:12
 msgid "Created:"
-msgstr ""
+msgstr "Erstellt:"
 
 #: templates/automations/includes/dashboard_item.html:5
 msgid "Running"
@@ -132,10 +137,8 @@ msgid "OK"
 msgstr "OK"
 
 #: templates/automations/includes/history_item.html:4
-#, fuzzy
-#| msgid "Running"
 msgid "running"
-msgstr "Laufend"
+msgstr "läuft"
 
 #: templates/automations/includes/task_item.html:6
 msgid "View"
@@ -143,11 +146,11 @@ msgstr "Ansehen"
 
 #: templates/automations/preformatted_traceback.html:4
 msgid "Traceback"
-msgstr ""
+msgstr "Aufrufhierarchie beim Fehler"
 
 #: templates/automations/preformatted_traceback.html:7
 msgid "No traceback available"
-msgstr ""
+msgstr "Keine Aufrufhierarchie verfügbar"
 
 #: templates/automations/task_list.html:3
 msgid "Open tasks for"
@@ -219,18 +222,16 @@ msgstr "Deine E-Mail-Adresse"
 msgid "Chose session"
 msgstr "Sitzung wählen"
 
-#: views.py:133
-#, fuzzy, python-format
-#| msgid "Automations"
+#: views.py:136
 msgid "Obsolete automation %s"
-msgstr "Automatisierung"
+msgstr "Nicht mehr gültige Automatisierung %s"
 
-#: views.py:137
+#: views.py:140
 #, python-format
 msgid "Obsolete automations %s"
-msgstr ""
+msgstr "Nicht mehr gültige Automatisierungen %s"
 
-#: views.py:154
+#: views.py:157
 #, python-format
 msgid "Last %d days"
 msgstr "Vergangene %d Tage"

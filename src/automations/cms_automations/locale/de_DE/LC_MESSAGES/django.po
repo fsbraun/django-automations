@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-12-01 12:21+0100\n"
+"POT-Creation-Date: 2021-12-14 17:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -39,11 +39,11 @@ msgstr "Automatisierung"
 
 #: cms_automations/cms_plugins.py:39
 msgid "Dashboard"
-msgstr ""
+msgstr "Dashboard"
 
 #: cms_automations/cms_plugins.py:141
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: cms_automations/cms_plugins.py:181
 msgid "Send message"
@@ -52,13 +52,13 @@ msgstr "Nachricht senden"
 #: cms_automations/cms_plugins.py:197
 #, python-format
 msgid "Automation class not present: %s"
-msgstr ""
+msgstr "Automation-Klasse nicht gefunden: %s"
 
 #: cms_automations/cms_plugins.py:230
 #, fuzzy
 #| msgid "Automations"
 msgid "Automations dashboard"
-msgstr "Automatisierung"
+msgstr "Automatisierungs-Dashboard"
 
 #: cms_automations/models.py:14
 msgid "Template"
