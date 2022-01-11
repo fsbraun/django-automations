@@ -109,8 +109,8 @@ msgstr ""
 
 #: templates/automations/history.html:9
 
-msgid "Automation id"
-msgstr "Automatisierungs-ID"
+msgid "Automation id:"
+msgstr "Automatisierungs-ID:"
 
 #: templates/automations/history.html:10
 msgid "Updated:"
