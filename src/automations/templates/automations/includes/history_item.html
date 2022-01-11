@@ -19,9 +19,10 @@
                 <div class="card-footer">
                     <ul class="list-inline">
                         {% for key in node.modifiers %}
-                        <li class="list-inline-item"><kbd>{{ key }}</kbd>
-                            {% if key == "Wait" %}{{ task.autmation.paused_until }}{% endif %}
-                        </li>
+                            <li class="list-inline-item"><kbd>{{ key }}</kbd>
+                                {% if key == "Wait" %}{{ task.autmation.paused_until }}{% endif %}
+                            </li>
+                        {% endfor %}
                     </ul>
                 </div>
             {% endif %}
