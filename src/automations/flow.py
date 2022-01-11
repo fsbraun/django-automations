@@ -195,7 +195,10 @@ class Node:
             return next_node
 
     def pause_automation(self, earliest_execution):
-        if self._automation._db.paused_until:
+        if (
+            self._automation._db.paused_until
+            and self._automation._db.paused_until >= now()
+        ):
             self._automation._db.paused_until = min(
                 self._automation._db.paused_until, earliest_execution
             )
@@ -215,9 +218,9 @@ class Node:
             return task
         earliest_execution = self.eval(self._wait, task)
         if earliest_execution < now():
-            self.pause_automation(earliest_execution)
-            self._automation._db.save()
             return task
+        self.pause_automation(earliest_execution)
+        self._automation._db.save()
         return self.release_lock(task)
 
     @on_execution_path
