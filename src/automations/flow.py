@@ -94,6 +94,20 @@ class Node:
         self._leave = False
         self.description = kwargs.pop("description", "")
 
+    def modifiers(self):
+        mods = []
+        if self._conditions:
+            mods.append("If")
+        if self._next:
+            mods.append("Next")
+        if self._wait:
+            mods.append("Wait")
+        if self._skipif:
+            mods.append("SkipIf")
+        if self._skipafter:
+            mods.append("SkipAfter")
+        return mods
+
     @staticmethod
     def eval(sth, task):
         return sth(task) if callable(sth) else sth
@@ -180,6 +194,14 @@ class Node:
                 raise ImproperlyConfigured(f"No End() node after {self._name}")
             return next_node
 
+    def pause_automation(self, earliest_execution):
+        if self._automation._db.paused_until:
+            self._automation._db.paused_until = min(
+                self._automation._db.paused_until, earliest_execution
+            )
+        else:
+            self._automation._db.paused_until = earliest_execution
+
     @on_execution_path
     def when_handler(self, task):
         for condition in self._conditions:
@@ -193,14 +215,9 @@ class Node:
             return task
         earliest_execution = self.eval(self._wait, task)
         if earliest_execution < now():
+            self.pause_automation(earliest_execution)
+            self._automation._db.save()
             return task
-        if self._automation._db.paused_until:
-            self._automation._db.paused_until = min(
-                self._automation._db.paused_until, earliest_execution
-            )
-        else:
-            self._automation._db.paused_until = earliest_execution
-        self._automation._db.save()
         return self.release_lock(task)
 
     @on_execution_path

@@ -186,7 +186,6 @@ class AutomationHistoryView(PermissionRequiredMixin, TemplateView):
         return result, None
 
     def get_context_data(self, **kwargs):
-
         assert "automation_id" in kwargs
         automation = get_object_or_404(
             models.AutomationModel, id=kwargs.get("automation_id")
