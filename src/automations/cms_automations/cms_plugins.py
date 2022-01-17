@@ -15,6 +15,7 @@ from . import models as cms_models
 logger = logging.getLogger(__name__)
 
 
+@plugin_pool.register_plugin
 class AutomationTaskList(CMSPluginBase):
     name = _("Task list")
     module = _("Automations")
@@ -32,9 +33,7 @@ class AutomationTaskList(CMSPluginBase):
         return context
 
 
-plugin_pool.register_plugin(AutomationTaskList)
-
-
+@plugin_pool.register_plugin
 class AutomationDashboard(CMSPluginBase):
     name = _("Dashboard")
     module = _("Automations")
@@ -46,9 +45,6 @@ class AutomationDashboard(CMSPluginBase):
         view = views.TaskDashboardView(request=context["request"])
         context.update(view.get_context_data())
         return context
-
-
-plugin_pool.register_plugin(AutomationDashboard)
 
 
 def get_task_choices(pattern, convert, subclass=None):
@@ -132,7 +128,7 @@ class EditTaskData(forms.ModelForm):
 
     def clean_name(self):
         choices = {}
-        for _, chapter in get_task_status_choices():
+        for __, chapter in get_task_status_choices():
             choices.update({key: value for key, value in chapter})
         return choices.get(self.data["template"], "")
 
