@@ -78,8 +78,8 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
             self.node._automation.run(self.task.previous, self.node)
         if hasattr(self.node, "_success_url"):
             return redirect(self.node._success_url)
-        elif "next" in self.request.GET:
-            return redirect(self.request.GET.get("next"))
+        elif "back" in self.request.GET:
+            return redirect(self.request.GET.get("back"))
         return super().form_valid(form)
 
     def get_success_url(self):

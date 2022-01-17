@@ -553,17 +553,19 @@ flow.SendMessage
 flow.Form
 =========
 
-.. py:class:: flow.Form(form, template_name=None, description="", context={})
+.. py:class:: flow.Form(form, template_name=None, success_url=None, description="", context={})
 
     Represents a user interaction with a Django Form. The form's class is passed as ``form``. It will be rendered using the optional ``template_name``. If ``template_name`` is not provided, Django automations looks for the ``default_template_name`` attribute of the automation class. Use the ``default_template_name`` attribute if all forms of an automation share the same template. If neither is given Django Automations will fall back to ``"automations/form_view.html"``.
 
     Also optional is ``description``, a text that explains what the user is expected to do with the form, e.g., validate its entries. The description can, e.g., be shown to a user when editing the form, or in her task list.
 
-    The form is redered by a Django ``FormView``. Additional context for the template is provided by the ``FormView``
+    The form is rendered by a Django ``FormView``. Additional context for the template is provided by the ``FormView``
 
         * project-wide using ``settings.ATM_FORM_VIEW_CONTEXT`` in the :ref:`project's settings file<ATM_FORM_VIEW_CONTEXT>`,
         * defining the ``context`` attribute for the whole Automation class, and
         * specifying the ``context`` parameter in an individual ``flow.Form``.
+
+    Upon completion for the form, the user is redirected either to ``success_url`` (if given), to the url given in the ``back`` GET parameter when viewing the form, or as a fall back to the task list view.
 
 The ``flow.Form`` has two extra modifiers to assign the task to a user or a group of users:
 

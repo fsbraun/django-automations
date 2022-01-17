@@ -21,7 +21,7 @@
                         <li class="list-inline-item">{% trans "Modifiers" %}:</li>
                         {% for key in node.modifiers %}
                             <li class="list-inline-item"><kbd>{{ key }}</kbd>
-                                {% if key == "Wait" %} <small>({% trans "until" %} {{ task.automation.paused_until }})</small>{% endif %}
+                                {% if key == "Wait" %} <small> ({% trans "until" %} {{ task.automation.paused_until }})</small>{% endif %}
                             </li>
                         {% endfor %}
                     </ul>
