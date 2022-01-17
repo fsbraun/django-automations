@@ -570,7 +570,7 @@ class Form(Node):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._db_defaults = dict(
+        self._model_defaults = dict(
             locked=-1, requires_interaction=True
         )  # Start w/o lock, but interaction needed
         self._form = form
@@ -594,6 +594,7 @@ class Form(Node):
                 )
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
+
             if task.requires_interaction:  # Not yet validated -> pause
                 return self.release_lock(task)
         return task  # Continue with validated form
