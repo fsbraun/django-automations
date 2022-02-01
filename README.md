@@ -45,12 +45,11 @@ This project is in a early stage. All feedback is welcome! Please mail me at fsb
 
 # Installation
 
-This project will be available on pypi after the first release. In the meantime, please install the master branch from
-git using
+Install the package from PyPI:
 
-    pip install https://github.com/fsbraun/django-automations/archive/master.zip
+    pip install django-automations
 
-After installation add the `automations` to your installed apps in `settings.py`:
+Add `automations` to your installed apps in `settings.py`:
 
     INSTALLED_APPS = (
         ...,
@@ -74,7 +73,9 @@ in one place all business processes which in a Django app often are distributed 
 carried out.
 
     from automations import flow
-    from automations.flow import this  
+    from automations.flow import Automation
+    from automations.flow import this
+  
     # "this" can be used in a class definition as a replacement for "self"
 
     from . import forms
