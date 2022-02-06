@@ -296,6 +296,7 @@ class End(Node):
         task.finished = now()
         task.locked = 0
         task.save()
+        return None  # Stops execution
 
 
 class Repeat(Node):
