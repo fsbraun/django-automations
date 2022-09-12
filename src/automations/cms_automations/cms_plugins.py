@@ -22,15 +22,16 @@ class AutomationTaskList(CMSPluginBase):
     model = cms_models.AutomationTasksPlugin
     allow_children = False
     require_parent = False
-    render_template = None
 
     def render(self, context, instance, placeholder):
-        self.render_template = instance.template
         qs = models.AutomationTaskModel.get_open_tasks(context["request"].user)
         context.update(
             dict(tasks=qs, count=len(qs), always_inform=instance.always_inform)
         )
         return context
+
+    def get_render_template(self, context, instance, placeholder):
+        return instance.template
 
 
 @plugin_pool.register_plugin

@@ -26,6 +26,7 @@ src/automations/cms_automations/migrations/0002_auto_20210506_1957.py
 src/automations/cms_automations/migrations/0003_auto_20210511_0825.py
 src/automations/cms_automations/migrations/0004_auto_20210511_1042.py
 src/automations/cms_automations/migrations/0005_auto_20211121_1838.py
+src/automations/cms_automations/migrations/0006_auto_20220125_1002.py
 src/automations/cms_automations/migrations/__init__.py
 src/automations/cms_automations/templates/automations/cms/empty_template.html
 src/automations/locale/de_DE/LC_MESSAGES/django.mo
@@ -40,6 +41,7 @@ src/automations/migrations/0003_auto_20210511_0825.py
 src/automations/migrations/0004_auto_20210511_1042.py
 src/automations/migrations/0005_automationmodel_key.py
 src/automations/migrations/0006_auto_20211121_1357.py
+src/automations/migrations/0007_auto_20220125_1002.py
 src/automations/migrations/__init__.py
 src/automations/templates/base.html
 src/automations/templates/automations/base.html
