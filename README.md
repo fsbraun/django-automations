@@ -82,12 +82,12 @@ carried out.
 
     class ProcessInput(Automation):
         """The process steps are defined by sequentially adding the corresponding nodes"""
-        start =     flow.Execute(this.get_user_input)                  # Collect input a user has supplied
+        start =     flow.Execute(this.get_user_input)                   # Collect input a user has supplied
         check =     flow.If(
-                        this.does_not_need_approval                    # Need approval?
-                    ).Then(this.process)                               # No? Continue later
-        approval =      flow.Form(forms.ApprovalForm).Group(name="admins")  # Let admins approve
-        process =   flow.Execute(this.process_input)                   # Generate output
+                        this.does_not_need_approval                     # Need approval?
+                    ).Then(this.process)                                # No? Continue later
+        approval =  flow.Form(forms.ApprovalForm).Group(name="admins")  # Let admins approve
+        process =   flow.Execute(this.process_input)                    # Generate output
         end =       flow.End()
 
         critical = 10_000
