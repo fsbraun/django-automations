@@ -6,33 +6,47 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('cms_automations', '0005_auto_20211121_1838'),
+        ("cms_automations", "0005_auto_20211121_1838"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='automationhookplugin',
-            name='automation',
-            field=models.CharField(max_length=128, verbose_name='Automatisierung'),
+            model_name="automationhookplugin",
+            name="automation",
+            field=models.CharField(max_length=128, verbose_name="Automatisierung"),
         ),
         migrations.AlterField(
-            model_name='automationhookplugin',
-            name='operation',
-            field=models.IntegerField(choices=[(0, 'Automatisierung starten'), (1, 'Nachricht an Automatisierung'), (2, 'Nachrichten-Broadcast an alle Automatisierungen')], default=1, verbose_name='Kommando'),
+            model_name="automationhookplugin",
+            name="operation",
+            field=models.IntegerField(
+                choices=[
+                    (0, "Automatisierung starten"),
+                    (1, "Nachricht an Automatisierung"),
+                    (2, "Nachrichten-Broadcast an alle Automatisierungen"),
+                ],
+                default=1,
+                verbose_name="Kommando",
+            ),
         ),
         migrations.AlterField(
-            model_name='automationhookplugin',
-            name='token',
-            field=models.CharField(blank=True, max_length=128, verbose_name='Optionales Token'),
+            model_name="automationhookplugin",
+            name="token",
+            field=models.CharField(
+                blank=True, max_length=128, verbose_name="Optionales Token"
+            ),
         ),
         migrations.AlterField(
-            model_name='automationstatusplugin',
-            name='template',
-            field=models.CharField(max_length=128, verbose_name='Daten der Aufgabe'),
+            model_name="automationstatusplugin",
+            name="template",
+            field=models.CharField(max_length=128, verbose_name="Daten der Aufgabe"),
         ),
         migrations.AlterField(
-            model_name='automationtasksplugin',
-            name='always_inform',
-            field=models.BooleanField(default=True, help_text='Wenn deaktiviert wird das Plugin nichts anzeigen, wenn keine Aufgabe verfügbar ist.', verbose_name='Immer informieren'),
+            model_name="automationtasksplugin",
+            name="always_inform",
+            field=models.BooleanField(
+                default=True,
+                help_text="Wenn deaktiviert wird das Plugin nichts anzeigen, wenn keine Aufgabe verfügbar ist.",
+                verbose_name="Immer informieren",
+            ),
         ),
     ]

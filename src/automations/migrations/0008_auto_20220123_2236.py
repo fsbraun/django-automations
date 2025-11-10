@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('automations', '0007_auto_20211229_0622'),
+        ("automations", "0007_auto_20211229_0622"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='automationmodel',
-            name='automation_class',
-            field=models.CharField(max_length=256, verbose_name='Prozess-Klasse'),
+            model_name="automationmodel",
+            name="automation_class",
+            field=models.CharField(max_length=256, verbose_name="Prozess-Klasse"),
         ),
     ]
