@@ -834,9 +834,12 @@ class Automation:
             for instance in qs:
                 identical = sum(
                     (
-                        0
-                        if key not in instance.data or instance.data[key] != kwargs[key]
-                        else 1
+                        (
+                            0
+                            if key not in instance.data
+                            or instance.data[key] != kwargs[key]
+                            else 1
+                        )
                         for key in self.unique
                     )
                 )

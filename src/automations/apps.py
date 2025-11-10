@@ -22,15 +22,13 @@ def checks_atm_settings(app_configs, **kwargs):
 
     if any(group_and_permission_settings) and not all(group_and_permission_settings):
         errors = [
-            (
-                Error(
-                    "Django Automations settings incorrectly configured",
-                    hint=_(
-                        "Either all or none of the following settings must be present: ATM_GROUP_MODEL, "
-                        "ATM_USER_WITH_PERMISSIONS_FORM_METHOD, ATM_USER_WITH_PERMISSIONS_MODEL_METHOD"
-                    ),
-                    id="automations.E001",
-                )
+            Error(
+                "Django Automations settings incorrectly configured",
+                hint=_(
+                    "Either all or none of the following settings must be present: ATM_GROUP_MODEL, "
+                    "ATM_USER_WITH_PERMISSIONS_FORM_METHOD, ATM_USER_WITH_PERMISSIONS_MODEL_METHOD"
+                ),
+                id="automations.E001",
             )
         ]
     return errors
