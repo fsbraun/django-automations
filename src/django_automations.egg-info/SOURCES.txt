@@ -63,7 +63,6 @@ src/automations/tests/__init__.py
 src/automations/tests/methods.py
 src/automations/tests/models.py
 src/automations/tests/test_automations.py
-src/automations/tests/urls.py
 src/django_automations.egg-info/PKG-INFO
 src/django_automations.egg-info/SOURCES.txt
 src/django_automations.egg-info/dependency_links.txt
