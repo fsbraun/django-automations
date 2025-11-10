@@ -37,9 +37,9 @@ msgstr "Aufgaben-Liste"
 msgid "Automations"
 msgstr "Automatisierung"
 
-#: cms_automations/cms_plugins.py:39
-msgid "Dashboard"
-msgstr "Dashboard"
+#: cms_plugins.py:42
+msgid "Automation dashboard"
+msgstr "Dashboard Automatisierungen"
 
 #: cms_automations/cms_plugins.py:141
 msgid "Status"

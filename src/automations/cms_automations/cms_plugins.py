@@ -36,7 +36,7 @@ class AutomationTaskList(CMSPluginBase):
 
 @plugin_pool.register_plugin
 class AutomationDashboard(CMSPluginBase):
-    name = _("Dashboard")
+    name = _("Automation dashboard")
     module = _("Automations")
     allow_children = False
     require_parent = False
