@@ -132,7 +132,7 @@ class EditTaskData(forms.ModelForm):
 
     def clean_name(self):
         choices = {}
-        for _, chapter in get_task_status_choices():
+        for __, chapter in get_task_status_choices():
             choices.update({key: value for key, value in chapter})
         return choices.get(self.data["template"], "")
 
