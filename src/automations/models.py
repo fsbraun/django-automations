@@ -239,7 +239,6 @@ def swap_users_with_permission_model_method(model, settings_conf):
     )
 
     if users_with_permission_method is not None:
-
         if callable(users_with_permission_method):
             model.get_users_with_permission = MethodType(
                 users_with_permission_method,
