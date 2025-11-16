@@ -2,6 +2,7 @@
 
 # Create your views here.
 import datetime
+import urllib.parse
 
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
@@ -76,8 +77,16 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         self.node.is_valid(self.task, self.request, form)
         if self.node._run:
             self.node._automation.run(self.task.previous, self.node)
-        if hasattr(self.node, "_success_url"):
+        if getattr(self.node, "_success_url", None):
             return redirect(self.node._success_url)
+        elif "back" in self.request.GET:
+            url = urllib.parse.urlparse(
+                self.request.GET.get("back")
+            )  # prevent redirect
+            this_site = urllib.parse.urlunparse(
+                ("", "", url.path, url.params, url.query, url.fragment)
+            )
+            return redirect(this_site)
         return super().form_valid(form)
 
     def get_success_url(self):

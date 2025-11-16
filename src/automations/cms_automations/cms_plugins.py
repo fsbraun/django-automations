@@ -15,26 +15,26 @@ from . import models as cms_models
 logger = logging.getLogger(__name__)
 
 
+@plugin_pool.register_plugin
 class AutomationTaskList(CMSPluginBase):
     name = _("Task list")
     module = _("Automations")
     model = cms_models.AutomationTasksPlugin
     allow_children = False
     require_parent = False
-    render_template = None
 
     def render(self, context, instance, placeholder):
-        self.render_template = instance.template
         qs = models.AutomationTaskModel.get_open_tasks(context["request"].user)
         context.update(
             dict(tasks=qs, count=len(qs), always_inform=instance.always_inform)
         )
         return context
 
+    def get_render_template(self, context, instance, placeholder):
+        return instance.template
 
-plugin_pool.register_plugin(AutomationTaskList)
 
-
+@plugin_pool.register_plugin
 class AutomationDashboard(CMSPluginBase):
     name = _("Automation dashboard")
     module = _("Automations")
@@ -46,9 +46,6 @@ class AutomationDashboard(CMSPluginBase):
         view = views.TaskDashboardView(request=context["request"])
         context.update(view.get_context_data())
         return context
-
-
-plugin_pool.register_plugin(AutomationDashboard)
 
 
 def get_task_choices(pattern, convert, subclass=None):

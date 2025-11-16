@@ -37,7 +37,7 @@ Django-automations works with plain Django but also integrates with Django-CMS.
 ## Requirements
 
 * **Python**: 3.7, 3.8, 3.9, 3.10
-* **Django**: 3.0, 3.1, 3.2
+* **Django**: 3.2, 4.0, 4.1
 
 ## Feedback
 
@@ -45,12 +45,11 @@ This project is in a early stage. All feedback is welcome! Please mail me at fsb
 
 # Installation
 
-This project will be available on pypi after the first release. In the meantime, please install the master branch from
-git using
+Install the package from PyPI:
 
-    pip install https://github.com/fsbraun/django-automations/archive/master.zip
+    pip install django-automations
 
-After installation add the `automations` to your installed apps in `settings.py`:
+Add `automations` to your installed apps in `settings.py`:
 
     INSTALLED_APPS = (
         ...,
@@ -74,19 +73,21 @@ in one place all business processes which in a Django app often are distributed 
 carried out.
 
     from automations import flow
-    from automations.flow import this  
+    from automations.flow import Automation
+    from automations.flow import this
+  
     # "this" can be used in a class definition as a replacement for "self"
 
     from . import forms
 
     class ProcessInput(Automation):
         """The process steps are defined by sequentially adding the corresponding nodes"""
-        start =     flow.Execute(this.get_user_input)                  # Collect input a user has supplied
+        start =     flow.Execute(this.get_user_input)                   # Collect input a user has supplied
         check =     flow.If(
-                        this.does_not_need_approval                    # Need approval?
-                    ).Then(this.process)                               # No? Continue later
-        approval =      flow.Form(forms.ApprovalForm).Group(name="admins")  # Let admins approve
-        process =   flow.Execute(this.process_input)                   # Generate output
+                        this.does_not_need_approval                     # Need approval?
+                    ).Then(this.process)                                # No? Continue later
+        approval =  flow.Form(forms.ApprovalForm).Group(name="admins")  # Let admins approve
+        process =   flow.Execute(this.process_input)                    # Generate output
         end =       flow.End()
 
         critical = 10_000

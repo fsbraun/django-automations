@@ -226,15 +226,16 @@ class FormTestCase(TestCase):
 
     def test_form(self):
         atm = FormTest(autorun=False)
+        tasks = atm._db.automationtaskmodel_set.filter(finished=None)
+        self.assertEqual(len(tasks), 0)
         atm.form._user = dict(id=self.user.id)  # Fake User
         atm.form2._user = dict(id=self.user.id)  # Fake User
         atm.run()
-
         users = atm.form.get_users_with_permission()
         self.assertEqual(len(users), 0)
 
         tasks = atm._db.automationtaskmodel_set.filter(finished=None)
-        self.assertEqual(len(tasks), 1)
+        self.assertEqual(len(tasks), 1)  # Form not validated
 
         # Create an instance of a GET request.
         request = self.factory.get(f"/{tasks[0].id}")

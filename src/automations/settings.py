@@ -11,7 +11,7 @@ FORM_VIEW_CONTEXT = getattr(
     settings,
     "ATM_FORM_VIEW_CONTEXT",
     dict(
-        submit_classes="btn btn-primary float-right",
+        submit_classes="btn btn-primary float-right float-end",
         back_classes="btn btn-outline-primary",
     ),
 )

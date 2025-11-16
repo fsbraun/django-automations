@@ -12,3 +12,4 @@
 /pkg/
 /.coverage
 /htmlcov/
+/src/django_automations.egg-info/

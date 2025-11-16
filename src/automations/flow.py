@@ -91,6 +91,7 @@ class Node:
         self._skipif = []
         self._skipafter = None
         self._leave = False
+        self._model_defaults = dict(locked=0)
         self.description = kwargs.pop("description", "")
 
     def modifiers(self):
@@ -153,9 +154,7 @@ class Node:
         task, _ = db.automationtaskmodel_set.get_or_create(
             previous=prev_task,
             status=self._name,
-            defaults=dict(
-                locked=0,
-            ),
+            defaults=self._model_defaults,
         )
         self._leave = False
         if task.locked > 0:
@@ -229,7 +228,7 @@ class Node:
             task.message = "skipped"
             self.release_lock(task)
             self._leave = True
-            return None
+            return self.release_lock(task)
 
         if self._skipafter is not None:
             latest_execution = task.created + self.eval(self._skipafter, task)
@@ -296,6 +295,7 @@ class End(Node):
         task.finished = now()
         task.locked = 0
         task.save()
+        return None  # Stops execution
 
 
 class Repeat(Node):
@@ -561,10 +561,20 @@ class If(Execute):
 
 class Form(Node):
     def __init__(
-        self, form, template_name=None, context=None, repeated_form=False, **kwargs
+        self,
+        form,
+        template_name=None,
+        context=None,
+        repeated_form=False,
+        success_url=None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
+        self._model_defaults = dict(
+            locked=-1, requires_interaction=True
+        )  # Start w/o lock, but interaction needed
         self._form = form
+        self._success_url = success_url
         self._context = context if context is not None else {}
         self._repeated_form = repeated_form
         self._template_name = template_name
@@ -584,15 +594,9 @@ class Form(Node):
                 )
             task.interaction_user = self.get_user()
             task.interaction_group = self.get_group()
-            if (
-                self._repeated_form
-                or task.data.get(f"_{self._name}_validated", None) is None
-            ):
-                task.requires_interaction = True
-                self.release_lock(
-                    task
-                )  # Release lock and stop automation until form is validated
-                return None
+
+            if task.requires_interaction:  # Not yet validated -> pause
+                return self.release_lock(task)
         return task  # Continue with validated form
 
     def is_valid(self, task: models.AutomationTaskModel, request, form):
@@ -601,7 +605,6 @@ class Form(Node):
         )
         task.automation.save()
         task.requires_interaction = False
-        task.finished = now()
         task.save()
 
     def User(self, **kwargs):
@@ -830,9 +833,12 @@ class Automation:
             for instance in qs:
                 identical = sum(
                     (
-                        0
-                        if key not in instance.data or instance.data[key] != kwargs[key]
-                        else 1
+                        (
+                            0
+                            if key not in instance.data
+                            or instance.data[key] != kwargs[key]
+                            else 1
+                        )
                         for key in self.unique
                     )
                 )
