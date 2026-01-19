@@ -1,6 +1,7 @@
 # coding=utf-8
 
 """Soft dependency on django-automations_cms: Define plugins for open tasks"""
+
 import logging
 import threading
 
