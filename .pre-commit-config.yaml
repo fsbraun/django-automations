@@ -14,6 +14,6 @@ repos:
   hooks:
     - id: flake8
 - repo: https://github.com/rtts/djhtml
-  rev: 3.0.10
+  rev: 3.0.11
   hooks:
     - id: djhtml
