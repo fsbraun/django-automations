@@ -1,4 +1,3 @@
-# coding=utf-8
 import datetime
 import functools
 import json
@@ -429,7 +428,8 @@ class Join(Node):
                 return None
             else:
                 all_path_ends = self._automation._db.automationtaskmodel_set.filter(
-                    message="Open Join", status=task.status  # Find open
+                    message="Open Join",
+                    status=task.status,  # Find open
                 )
                 self.store_result(
                     task, "Joined", [tsk.id for tsk in all_path_ends] + [task.id]
@@ -664,7 +664,6 @@ def swap_users_with_permission_form_method(settings_conf):
     )
 
     if users_with_permission_method is not None:
-
         if callable(users_with_permission_method):
             Form.get_users_with_permission = MethodType(
                 users_with_permission_method,
@@ -820,10 +819,13 @@ class Automation:
                 self.unique, (list, tuple)
             ), ".unique can be bool, list, tuple or None"
             for key in self.unique:
-                assert key not in (
-                    "automation",
-                    "automation_id",
-                    "autorun",
+                assert (
+                    key
+                    not in (
+                        "automation",
+                        "automation_id",
+                        "autorun",
+                    )
                 ), f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
                 assert key in kwargs, (
                     "to ensure unique property, "
