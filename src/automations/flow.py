@@ -146,9 +146,9 @@ class Node:
 
     @atomic
     def enter(self, prev_task=None):
-        assert (
-            prev_task is None or prev_task.finished is not None
-        ), "Node entered w/o previous node left"
+        assert prev_task is None or prev_task.finished is not None, (
+            "Node entered w/o previous node left"
+        )
         db = self._automation._db
         assert isinstance(db, models.AutomationModel)
         task, _ = db.automationtaskmodel_set.get_or_create(
@@ -378,9 +378,9 @@ class Split(Node):
     def execute(self, task: models.AutomationTaskModel):
         task = super().execute(task)
         if task:
-            assert (
-                len(self._splits) > 0
-            ), "at least one .Next statement needed for Split()"
+            assert len(self._splits) > 0, (
+                "at least one .Next statement needed for Split()"
+            )
             db = self._automation._db
             tasks = list(
                 db.automationtaskmodel_set.create(  # Create splits
@@ -485,9 +485,9 @@ class Execute(Node):
             args = (self.resolve(value) for value in self.args)
             kwargs = {key: self.resolve(value) for key, value in self.kwargs.items()}
             if kwargs.get("threaded", False):
-                assert (
-                    self._on_error is None
-                ), "No .OnError statement on threaded executions"
+                assert self._on_error is None, (
+                    "No .OnError statement on threaded executions"
+                )
                 threading.Thread(
                     target=func, args=[task] + list(args), kwargs=kwargs
                 ).start()
@@ -815,18 +815,17 @@ class Automation:
                     "If 'automation' is given, no parameters allowed"
                 )
         elif self.unique:
-            assert isinstance(
-                self.unique, (list, tuple)
-            ), ".unique can be bool, list, tuple or None"
+            assert isinstance(self.unique, (list, tuple)), (
+                ".unique can be bool, list, tuple or None"
+            )
             for key in self.unique:
-                assert (
-                    key
-                    not in (
-                        "automation",
-                        "automation_id",
-                        "autorun",
-                    )
-                ), f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
+                assert key not in (
+                    "automation",
+                    "automation_id",
+                    "autorun",
+                ), (
+                    f"'{key}' cannot be parameter to distinguish unique automations. Chose a different name."
+                )
                 assert key in kwargs, (
                     "to ensure unique property, "
                     "create automation with '%s=...' parameter" % key
