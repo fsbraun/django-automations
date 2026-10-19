@@ -1,9 +1,8 @@
 # coding=utf-8
 from django.apps import AppConfig
 from django.conf import settings
-from django.core.checks import Error
+from django.core.checks import Error, register
 from django.core.checks import Tags as DjangoTags
-from django.core.checks import register
 from django.utils.translation import gettext_lazy as _
 
 
