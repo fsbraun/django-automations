@@ -1,18 +1,4 @@
 repos:
-- repo: https://github.com/pycqa/isort
-  rev: 10.0.0b1
-  hooks:
-    - id: isort
-      name: isort (python)
-- repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 26.10.1
-  hooks:
-  - id: black
-    language_version: python3.12
-- repo: https://github.com/PyCQA/flake8
-  rev: 7.4.1
-  hooks:
-    - id: flake8
 - repo: https://github.com/rtts/djhtml
   rev: 3.0.11
   hooks:
