@@ -1,7 +1,5 @@
-# coding=utf-8
 import datetime
 import hashlib
-import sys
 from logging import getLogger
 from types import MethodType
 
@@ -89,15 +87,13 @@ class AutomationModel(models.Model):
             logger.info(f"Running automation {automation.automation_class}")
             try:
                 instance.run()
-            except Exception as e:  # pragma: no cover
+            except Exception:  # pragma: no cover
                 automation.finished = True
                 automation.save()
-                logger.error(f"Error: {repr(e)}", exc_info=sys.exc_info())
+                logger.exception("Error running automation")
 
     def get_key(self):
-        return hashlib.sha1(
-            f"{self.automation_class}-{self.id}".encode("utf-8")
-        ).hexdigest()
+        return hashlib.sha1(f"{self.automation_class}-{self.id}".encode()).hexdigest()
 
     @classmethod
     def delete_history(cls, days=30):

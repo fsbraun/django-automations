@@ -1,9 +1,8 @@
-# coding=utf-8
-
 """Soft dependency on django-automations_cms: Define plugins for open tasks"""
 
 import logging
 import threading
+from typing import ClassVar
 
 from cms.plugin_base import CMSPluginBase
 from cms.plugin_pool import plugin_pool
@@ -27,7 +26,7 @@ class AutomationTaskList(CMSPluginBase):
     def render(self, context, instance, placeholder):
         qs = models.AutomationTaskModel.get_open_tasks(context["request"].user)
         context.update(
-            dict(tasks=qs, count=len(qs), always_inform=instance.always_inform)
+            {"tasks": qs, "count": len(qs), "always_inform": instance.always_inform}
         )
         return context
 
@@ -102,7 +101,7 @@ def get_automation_model(get_params):
 
 
 def get_valid_automation_model(context, template):
-    model_instance = get_automation_model(context.get("request", dict()).GET)
+    model_instance = get_automation_model(context.get("request", {}).GET)
     if model_instance:
         cls = models.get_automation_class(model_instance.automation_class)
         if hasattr(cls, "Meta"):
@@ -122,7 +121,7 @@ def get_valid_automation_model(context, template):
 class EditTaskData(forms.ModelForm):
     class Meta:
         model = cms_models.AutomationStatusPlugin
-        widgets = {
+        widgets: ClassVar = {
             "template": forms.Select(choices=get_task_status_choices()),
             "name": forms.HiddenInput(),
         }
@@ -154,11 +153,11 @@ class AutomationStatus(CMSPluginBase):
         else:
             automation = None
         context.update(
-            dict(
-                automation=automation,
-                automation_model=automation_model,
-                instance=instance,
-            )
+            {
+                "automation": automation,
+                "automation_model": automation_model,
+                "instance": instance,
+            }
         )
         return context
 
@@ -169,7 +168,7 @@ plugin_pool.register_plugin(AutomationStatus)
 class EditAutomationHook(forms.ModelForm):
     class Meta:
         model = cms_models.AutomationHookPlugin
-        widgets = {
+        widgets: ClassVar = {
             "automation": forms.Select(choices=get_task_receiver_choices()),
         }
         fields = "__all__"
@@ -190,8 +189,8 @@ class AutomationHook(CMSPluginBase):
         try:
             cls = models.get_automation_class(automation)
             if not issubclass(cls, flow.Automation):
-                raise AttributeError
-        except (AttributeError, ModuleNotFoundError):
+                raise TypeError
+        except (AttributeError, ModuleNotFoundError, TypeError):
             return {"error": _("Automation class not present: %s") % automation}
         if (
             instance.operation

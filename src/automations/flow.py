@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def get_error_report(exc_type, exc_value, exc_traceback):
     er = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
-    return dict(error=er.get_traceback_text(), html=er.get_traceback_html())
+    return {"error": er.get_traceback_text(), "html": er.get_traceback_html()}
 
 
 class ThisAttribute:
@@ -67,15 +67,13 @@ def on_execution_path(m):
             return None if task is None else m(self, task, *args, **kwargs)
         except Exception as err:
             if isinstance(err, ImproperlyConfigured):
-                raise err
+                raise
             if task is not None:
                 self.store_result(task, repr(err), get_error_report(*sys.exc_info()))
                 self.release_lock(task)
                 self._automation._db.finished = True
                 self._automation._db.save()
-                logger.error(
-                    "Automation failed with error and was aborted", exc_info=True
-                )
+                logger.exception("Automation failed with error and was aborted")
             return None
 
     return wrapper
@@ -91,7 +89,7 @@ class Node:
         self._skipif = []
         self._skipafter = None
         self._leave = False
-        self._model_defaults = dict(locked=0)
+        self._model_defaults = {"locked": 0}
         self.description = kwargs.pop("description", "")
 
     def modifiers(self):
@@ -167,7 +165,6 @@ class Node:
     def release_lock(self, task: models.AutomationTaskModel):
         task.locked -= 1
         task.save()
-        return None
 
     @staticmethod
     def store_result(task: models.AutomationTaskModel, message, result):
@@ -295,7 +292,7 @@ class End(Node):
         task.finished = now()
         task.locked = 0
         task.save()
-        return None  # Stops execution
+        # Stops execution
 
 
 class Repeat(Node):
@@ -382,14 +379,14 @@ class Split(Node):
                 "at least one .Next statement needed for Split()"
             )
             db = self._automation._db
-            tasks = list(
+            tasks = [
                 db.automationtaskmodel_set.create(  # Create splits
                     previous=task,
                     status=self.resolve(split)._name,
                     locked=0,
                 )
                 for split in self._splits
-            )
+            ]
             self.store_result(task, "Split", [task.id for task in tasks])
             self.leave(task)
             for task in tasks:
@@ -477,7 +474,7 @@ class Execute(Node):
                 self.store_result(task, "OK", result)
             except Exception as err:
                 if isinstance(err, ImproperlyConfigured):
-                    raise err
+                    raise
                 self._err = err
                 self.store_result(task, repr(err), get_error_report(*sys.exc_info()))
 
@@ -571,9 +568,10 @@ class Form(Node):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._model_defaults = dict(
-            locked=-1, requires_interaction=True
-        )  # Start w/o lock, but interaction needed
+        self._model_defaults = {
+            "locked": -1,
+            "requires_interaction": True,
+        }  # Start w/o lock, but interaction needed
         self._form = form
         self._success_url = success_url
         self._context = context if context is not None else {}
@@ -601,9 +599,10 @@ class Form(Node):
         return task  # Continue with validated form
 
     def is_valid(self, task: models.AutomationTaskModel, request, form):
-        task.automation.data[f"_{self._name}_validated"] = dict(
-            user_id=request.user.id, time=now().isoformat()
-        )
+        task.automation.data[f"_{self._name}_validated"] = {
+            "user_id": request.user.id,
+            "time": now().isoformat(),
+        }
         task.automation.save()
         task.requires_interaction = False
         task.save()
@@ -695,9 +694,9 @@ class ModelForm(Form):
         model = self._form.Meta.model  # Get model from Form's Meta class
         if self._instance_key in task.data:
             instances = model.objects.filter(id=task.data[self._instance_key])
-            return dict(instance=instances[0] if len(instances) == 1 else None)
+            return {"instance": instances[0] if len(instances) == 1 else None}
         else:
-            return dict()
+            return {}
 
 
 class SendMessage(Node):
@@ -720,13 +719,13 @@ class SendMessage(Node):
             results = cls.broadcast_message(
                 self._message, self._token, data=self.kwargs
             )
-        elif isinstance(cls, Automation) or isinstance(cls, int):
+        elif isinstance(cls, (Automation, int)):
             results = [
                 cls.dispatch_message(self._message, self._token, data=self.kwargs)
             ]
         else:
             raise ImproperlyConfigured("")
-        self.store_result(task, "OK", dict(results=results))
+        self.store_result(task, "OK", {"results": results})
         return task
 
     def execute(self, task: models.AutomationTaskModel):
@@ -772,7 +771,12 @@ class Automation:
                 setattr(
                     self.__class__,
                     name,  # Replace property by get_model_instance
-                    property(lambda slf: slf.get_model_instance(at_c, nm_c), self),
+                    property(
+                        lambda slf, at_c=at_c, nm_c=nm_c: slf.get_model_instance(
+                            at_c, nm_c
+                        ),
+                        self,
+                    ),
                 )
                 if name in kwargs and not isinstance(
                     kwargs[name], int
@@ -828,21 +832,18 @@ class Automation:
                 )
                 assert key in kwargs, (
                     "to ensure unique property, "
-                    "create automation with '%s=...' parameter" % key
+                    f"create automation with '{key}=...' parameter"
                 )
             qs = self.model_class.objects.filter(finished=False)
             self._create_model_properties(kwargs)
             for instance in qs:
                 identical = sum(
                     (
-                        (
-                            0
-                            if key not in instance.data
-                            or instance.data[key] != kwargs[key]
-                            else 1
-                        )
-                        for key in self.unique
+                        0
+                        if key not in instance.data or instance.data[key] != kwargs[key]
+                        else 1
                     )
+                    for key in self.unique
                 )
                 if identical == len(self.unique):
                     self._db = instance
@@ -872,7 +873,11 @@ class Automation:
                 setattr(
                     self.__class__,
                     name,  # Replace property by get_model_instance
-                    property(lambda slf: slf.get_model_instance(model_class, cname)),
+                    property(
+                        lambda slf, model_class=model_class, cname=cname: (
+                            slf.get_model_instance(model_class, cname)
+                        )
+                    ),
                 )
                 kwargs[name] = kwargs[name].id
 
@@ -900,7 +905,7 @@ class Automation:
         """Run automation steps in a background thread to, e.g., do not block
         the request response cycle"""
         threading.Thread(
-            target=self.run, kwargs=dict(task=task, next_task=next_task)
+            target=self.run, kwargs={"task": task, "next_task": next_task}
         ).start()
 
     def run(self, task=None, next_node=None):
@@ -927,16 +932,14 @@ class Automation:
 
     @classmethod
     def get_verbose_name(cls):
-        if hasattr(cls, "Meta"):
-            if hasattr(cls.Meta, "verbose_name"):
-                return cls.Meta.verbose_name
+        if hasattr(cls, "Meta") and hasattr(cls.Meta, "verbose_name"):
+            return cls.Meta.verbose_name
         return f"Automation {cls.__name__}"
 
     @classmethod
     def get_verbose_name_plural(cls):
-        if hasattr(cls, "Meta"):
-            if hasattr(cls.Meta, "verbose_name_plural"):
-                return cls.Meta.verbose_name_plural
+        if hasattr(cls, "Meta") and hasattr(cls.Meta, "verbose_name_plural"):
+            return cls.Meta.verbose_name_plural
         return f"Automations {cls.__name__}"
 
     def killed(self):
@@ -949,10 +952,11 @@ class Automation:
         """RECEIVES message and dispatches it within the class
         Called send_message so that sending a message to an automation
         is `automation.send_message(...)"""
-        if self.__class__.satisfies_data_requirements(message, data):
-            if not self.finished():
-                method = getattr(self, "receive_" + message)
-                return method(token, data)
+        if self.__class__.satisfies_data_requirements(message, data) and (
+            not self.finished()
+        ):
+            method = getattr(self, "receive_" + message)
+            return method(token, data)
         return None
 
     @classmethod
@@ -1017,7 +1021,7 @@ class Automation:
     @classmethod
     def create_on_message(cls, message, token, data):
         if cls.satisfies_data_requirements(message, data):
-            kwargs = dict()
+            kwargs = {}
             accessor = data.GET if hasattr(data, "GET") else data
             if isinstance(cls.unique, (list, tuple)):
                 for param in cls.unique:
@@ -1077,7 +1081,7 @@ def get_automations(app=None):
 
         check_module(mod)
         if hasattr(mod, "automations"):
-            mod = getattr(mod, "automations")
+            mod = mod.automations
             check_module(mod)
 
     return automation_list

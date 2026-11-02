@@ -4,3 +4,15 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+# Matches ``python_requires = >=3.7`` in setup.cfg. Without this, ruff infers
+# the target from the local toolchain and may emit syntax (e.g. unparenthesized
+# ``except A, B:``) that is invalid on the supported Python versions.
+target-version = "py37"
+
+[tool.ruff.lint.per-file-ignores]
+# Django-generated migrations: ``operations``/``dependencies`` are a framework
+# contract, not mutable state to refactor, and annotations would be lost on
+# regeneration.
+"**/migrations/*.py" = ["RUF012"]
