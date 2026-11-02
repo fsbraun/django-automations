@@ -1,7 +1,7 @@
-# coding=utf-8
 import datetime
 import inspect
 from io import StringIO
+from typing import ClassVar
 from unittest.mock import patch
 
 import django.dispatch
@@ -107,7 +107,7 @@ class TestSplitJoin(flow.Automation):
 class AtmTaskForm(forms.ModelForm):
     class Meta:
         model = AutomationTaskModel
-        exclude = []
+        exclude: ClassVar = []
 
 
 class FormTest(flow.Automation):
@@ -116,9 +116,9 @@ class FormTest(flow.Automation):
         verbose_name_plural = "Edit tasks"
 
     start = flow.Execute(this.init_with_item)
-    form = flow.Form(TestForm, context=dict(claim="Save")).User(id=0)
+    form = flow.Form(TestForm, context={"claim": "Save"}).User(id=0)
     form2 = (
-        flow.Form(TestForm, context=dict(claim="Save"))
+        flow.Form(TestForm, context={"claim": "Save"})
         .User(id=0)
         .Permission("automations.create_automationmodel")
     )
@@ -228,8 +228,8 @@ class FormTestCase(TestCase):
         atm = FormTest(autorun=False)
         tasks = atm._db.automationtaskmodel_set.filter(finished=None)
         self.assertEqual(len(tasks), 0)
-        atm.form._user = dict(id=self.user.id)  # Fake User
-        atm.form2._user = dict(id=self.user.id)  # Fake User
+        atm.form._user = {"id": self.user.id}  # Fake User
+        atm.form2._user = {"id": self.user.id}  # Fake User
         atm.run()
         users = atm.form.get_users_with_permission()
         self.assertEqual(len(users), 0)
@@ -246,7 +246,7 @@ class FormTestCase(TestCase):
         response = views.TaskView.as_view()(request, task_id=tasks[0].id)
         self.assertEqual(response.status_code, 200)
 
-        form_data = dict(session=8, email="none@nowhere.com", first_name="Fred")
+        form_data = {"session": 8, "email": "none@nowhere.com", "first_name": "Fred"}
         request = self.factory.post(f"/{tasks[0].id}", data=form_data)
         request.user = self.user
         response = views.TaskView.as_view()(request, task_id=tasks[0].id)
@@ -488,32 +488,32 @@ class SingletonTest(TestCase):
 
         self.assertTrue(
             ByEmailSingletonAutomation.satisfies_data_requirements(
-                "test", dict(email="test", mails="2")
+                "test", {"email": "test", "mails": "2"}
             )
         )
         self.assertTrue(
             ByEmailSingletonAutomation.satisfies_data_requirements(
-                "test", dict(email="test", mails=2)
+                "test", {"email": "test", "mails": 2}
             )
         )
         self.assertFalse(
             ByEmailSingletonAutomation.satisfies_data_requirements(
-                "test", dict(email="test", mails="t2")
+                "test", {"email": "test", "mails": "t2"}
             )
         )
         self.assertFalse(
             ByEmailSingletonAutomation.satisfies_data_requirements(
-                "test", dict(mails="t2")
+                "test", {"mails": "t2"}
             )
         )
         self.assertFalse(
             ByEmailSingletonAutomation.satisfies_data_requirements(
-                "nonexistent", dict(mails="t2")
+                "nonexistent", {"mails": "t2"}
             )
         )
 
         ByEmailSingletonAutomation.create_on_message(
-            "test", None, dict(email="new", mails=2)
+            "test", None, {"email": "new", "mails": 2}
         )
         self.assertEqual(
             len(
@@ -525,7 +525,7 @@ class SingletonTest(TestCase):
         )
 
         ByEmailSingletonAutomation.create_on_message(
-            "test", None, dict(email="also_new")
+            "test", None, {"email": "also_new"}
         )
         self.assertEqual(
             len(
@@ -678,7 +678,7 @@ class ModelSwapTestCase(TestCase):
         )
 
         atm = FormTest(autorun=False)
-        atm.form._user = dict(id=self.user.id)  # Fake User
+        atm.form._user = {"id": self.user.id}  # Fake User
 
         form_method = inspect.getsource(atm.form.get_users_with_permission)
         self.assertIn("ABC", form_method)

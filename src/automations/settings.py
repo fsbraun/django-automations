@@ -1,5 +1,3 @@
-# coding=utf-8
-
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -10,10 +8,10 @@ MAX_FIELD_LENGTH = 128
 FORM_VIEW_CONTEXT = getattr(
     settings,
     "ATM_FORM_VIEW_CONTEXT",
-    dict(
-        submit_classes="btn btn-primary float-right float-end",
-        back_classes="btn btn-outline-primary",
-    ),
+    {
+        "submit_classes": "btn btn-primary float-right float-end",
+        "back_classes": "btn btn-outline-primary",
+    },
 )
 
 TASK_LIST_TEMPLATES = getattr(

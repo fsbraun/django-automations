@@ -1,5 +1,3 @@
-# coding=utf-8
-
 # Create your views here.
 import datetime
 import urllib.parse
@@ -69,7 +67,7 @@ class TaskView(LoginRequiredMixin, AutomationMixin, FormView):
         )
         context = super().get_context_data(**kwargs)
         context.update(settings.FORM_VIEW_CONTEXT)
-        context.update(getattr(self.node._automation, "context", dict()))
+        context.update(getattr(self.node._automation, "context", {}))
         context.update(self.node._context)
         return context
 
@@ -98,7 +96,7 @@ class TaskListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         qs = models.AutomationTaskModel.get_open_tasks(self.request.user)
-        return dict(error="", tasks=qs, count=len(qs))
+        return {"error": "", "tasks": qs, "count": len(qs)}
 
 
 class UserIsStaff(LoginRequiredMixin, UserPassesTestMixin):
@@ -138,7 +136,7 @@ class TaskDashboardView(PermissionRequiredMixin, TemplateView):
                 dashboard = (
                     automation.get_dashboard_context(qs_filtered)
                     if hasattr(automation, "get_dashboard_context")
-                    else dict()
+                    else {}
                 )
             except AttributeError:
                 verbose_name = (
@@ -150,20 +148,20 @@ class TaskDashboardView(PermissionRequiredMixin, TemplateView):
                     % item["automation_class"].rsplit(".")[-1]
                 )
                 dashboard_template = ""
-                dashboard = dict()
+                dashboard = {}
             if dashboard_template is not None:
                 automations.append(
-                    dict(
-                        cls=item["automation_class"],
-                        verbose_name=verbose_name,
-                        verbose_name_plural=verbose_name_plural,
-                        running=qs_filtered.filter(finished=False),
-                        finished=qs_filtered.filter(finished=True),
-                        dashboard_template=dashboard_template,
-                        dashboard=dashboard,
-                    )
+                    {
+                        "cls": item["automation_class"],
+                        "verbose_name": verbose_name,
+                        "verbose_name_plural": verbose_name_plural,
+                        "running": qs_filtered.filter(finished=False),
+                        "finished": qs_filtered.filter(finished=True),
+                        "dashboard_template": dashboard_template,
+                        "dashboard": dashboard,
+                    }
                 )
-        return dict(automations=automations, timespan=_("Last %d days") % days)
+        return {"automations": automations, "timespan": _("Last %d days") % days}
 
 
 class AutomationHistoryView(PermissionRequiredMixin, TemplateView):
@@ -201,10 +199,10 @@ class AutomationHistoryView(PermissionRequiredMixin, TemplateView):
         )
         task = automation.automationtaskmodel_set.get(previous=None)
         tasks, _ = self.build_tree(task)
-        return dict(
-            automation=automation,
-            tasks=tasks,
-        )
+        return {
+            "automation": automation,
+            "tasks": tasks,
+        }
 
 
 class AutomationTracebackView(PermissionRequiredMixin, TemplateView):
@@ -224,12 +222,12 @@ class AutomationTracebackView(PermissionRequiredMixin, TemplateView):
         if task.automation != automation:
             raise Http404()
         if isinstance(task.result, dict):
-            return dict(
-                automation=automation,
-                error=task.result.get("error", None),
-                html=task.result.get("html", None),
-            )
-        return dict()
+            return {
+                "automation": automation,
+                "error": task.result.get("error", None),
+                "html": task.result.get("html", None),
+            }
+        return {}
 
 
 class AutomationErrorsView(PermissionRequiredMixin, TemplateView):
@@ -249,4 +247,4 @@ class AutomationErrorsView(PermissionRequiredMixin, TemplateView):
                 automations.append(
                     (task.automation, tasks.filter(automation=task.automation))
                 )
-        return dict(automations=automations)
+        return {"automations": automations}
