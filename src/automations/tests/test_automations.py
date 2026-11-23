@@ -315,6 +315,35 @@ class HistoryTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("BogusAutomation1", response.content.decode("utf8"))
 
+    def test_history_with_two_root_tasks(self):
+        """Data written before the skip fix may contain more than one task
+        with previous=None. The history view must not fail on it."""
+        atm = SkipIfLinkAutomation()
+        orphan = atm._db.automationtaskmodel_set.create(
+            previous=None, status="third", message="orphan", finished=now()
+        )
+        atm._db.automationtaskmodel_set.create(
+            previous=orphan, status="end", message="after orphan", finished=now()
+        )
+        self.assertEqual(
+            atm._db.automationtaskmodel_set.filter(previous=None).count(), 2
+        )
+        response = self.client.get(f"/dashboard/{atm._db.id}")
+        self.assertEqual(response.status_code, 200)
+        tasks = response.context["tasks"]
+        self.assertEqual(tasks[0].status, "start")  # Earliest root comes first
+        self.assertIn(orphan, tasks)  # Orphaned chain still shown
+        self.assertEqual(len(tasks), len(set(tasks)))  # ... and nothing twice
+
+    def test_history_without_tasks(self):
+        db = AutomationModel.objects.create(
+            automation_class="automations.tests.test_automations.SkipIfLinkAutomation",
+            finished=False,
+        )
+        response = self.client.get(f"/dashboard/{db.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["tasks"], [])
+
 
 test_signal = django.dispatch.Signal()
 
@@ -709,3 +738,242 @@ class AutomationReprTest(TestCase):
             "'init': <function AutomationReprTest.test_automation_repr.",
             automation_dict,
         )
+
+
+class SkipIfLinkAutomation(flow.Automation):
+    start = flow.Execute()
+    second = flow.Execute().SkipIf(True)
+    third = flow.Execute()
+    fourth = flow.Execute().SkipIf(lambda task: True)
+    fifth = flow.Execute()
+    end = flow.End()
+
+
+class SkipAfterLoopAutomation(flow.Automation):
+    """Mimics a monthly loop: a form which is skipped if nobody fills it in
+    and a node waiting for the next cycle before looping back to the form."""
+
+    # Set by the tests on the class: nodes are shared by all instances of an
+    # automation class and keep `this` references of the first instance
+    wait_until = None
+
+    upload_data = flow.Form(TestForm, repeated_form=True).SkipAfter(
+        datetime.timedelta(days=7)
+    )
+    profile_new = (
+        flow.Execute().AfterWaitingUntil(this.next_cycle).Next(this.upload_data)
+    )
+
+    def next_cycle(self, task):
+        return SkipAfterLoopAutomation.wait_until
+
+
+class SkipInSplitAutomation(flow.Automation):
+    start = flow.Split().Next(this.a1).Next(this.b1)
+    a1 = flow.Execute().SkipIf(True)
+    a2 = flow.Execute().Next(this.join)
+    b1 = flow.Execute()
+    join = flow.Join()
+    end = flow.End()
+
+
+class SkipLinkTestCase(TestCase):
+    """A skipped node must hand its task on as the `previous` task of the
+    following node (it used to hand on None, creating a second root task)."""
+
+    max_enters = 50
+
+    def setUp(self):
+        # A regression here tends to show as an endless loop in Automation.run:
+        # fail instead of hanging the test suite
+        enter = flow.Node.enter
+        calls = []
+
+        def guarded_enter(node, prev_task=None):
+            calls.append(node)
+            if len(calls) > self.max_enters:
+                raise AssertionError("Automation.run does not terminate")
+            return enter(node, prev_task)
+
+        patcher = patch.object(flow.Node, "enter", guarded_enter)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.enter_calls = calls
+
+    @staticmethod
+    def tasks(atm):
+        return list(atm._db.automationtaskmodel_set.order_by("id"))
+
+    def assertSingleChain(self, atm, expected_status):
+        """All tasks of the automation form one chain in order of creation"""
+        tasks = self.tasks(atm)
+        self.assertEqual([task.status for task in tasks], expected_status)
+        self.assertEqual([task.previous for task in tasks], [None, *tasks[:-1]])
+        self.assertEqual(
+            atm._db.automationtaskmodel_set.filter(previous=None).count(), 1
+        )
+        return tasks
+
+    @staticmethod
+    def expire_open_form(atm):
+        """Pretend the open form task was created more than 7 days ago"""
+        updated = atm._db.automationtaskmodel_set.filter(
+            status="upload_data", finished=None
+        ).update(created=now() - datetime.timedelta(days=8))
+        assert updated == 1, "Expected exactly one open form"
+
+    @staticmethod
+    def rerun(atm, wait_until):
+        """Run the automation the way the scheduler does"""
+        SkipAfterLoopAutomation.wait_until = wait_until
+        atm = SkipAfterLoopAutomation(automation_id=atm.id, autorun=False)
+        atm.run()
+        return atm
+
+    def test_skipif_links_following_task(self):
+        atm = SkipIfLinkAutomation()
+        self.assertTrue(atm.finished())
+        tasks = self.assertSingleChain(
+            atm, ["start", "second", "third", "fourth", "fifth", "end"]
+        )
+        for skipped in (tasks[1], tasks[3]):
+            self.assertEqual(skipped.message, "skipped")
+            self.assertIsNotNone(skipped.finished)
+            self.assertEqual(skipped.locked, 0)
+        for task in tasks:
+            self.assertIsNotNone(task.finished)
+            self.assertEqual(task.locked, 0)
+
+    def test_skipafter_links_following_task(self):
+        future = now() + datetime.timedelta(days=20)
+        SkipAfterLoopAutomation.wait_until = future
+        atm = SkipAfterLoopAutomation()
+        (form_task,) = self.tasks(atm)
+        self.assertIsNone(form_task.finished)
+
+        self.expire_open_form(atm)
+        atm = self.rerun(atm, future)
+
+        skipped, waiting = self.assertSingleChain(atm, ["upload_data", "profile_new"])
+        self.assertEqual(skipped.id, form_task.id)
+        self.assertEqual(skipped.message, "skipped")
+        self.assertIsNotNone(skipped.finished)
+        # A Form task is created with locked == -1 and returns to -1 when a
+        # validated form is left: a skipped form has to end at the same value
+        self.assertEqual(skipped.locked, form_task.locked)
+        self.assertLessEqual(skipped.locked, 0)
+        self.assertEqual(waiting.previous, skipped)
+        self.assertIsNone(waiting.finished)
+        self.assertEqual(waiting.locked, 0)
+
+    def test_skipping_twice_in_a_loop(self):
+        future = now() + datetime.timedelta(days=20)
+        past = now() - datetime.timedelta(days=1)
+        SkipAfterLoopAutomation.wait_until = future
+        atm = SkipAfterLoopAutomation()
+
+        for cycle in (1, 2):
+            self.expire_open_form(atm)
+            atm = self.rerun(atm, future)  # skips form, waits in profile_new
+            self.assertSingleChain(atm, ["upload_data", "profile_new"] * cycle)
+            atm = self.rerun(atm, past)  # wait is over: back to the form
+            tasks = self.assertSingleChain(
+                atm, ["upload_data", "profile_new"] * cycle + ["upload_data"]
+            )
+            self.assertEqual(
+                [task.message for task in tasks], ["skipped", ""] * cycle + [""]
+            )
+            self.assertEqual(
+                [task.finished is None for task in tasks],
+                [False, False] * cycle + [True],
+            )
+            self.assertEqual([task.locked for task in tasks], [-1, 0] * cycle + [-1])
+
+        # Nothing left to do: another run must not touch the finished tasks
+        before = [(task.id, task.finished, task.locked) for task in tasks]
+        atm = self.rerun(atm, past)
+        self.assertEqual(
+            [(task.id, task.finished, task.locked) for task in self.tasks(atm)],
+            before,
+        )
+
+    def test_skip_inside_split(self):
+        """Join looks for its Split by following `previous`"""
+        atm = SkipInSplitAutomation()
+        self.assertTrue(atm.finished())
+        tasks = {task.status: task for task in self.tasks(atm)}
+        self.assertEqual(tasks["a1"].message, "skipped")
+        self.assertEqual(tasks["a2"].previous, tasks["a1"])
+        self.assertEqual(
+            atm._db.automationtaskmodel_set.filter(previous=None).count(), 1
+        )
+
+
+class ThisBindingAutomation(flow.Automation):
+    """All modifiers refer to methods of the automation by `this`"""
+
+    calls: ClassVar = []  # (method name, id of the automation called)
+
+    start = flow.Execute().AsSoonAs(this.condition)
+    waited = flow.Execute().AfterWaitingUntil(this.wait_until)
+    not_skipped = flow.Execute(this.executed).SkipIf(this.skip_if)
+    not_skipped_either = flow.Execute(this.executed).SkipAfter(this.skip_after)
+    branch = flow.If(this.if_condition).Then(this.executed)
+    end = flow.End()
+
+    def record(self, name):
+        self.calls.append((name, self.id))
+
+    def condition(self, task):
+        self.record("condition")
+        return True
+
+    def wait_until(self, task):
+        self.record("wait_until")
+        return now() - datetime.timedelta(days=1)
+
+    def skip_if(self, task):
+        self.record("skip_if")
+        return False
+
+    def skip_after(self, task):
+        self.record("skip_after")
+        return datetime.timedelta(days=1)
+
+    def if_condition(self, task):
+        self.record("if_condition")
+        return True
+
+    def executed(self, task):
+        self.record("executed")
+
+
+class ThisBindingTestCase(TestCase):
+    """Nodes are shared by all instances of an automation class. References
+    by `this` must nevertheless resolve to the instance that is running."""
+
+    expected: ClassVar = [
+        "condition",
+        "wait_until",
+        "skip_if",
+        "executed",
+        "skip_after",
+        "executed",
+        "if_condition",
+        "executed",
+    ]
+
+    def test_this_resolves_to_running_instance(self):
+        calls = ThisBindingAutomation.calls
+        for _run in range(3):
+            del calls[:]
+            atm = ThisBindingAutomation()
+            self.assertTrue(atm.finished())
+            self.assertEqual(sorted(call[0] for call in calls), sorted(self.expected))
+            self.assertEqual({call[1] for call in calls}, {atm.id})
+            self.assertEqual(
+                [task.message for task in atm._db.automationtaskmodel_set.all()].count(
+                    "skipped"
+                ),
+                0,
+            )

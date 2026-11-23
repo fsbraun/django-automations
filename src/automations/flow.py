@@ -114,7 +114,6 @@ class Node:
         """is called by the newly initialized Automation instance to bind the nodes to the instance."""
         self._automation = automation_instance
         self._name = name
-        self._conditions = [self.resolve(condition) for condition in self._conditions]
 
     def get_automation_name(self):
         """returns the name of the Automation instance class the node is bound to"""
@@ -129,8 +128,10 @@ class Node:
         if isinstance(value, ThisAttribute) or (
             isinstance(value, str) and value.startswith("self.")
         ):
+            # Do not remember the resolved value: nodes are shared by all
+            # instances of an automation class, the reference has to resolve
+            # to the instance the node is currently bound to
             value = self.resolve(value)
-            setattr(self, item, value)  # remember
         return value
 
     def resolve(self, value):
@@ -203,7 +204,7 @@ class Node:
     @on_execution_path
     def when_handler(self, task):
         for condition in self._conditions:
-            if not self.eval(condition, task):
+            if not self.eval(self.resolve(condition), task):
                 return self.release_lock(task)
         return task
 
@@ -223,16 +224,15 @@ class Node:
         def skip():
             task.finished = now()
             task.message = "skipped"
-            self.release_lock(task)
             self._leave = True
-            return self.release_lock(task)
+            return self.release_lock(task)  # Saves task, release only once
 
         if self._skipafter is not None:
             latest_execution = task.created + self.eval(self._skipafter, task)
             if latest_execution < now():
                 return skip()
         for item in self._skipif:
-            if self.eval(item, task):
+            if self.eval(self.resolve(item), task):
                 return skip()
         return task
 
@@ -262,7 +262,7 @@ class Node:
             raise ImproperlyConfigured(
                 "Multiple .AfterWaitingUntil or .AfterWaitingFor statements"
             )
-        self._wait = lambda x: x.created + self.eval(timedelta, x)
+        self._wait = lambda x: x.created + self.eval(self.resolve(timedelta), x)
         return self
 
     def SkipIf(self, condition):
@@ -925,9 +925,13 @@ class Automation:
                 return
 
         while next_node is not None:
-            task = next_node.enter(task)
-            task = next_node.execute(task)
+            entered = next_node.enter(task)
+            task = next_node.execute(entered)
             last, next_node = task, next_node.leave(task)
+            if task is None and next_node is not None:
+                # Node was skipped: execute() returns None, but the automation
+                # continues. The skipped task precedes the next node's task.
+                task = entered
         return last
 
     @classmethod

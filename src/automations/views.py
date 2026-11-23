@@ -197,8 +197,16 @@ class AutomationHistoryView(PermissionRequiredMixin, TemplateView):
         automation = get_object_or_404(
             models.AutomationModel, id=kwargs.get("automation_id")
         )
-        task = automation.automationtaskmodel_set.get(previous=None)
-        tasks, _ = self.build_tree(task)
+        # Exactly one task without predecessor is expected. Histories written
+        # before the fix of skipped nodes may contain more of them (or the
+        # automation may not have any task yet): show them oldest first.
+        roots = automation.automationtaskmodel_set.filter(previous=None).order_by(
+            "created", "id"
+        )
+        tasks = []
+        for root in roots:
+            tree, _ = self.build_tree(root)
+            tasks += tree
         return {
             "automation": automation,
             "tasks": tasks,
