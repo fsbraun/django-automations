@@ -834,6 +834,14 @@ This wrapper calls the class method ``models.AutomationModel.run()`` which in tu
 This wrapper calls the class method ``models.AutomationModel.delete_history()`` which in turn deletes all automations older than the specified number of days. Defaults to 30 days if no argument is provided.
 
 
+.. code-block:: bash
+
+    python manage.py automation_relink_orphans
+    python manage.py automation_relink_orphans --apply
+
+Repairs task histories written by versions up to 0.9.4, where a task following a skipped node (``.SkipIf()``, ``.SkipAfter()``) was stored without its previous task. Without ``--apply`` the command only reports what it would change. A task is only re-linked if its previous task can be identified safely: a task of the same automation with the message "skipped" that has no following task and was finished at most ``--max-gap`` seconds (default: 10) before the orphaned task was created. All other tasks are reported and left alone. Use ``--automation-id`` (repeatable) to restrict the command to single automations.
+
+
 Settings in ``settings.py``
 ***************************
 

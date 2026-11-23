@@ -8,7 +8,7 @@ import django.dispatch
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.core.management import execute_from_command_line
+from django.core.management import call_command, execute_from_command_line
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
@@ -977,3 +977,145 @@ class ThisBindingTestCase(TestCase):
                 ),
                 0,
             )
+
+
+class RelinkOrphansCommandTest(TestCase):
+    """automation_relink_orphans repairs histories written before skipped
+    nodes handed on their task (see SkipLinkTestCase)"""
+
+    def setUp(self):
+        self.t0 = now() - datetime.timedelta(days=30)
+        self.db = self.automation()
+
+    @staticmethod
+    def automation():
+        return AutomationModel.objects.create(
+            automation_class="automations.tests.test_automations.SkipIfLinkAutomation",
+            finished=False,
+        )
+
+    def task(self, status, previous, created, finished=None, message="", db=None):
+        """Creates a task, times are given in seconds after self.t0"""
+        task = (db or self.db).automationtaskmodel_set.create(
+            status=status,
+            previous=previous,
+            message=message,
+            finished=finished and self.t0 + datetime.timedelta(seconds=finished),
+        )
+        AutomationTaskModel.objects.filter(id=task.id).update(
+            created=self.t0 + datetime.timedelta(seconds=created)
+        )
+        task.refresh_from_db()
+        return task
+
+    def relink(self, *args):
+        out = StringIO()
+        call_command("automation_relink_orphans", *args, stdout=out)
+        return out.getvalue()
+
+    def previous_ids(self, db=None):
+        return dict(
+            (db or self.db).automationtaskmodel_set.values_list("id", "previous_id")
+        )
+
+    def test_dry_run_is_default(self):
+        skipped = self.task("first", None, 0, 100, "skipped")
+        orphan = self.task("second", None, 100.01)
+        before = self.previous_ids()
+
+        output = self.relink()
+
+        self.assertEqual(self.previous_ids(), before)
+        self.assertIn(
+            f"task {orphan.id} (second) -> previous task {skipped.id}", output
+        )
+        self.assertIn("1 task(s) can be re-linked, 0 left alone.", output)
+        self.assertIn("Dry run", output)
+
+    def test_relinks_looping_automation(self):
+        """Two skips, the second one after the orphan of the first was left"""
+        first = self.task("upload_data", None, 0, 10, "")
+        second = self.task("profile_new", first, 10, 20, "")
+        skipped = self.task("upload_data", second, 20, 700, "skipped")
+        orphan = self.task("profile_new", None, 700.02, 900, "")
+        last = self.task("upload_data", orphan, 900)
+
+        output = self.relink("--apply")
+
+        self.assertEqual(
+            self.previous_ids(),
+            {
+                first.id: None,
+                second.id: first.id,
+                skipped.id: second.id,
+                orphan.id: skipped.id,
+                last.id: orphan.id,
+            },
+        )
+        self.assertIn("1 task(s) re-linked, 0 left alone.", output)
+        self.assertEqual(self.relink("--apply"), "0 task(s) re-linked, 0 left alone.\n")
+
+    def test_split_history(self):
+        """Tasks of other paths finishing around the skip are not mistaken for
+        the previous task, each orphan gets the skipped task of its own path"""
+        split = self.task("start", None, 0, 1, "Split")
+        a_skipped = self.task("a1", split, 1, 2, "skipped")
+        a_orphan = self.task("a2", None, 2.01, 3, "OK")
+        b_task = self.task("b1", split, 1, 2.005, "OK")  # Finished last before a2
+        b_skipped = self.task("b2", b_task, 2.005, 4, "skipped")
+        b_orphan = self.task("b3", None, 4.01, 5, "OK")
+        join = self.task("join", a_orphan, 3, 6, "Joined")
+
+        self.relink("--apply")
+
+        self.assertEqual(
+            self.previous_ids(),
+            {
+                split.id: None,
+                a_skipped.id: split.id,
+                a_orphan.id: a_skipped.id,
+                b_task.id: split.id,
+                b_skipped.id: b_task.id,
+                b_orphan.id: b_skipped.id,
+                join.id: a_orphan.id,
+            },
+        )
+
+    def test_ambiguous_orphans_are_left_alone(self):
+        self.task("first", None, 0, 10, "")
+        # Skipped task was entered again later: finished after orphan's creation
+        self.task("second", None, 10, 5000, "skipped")
+        reentered = self.task("third", None, 20)
+        # Skipped task already has a following task
+        other = self.automation()
+        taken = self.task("first", None, 0, 10, "skipped", db=other)
+        self.task("second", taken, 10, 11, db=other)
+        self.task("second", None, 10.01, db=other)
+        # Skip happened long before the orphan was created
+        late = self.automation()
+        self.task("first", None, 0, 10, "skipped", db=late)
+        self.task("second", None, 500, db=late)
+        before = [self.previous_ids(db) for db in (self.db, other, late)]
+
+        output = self.relink("--apply")
+
+        after = [self.previous_ids(db) for db in (self.db, other, late)]
+        self.assertEqual(after, before)
+        self.assertIn(f"task {reentered.id} (third) left alone", output)
+        self.assertIn("0 task(s) re-linked, 4 left alone.", output)
+        # The gap accepted between skip and orphan can be changed
+        self.assertIn("1 task(s) can be re-linked", self.relink("--max-gap", "1000"))
+
+    def test_restrict_to_automation(self):
+        self.task("first", None, 0, 100, "skipped")
+        self.task("second", None, 100.01)
+        other = self.automation()
+        self.task("first", None, 0, 100, "skipped", db=other)
+        orphan = self.task("second", None, 100.01, db=other)
+        before = self.previous_ids()
+
+        self.relink("--apply", "--automation-id", str(other.id))
+
+        self.assertEqual(self.previous_ids(), before)
+        orphan.refresh_from_db()
+        self.assertIsNotNone(orphan.previous)
