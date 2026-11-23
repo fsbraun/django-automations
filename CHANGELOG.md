@@ -19,7 +19,6 @@
 - The history view of the dashboard does not fail anymore for automations with
   several root tasks (data written by earlier versions) or without any task.
   All root tasks are shown, oldest first.
-
 - References to methods of the automation by `this` (or `"self...."`) in
   `.AsSoonAs()`, `.AfterWaitingUntil()`, `.SkipAfter()` and `If()` stayed bound
   to the first instance of an automation class created in a process. They now
@@ -32,3 +31,5 @@
 - Management command `automation_relink_orphans` to repair tasks orphaned by
   the skip bug in existing data. It is a dry run unless called with `--apply`
   and leaves alone every task whose previous task cannot be identified safely.
+Existing tasks are not changed: tasks orphaned by earlier versions keep
+`previous=None`.
